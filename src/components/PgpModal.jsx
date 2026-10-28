@@ -5,6 +5,7 @@ import OpenPgpGuide from '@/components/OpenPgpGuide'
 import DeleteAccountSection from '@/components/DeleteAccountSection'
 import ExportSection from '@/components/ExportSection'
 import TwoFactorSection from '@/components/TwoFactorSection'
+import AliasesSection from '@/components/AliasesSection'
 import RecoveryKeySection from '@/components/RecoveryKeySection'
 import { Lock, ShieldCheck, Copy, Download, Loader2, CheckCircle2, Trash2 } from 'lucide-react'
 import { Modal, ModalHeader, ModalContent, ModalFooter } from '@/components/ui/Modal'
@@ -352,6 +353,7 @@ export function PgpModal({ isOpen, onClose, accountEmail }) {
             <OpenPgpGuide />
             <ProfileSection />
             <TwoFactorSection />
+            <AliasesSection />
             <SessionsSection />
             <ExportSection />
             <DeleteAccountSection />

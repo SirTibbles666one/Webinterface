@@ -291,6 +291,32 @@ export const userSessions = async () => {
   return response.data
 }
 
+// Disposable addresses: mail to one lands in this mailbox, and switching it off
+// stops it working for the sender.
+export const listAliases = async () => {
+  const token = storage.getToken()
+  const response = await api.get('/aliases', { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
+export const createAlias = async ({ local = '', label = '' } = {}) => {
+  const token = storage.getToken()
+  const response = await api.post('/aliases', { local, label }, { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
+export const setAliasDisabled = async (local, disabled) => {
+  const token = storage.getToken()
+  const response = await api.post('/aliases/disable', { local, disabled }, { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
+export const deleteAlias = async (local) => {
+  const token = storage.getToken()
+  const response = await api.post('/aliases/delete', { local }, { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
 export const userRevokeSession = async (id) => {
   const token = storage.getToken()
   const response = await api.post('/user/sessions/revoke', { id }, { headers: { Authorization: `Bearer ${token}` } })
