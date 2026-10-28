@@ -40,6 +40,12 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
     if (vanish === 'off') return null
     return { deletes_on_read: false, expires_in_seconds: Number(vanish) }
   }
+  // The rule is enforced by this server only. Saying so before sending is the
+  // difference between a promise and a misunderstanding.
+  const myDomain = String(myEmail || '').split('@')[1]?.toLowerCase() || ''
+  const offServerRecipients = [...toChips, ...ccChips, ...bccChips]
+    .filter((a) => a && a.trim())
+    .filter((a) => !myDomain || !a.toLowerCase().trim().endsWith('@' + myDomain))
 
   const { sendState, sendError, sendResults, handleSend, reportError } = useSendEmail({
     myEmail, replyData, draftId, onDeleteDraft, onSent, onClose,
@@ -614,6 +620,14 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                   <option value="604800">Deletes in 7 days</option>
                 </select>
               </label>
+              {vanish !== 'off' && offServerRecipients.length > 0 && (
+                <span
+                  className="text-[10px] text-amber-600 dark:text-amber-400 max-w-[130px] leading-tight"
+                  title={offServerRecipients.join(', ')}
+                >
+                  {offServerRecipients.length} recipient{offServerRecipients.length === 1 ? ' is' : 's are'} elsewhere — nothing to delete there
+                </span>
+              )}
               <button
                 onClick={sendWithPgpIfNeeded}
                 disabled={isSendBlocked || hasLoadingFiles || pgpBusy}
