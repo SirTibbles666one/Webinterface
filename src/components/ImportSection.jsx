@@ -2,6 +2,8 @@ import { useRef, useState } from 'react'
 import { AlertTriangle, Check, FileUp, Loader2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { importMessage } from '@/api'
+import { openArchive } from '@/lib/slotharc'
+import { Input } from '@/components/ui/input'
 import { toast } from '@/lib/toast'
 
 /**
@@ -98,6 +100,7 @@ export default function ImportSection() {
   const [skipped, setSkipped] = useState(0)
   const [failures, setFailures] = useState([])
   const [summary, setSummary] = useState('')
+  const [passphrase, setPassphrase] = useState('')
 
   const reset = () => {
     setTotal(0)
@@ -125,6 +128,25 @@ export default function ImportSection() {
       const jobs = []
       for (const file of files) {
         const buffer = new Uint8Array(await file.arrayBuffer())
+
+        // A sealed archive is already framed message by message: open it, and the
+        // plaintext stays in memory only for as long as the upload takes.
+        if (/\.slotharc$/i.test(file.name)) {
+          if (!passphrase) {
+            problems.push({ name: file.name, reason: 'enter the archive passphrase, then choose the file again' })
+            continue
+          }
+          const { messages, manifest } = await openArchive(buffer, passphrase)
+          if (messages.length > MAX_PER_FILE) {
+            problems.push({ name: file.name, reason: `more than ${MAX_PER_FILE} messages in one archive` })
+            continue
+          }
+          for (const bytes of messages) {
+            jobs.push({ file: `${file.name}${manifest?.created ? ` (${manifest.created.slice(0, 10)})` : ''}`, bytes, text: bytesToLatin1(bytes) })
+          }
+          continue
+        }
+
         const text = bytesToLatin1(buffer)
         const parts = splitMessages(text)
         if (parts.length > MAX_PER_FILE) {
@@ -132,7 +154,9 @@ export default function ImportSection() {
           continue
         }
         for (const part of parts) {
-          jobs.push({ file: file.name, text: part })
+          const bytes = new Uint8Array(part.length)
+          for (let j = 0; j < part.length; j += 1) bytes[j] = part.charCodeAt(j) & 0xff
+          jobs.push({ file: file.name, bytes, text: part })
         }
       }
       planned = jobs.length
@@ -141,9 +165,7 @@ export default function ImportSection() {
       for (let i = 0; i < jobs.length; i += 1) {
         const job = jobs[i]
         try {
-          const bytes = new Uint8Array(job.text.length)
-          for (let j = 0; j < job.text.length; j += 1) bytes[j] = job.text.charCodeAt(j) & 0xff
-          const result = await importMessage(bytesToBase64(bytes), dateOf(job.text))
+          const result = await importMessage(bytesToBase64(job.bytes), dateOf(job.text))
           if (result?.skipped) skippedCount += 1
           else importedCount += 1
         } catch (err) {
@@ -185,11 +207,20 @@ export default function ImportSection() {
       </p>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Input
+          type="password"
+          value={passphrase}
+          onChange={(e) => setPassphrase(e.target.value)}
+          placeholder="Passphrase (only for .slotharc)"
+          autoComplete="off"
+          className="w-full max-w-[240px] max-sm:min-h-[44px]"
+          aria-label="Passphrase for sealed archives"
+        />
         <input
           ref={inputRef}
           type="file"
           multiple
-          accept=".eml,.mbox,.txt,message/rfc822,application/mbox"
+          accept=".eml,.mbox,.txt,.slotharc,message/rfc822,application/mbox"
           className="sr-only"
           id="import-files"
           onChange={(e) => handleFiles(e.target.files)}
@@ -204,7 +235,7 @@ export default function ImportSection() {
           {running ? 'Importing…' : 'Choose files'}
         </Button>
         <span className="text-[11.5px] text-ink-4">
-          .eml, .mbox or a folder of them · up to 20 MB each
+          .eml, .mbox, .slotharc or a folder of them · up to 20 MB each
         </span>
       </div>
 

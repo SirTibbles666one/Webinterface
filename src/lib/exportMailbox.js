@@ -37,6 +37,41 @@ export async function exportMailbox({ list, get, decrypt, privateKey }) {
   return { mbox: toMbox(messages), total: messages.length, failed }
 }
 
+/**
+ * Every message as raw bytes, in the order the account holds them.
+ *
+ * Bytes rather than text: a sealed archive has to round-trip whatever MIME the
+ * sender used, and a string conversion would quietly rewrite anything that is not
+ * valid UTF-8.
+ */
+export async function collectRaw({ list, get, decryptBytes }) {
+  const uids = await list()
+  const messages = []
+  const failed = []
+  for (const uid of uids) {
+    try {
+      const { data, message_key } = await get(uid)
+      const bytes = await decryptBytes(data, message_key)
+      messages.push(new Uint8Array(bytes))
+    } catch {
+      failed.push(uid)
+    }
+  }
+  return { messages, failed }
+}
+
+export function downloadBytes(filename, bytes, type = 'application/octet-stream') {
+  const blob = new Blob([bytes], { type })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 export function downloadText(filename, text) {
   const blob = new Blob([text], { type: 'application/mbox' })
   const url = URL.createObjectURL(blob)
