@@ -73,7 +73,7 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
    * sent at all. It is PGP-armoured by the compose window ("sealed" here) and
    * stored on this server; the recipient gets a link that we can delete.
    */
-  const handleSend = async ({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral, sealed, sealMode, sealedPhrase, sendAt: whenToSend }) => {
+  const handleSend = async ({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral, sealed, sealMode, sealedPhrase, sealedFiles, sendAt: whenToSend }) => {
     const allTo  = toChips.filter((a) => a.trim())
     const allCc  = ccChips.filter((a) => a.trim())
     const allBcc = bccChips.filter((a) => a.trim())
@@ -181,6 +181,9 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
             deletes_on_read: true,
             expires_in_seconds: seconds,
             mode: sealMode === 'passphrase' ? 'passphrase' : 'pgp',
+            // Sealed to the same phrase as the body: the recipient's page opens
+            // one and has the other already in hand.
+            ...(sealMode === 'passphrase' && sealedFiles?.length ? { files: sealedFiles } : {}),
           },
           { headers },
         )

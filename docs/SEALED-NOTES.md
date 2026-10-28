@@ -63,6 +63,33 @@ Withdraw clears the armour server-side. The link then reports "withdrawn" and
 nothing left to withdraw by then — and for anyone but the account that created
 it, with the same answer either way so the call cannot be used to probe tokens.
 
+## Attachments, with a passphrase lock only
+
+A sealed note can carry up to five files, 6 MB of armour in total. The rule is
+deliberate: **files go with the passphrase lock, not the key lock.**
+
+- Key mode hands the recipient armour for their own mail client. Asking them to
+  decrypt five more files by hand would be worse than refusing, so it refuses
+  with `files_need_passphrase` and the compose window says which switch to flip.
+- Passphrase mode is opened on our page, which already has the phrase and the
+  library — so it can decrypt the files in the same place.
+
+Each file is encrypted in the browser to the same phrase as the body, as a binary
+PGP message, and travels in the **same** `POST /note/create` request. That means
+one fetch brings the recipient everything: the page decrypts the body, renders the
+file list, and each download decrypts its bytes locally into a blob. Nothing is
+fetched after the note is burned.
+
+File names are reduced to their last path segment and stripped of separators and
+control characters, so a name can never be a path the recipient's browser would
+follow. The files are cleared with the body — on open, on burn, on withdrawal and
+on expiry — and the store keeps no copy afterwards.
+
+Proven end to end: a file sealed in the compose window, downloaded from the note
+page, hashes identically to the bytes that were attached (`sha256 3933f303…` for
+a 4000-byte pattern), and the note's row in `data/notes.json` holds zero bytes of
+armour and zero files once it is burned.
+
 ## What is enforced, and what is not
 
 Enforced by us, because the only copy is on our disk:

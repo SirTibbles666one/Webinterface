@@ -1,4 +1,22 @@
 /**
+ * A file, sealed to the same passphrase as the note body.
+ *
+ * The bytes go in as binary and come out as armour, so the recipient's browser
+ * turns them straight back into a file without a base64 dance in between.
+ */
+export async function sealFileWithPassphrase({ bytes, passphrase }) {
+  const phrase = (passphrase ?? '').trim()
+  if (phrase.length < 12) {
+    throw new Error('Use a longer passphrase — at least 12 characters')
+  }
+  return openpgp.encrypt({
+    message: await openpgp.createMessage({ binary: bytes }),
+    passwords: [phrase],
+    format: 'armored',
+  })
+}
+
+/**
  * OpenPGP support for Sloth Lee Mail.
  *
  * Two independent layers of protection exist here, and they are not the same

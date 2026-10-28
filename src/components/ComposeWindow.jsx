@@ -21,7 +21,7 @@ import { useAttachments } from '@/hooks/useAttachments'
 import { useResizable } from '@/hooks/useResizable'
 import { useIsPhone } from '@/hooks/useIsPhone'
 import { Lock, LockOpen } from 'lucide-react'
-import { keyCoverage, encryptBody, encryptAttachment, hasIdentity, importPublicKey, sealToRecipients, sealWithPassphrase } from '@/pgp'
+import { keyCoverage, encryptBody, encryptAttachment, hasIdentity, importPublicKey, sealToRecipients, sealWithPassphrase, sealFileWithPassphrase } from '@/pgp'
 import { makePassphrase } from '@/lib/passphrase'
 import { lookupKey } from '@/lib/wkd'
 import { loadProfile } from '@/lib/profile'
@@ -100,6 +100,15 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
   const { sendState, sendError, sendResults, scheduledFor, handleSend, reportError } = useSendEmail({
     myEmail, replyData, draftId, onDeleteDraft, onSent, onClose,
   })
+
+  // An attachment arrives as base64; sealing wants the bytes themselves.
+  const attFileBytes = (att) => {
+    if (!att.data) throw new Error(`${att.name} is still being read — try again in a moment`)
+    const bin = atob(att.data)
+    const out = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i)
+    return out
+  }
 
   // One place that adds the chosen time, so no send path can forget it.
   const sendNow = (args) => handleSend({ ...args, sendAt })
@@ -261,8 +270,12 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
         setPgpError('Generate a passphrase for the sealed note first')
         return
       }
-      if (attachments.length > 0) {
-        setPgpError('A sealed note carries the message text only — remove the attachments or send this one as ordinary mail')
+      // A key-locked note hands the recipient armour for their own mail client;
+      // making them decrypt five more files by hand would be worse than saying
+      // no. A passphrase note is opened on our page, so its files can be opened
+      // there too.
+      if (attachments.length > 0 && sealMode !== 'phrase') {
+        setPgpError('Attachments need the passphrase lock — switch the sealer to a passphrase, or send this as ordinary mail')
         return
       }
       setPgpBusy(true)
@@ -281,11 +294,24 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
           // with their own link.
           const armor = await sealWithPassphrase({ text: noteBody, passphrase: sealPhrase })
           for (const address of offServerRecipients) sealed[address] = armor
+
+          // Each file is sealed to the same phrase and travels in the same
+          // request as the note, so one fetch brings the recipient everything.
+          const sealedFiles = []
+          for (const att of attachments) {
+            const bytes = await attFileBytes(att)
+            sealedFiles.push({
+              name: att.name,
+              size: bytes.length,
+              armored: await sealFileWithPassphrase({ bytes, passphrase: sealPhrase }),
+            })
+          }
+
           setPgpBusy(false)
           sendNow({
             toChips, ccChips, bccChips, subject, body, attachments,
             ephemeral: ephemeralPayload(), sealed,
-            sealMode: 'passphrase', sealedPhrase: sealPhrase,
+            sealMode: 'passphrase', sealedPhrase: sealPhrase, sealedFiles,
           })
           return
         }
@@ -644,6 +670,18 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                     className={`px-1.5 py-0.5 rounded ${sealMode === 'phrase' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
                   >
                     a passphrase
+                  </button>
+                </span>
+              )}
+              {sealExternal && sealMode === 'key' && attachments.length > 0 && (
+                <span className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
+                  attachments need
+                  <button
+                    type="button"
+                    onClick={() => { setSealMode('phrase'); if (!sealPhrase) setSealPhrase(makePassphrase()) }}
+                    className="underline underline-offset-2"
+                  >
+                    the passphrase lock
                   </button>
                 </span>
               )}

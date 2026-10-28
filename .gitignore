@@ -26,3 +26,5 @@ sealed-key.mjs
 sealed-test.*.asc
 note.asc
 seal-pass.mjs
+seal-files.mjs
+check-file.mjs

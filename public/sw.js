@@ -6,7 +6,7 @@
  * a page that is already online. Anything that is not a GET for our own origin is
  * left alone — mail is fetched from the API and must never be cached on disk.
  */
-const CACHE = 'sloth-mail-shell-v31'
+const CACHE = 'sloth-mail-shell-v32'
 const SHELL = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/favicon.svg']
 
 self.addEventListener('install', (event) => {
