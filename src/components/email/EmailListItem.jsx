@@ -118,13 +118,18 @@ export function EmailListItem({
             e.stopPropagation()
             onCheck(uid)
           }}
-          className={`flex size-4 items-center justify-center rounded border transition-all duration-120 max-sm:size-5 ${
-            isChecked
-              ? 'border-primary bg-primary opacity-100'
-              : 'border-ink-4 opacity-0 hover:border-ink-2 group-hover/item:opacity-100 focus-visible:opacity-100'
-          }`}
+          // The box is 16px; the button around it is thumb-sized on a phone.
+          className="flex items-center justify-center max-sm:p-2"
         >
-          {isChecked && <Check className="size-2.5 text-primary-foreground" strokeWidth={3} />}
+          <span
+            className={`flex size-4 items-center justify-center rounded border transition-all duration-120 max-sm:size-5 ${
+              isChecked
+                ? 'border-primary bg-primary opacity-100'
+                : 'border-ink-4 opacity-0 hover:border-ink-2 group-hover/item:opacity-100 focus-visible:opacity-100'
+            }`}
+          >
+            {isChecked && <Check className="size-2.5 text-primary-foreground" strokeWidth={3} />}
+          </span>
         </button>
       </div>
 

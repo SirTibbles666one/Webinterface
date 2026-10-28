@@ -157,7 +157,7 @@ export function EmailToolbar({
           onClick={onRefresh}
           disabled={refreshing}
           aria-label="Refresh"
-          className="rounded p-1.5 text-ink-3 transition-colors duration-120 hover:bg-accent hover:text-ink-1 disabled:opacity-40 max-sm:p-2"
+          className="rounded p-1.5 text-ink-3 transition-colors duration-120 hover:bg-accent hover:text-ink-1 disabled:opacity-40 max-sm:p-2.5"
         >
           <RefreshCw className={`size-3.5 ${refreshing ? 'animate-spin' : ''}`} />
         </button>

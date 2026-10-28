@@ -14,7 +14,7 @@ export default function SetupStrip({ items, onOpen, onDismiss }) {
 
   return (
     <div className="border-b border-line">
-      <div className="mx-auto flex w-full max-w-[1040px] items-center gap-2 px-4 py-1.5">
+      <div className="mx-auto flex w-full max-w-[1040px] items-center gap-2 px-4 py-1.5 max-sm:min-h-[36px]">
         <ShieldAlert className="size-3.5 shrink-0 text-sand" aria-hidden="true" />
 
         <button
@@ -34,7 +34,7 @@ export default function SetupStrip({ items, onOpen, onDismiss }) {
           <button
             type="button"
             onClick={onOpen}
-            className="rounded-md px-2 py-1 text-[11.5px] font-medium text-sand transition-colors duration-120 hover:bg-sand/10"
+            className="rounded-md px-2 py-1 text-[11.5px] font-medium text-sand transition-colors duration-120 hover:bg-sand/10 max-sm:min-h-[34px] max-sm:px-2.5"
           >
             Set up
           </button>
