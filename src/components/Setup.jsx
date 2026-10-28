@@ -7,6 +7,7 @@ import api from '@/api'
 import { storage } from '@/storage'
 import { generateKeyPair, exportPublicKeyBase64, encryptPrivateKey, hashPassword } from '@/crypto'
 import { keySession } from '@/keySession'
+import { cryptoUnavailableMessage, isCryptoUnavailable } from '@/lib/cryptoFailure'
 
 const Setup = () => {
   const token = storage.getToken()
@@ -84,6 +85,10 @@ const SetupForm = () => {
       storage.set({ encrypted_key: encryptedKey, public_key: publicKeyBase64, force_reset: false })
       navigate('/')
     } catch (err) {
+      if (isCryptoUnavailable(err)) {
+        setError(cryptoUnavailableMessage('key setup step'))
+        return
+      }
       if (err.response?.status === 403) {
         setError('Key recovery requires admin privileges. Ask your administrator to delete and recreate your account.')
       } else {

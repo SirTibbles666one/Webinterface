@@ -17,6 +17,7 @@ import { keySession } from '@/keySession'
 import { storage } from '@/storage'
 import { ensureStoredKey } from '@/lib/keyRecovery'
 import { userSetCredentials, emailListAll, emailGetRaw, emailSetRaw } from '@/api'
+import { cryptoUnavailableMessage, isCryptoUnavailable } from '@/lib/cryptoFailure'
 
 export function ChangePasswordModal({ isOpen, onClose }) {
   const [phase, setPhase] = useState('form') // 'form' | 'working' | 'done'
@@ -148,7 +149,11 @@ export function ChangePasswordModal({ isOpen, onClose }) {
       setPhase('done')
     } catch (err) {
       setPhase('form')
-      setFormError(err?.response?.data?.error || err?.message || 'An error occurred')
+      setFormError(
+        isCryptoUnavailable(err)
+          ? cryptoUnavailableMessage('password change step')
+          : err?.response?.data?.error || err?.message || 'An error occurred',
+      )
     }
   }
 

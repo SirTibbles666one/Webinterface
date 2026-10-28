@@ -1,5 +1,35 @@
 
-import { argon2id, bcrypt } from 'hash-wasm'
+import { argon2id as argon2idRaw, bcrypt as bcryptRaw } from 'hash-wasm'
+
+// Argon2 and bcrypt from hash-wasm are WebAssembly. If the browser refuses to compile
+// wasm — a content blocker, an extension, or a Content-Security-Policy without
+// 'wasm-unsafe-eval' — the call throws something opaque and every caller can only say
+// "failed", which points at the user's password for what is really a policy decision.
+// Tagging the failure lets the screens say what actually happened.
+//
+// This is not hypothetical: a tightened CSP took sign-in down for an hour, and the app
+// reported "Login failed" the whole time.
+function wasmStep(name, fn) {
+  return async (...args) => {
+    try {
+      return await fn(...args)
+    } catch (err) {
+      const message = String(err?.message || err || '')
+      if (/webassembly|wasm|refused to compile|unsupported|not a function/i.test(message)) {
+        const wrapped = new Error(
+          `${name} could not run in this browser (WebAssembly is blocked).`,
+        )
+        wrapped.code = 'crypto_unavailable'
+        wrapped.cause = err
+        throw wrapped
+      }
+      throw err
+    }
+  }
+}
+
+const bcrypt = wasmStep('bcrypt', bcryptRaw)
+const argon2id = wasmStep('argon2id', argon2idRaw)
 import forge from 'node-forge'
 import KeygenWorker from './keygen.worker.js?worker&inline'
 import { ml_kem768 } from '@noble/post-quantum/ml-kem.js'

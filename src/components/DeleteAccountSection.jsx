@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Trash2, AlertTriangle } from 'lucide-react'
 import { hashPassword } from '@/crypto'
 import { userDeleteAccount } from '@/api'
+import { cryptoUnavailableMessage, isCryptoUnavailable } from '@/lib/cryptoFailure'
 
 // Closing your own mailbox. The server releases everything with the account:
 // mail, encrypted blobs, recovery record, second factor and sessions. That is
@@ -36,7 +37,11 @@ export default function DeleteAccountSection({ onDeleted }) {
       if (onDeleted) onDeleted()
       else window.location.replace('/login')
     } catch (err) {
-      setError(err?.message || 'The account could not be deleted')
+      setError(
+        isCryptoUnavailable(err)
+          ? cryptoUnavailableMessage('password step')
+          : err?.message || 'The account could not be deleted',
+      )
       setBusy(false)
     }
   }

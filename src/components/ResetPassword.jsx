@@ -4,6 +4,7 @@ import { hashPassword } from '@/crypto'
 import { resetWithToken } from '@/api'
 import AuthShell, { Field, PasswordInput } from '@/components/AuthShell'
 import { Button } from '@/components/ui/button'
+import { cryptoUnavailableMessage, isCryptoUnavailable } from '@/lib/cryptoFailure'
 
 /**
  * Public page reached from the recovery email: choose a new password.
@@ -45,6 +46,11 @@ export default function ResetPassword() {
       await resetWithToken(token, credentials)
       setDone(true)
     } catch (err) {
+      if (isCryptoUnavailable(err)) {
+        setError(cryptoUnavailableMessage('password step'))
+        setBusy(false)
+        return
+      }
       const message = err?.response?.data?.error
       setError(message || 'That reset link is invalid or has expired.')
     } finally {

@@ -83,6 +83,27 @@ if [ -d "$PROOFS_DIR" ]; then
   echo
 fi
 
+# ── Edge policy: the headers that decide whether the browser can work at all ──
+# A CSP without 'wasm-unsafe-eval' blocks Argon2, and sign-in dies in the browser
+# with the server seeing nothing. Every proof here talks to the API, so none of them
+# noticed for an hour. This one reads the header the browser actually gets.
+if should_run headers; then
+  start=$(date +%s)
+  hdr=$(curl -sSI "https://mail.slothlee.xyz/login?proof=$RANDOM" | tr -d '\r')
+  elapsed=$(( $(date +%s) - start ))
+  missing=""
+  printf '%s' "$hdr" | grep -qi "script-src 'self' 'wasm-unsafe-eval'" || missing="csp-without-wasm-unsafe-eval "
+  printf '%s' "$hdr" | grep -qi '^strict-transport-security' || missing="${missing}hsts "
+  printf '%s' "$hdr" | grep -qi '^x-content-type-options' || missing="${missing}nosniff "
+  printf '%s' "$hdr" | grep -qi '^x-frame-options' || missing="${missing}x-frame-options "
+  printf '%s' "$hdr" | grep -qi '^content-security-policy:' || missing="${missing}csp "
+  if [ -z "$missing" ]; then
+    record headers 0 "policy allows wasm; hsts, nosniff, xfo present (${elapsed}s)"
+  else
+    record headers 1 "missing: ${missing}"
+  fi
+fi
+
 # ── Rust: the primitives everything else stands on ────────────────────────────
 if [ "$DO_RUST" = 1 ] && should_run rust; then
   if [ -d "$SERVER_ROOT" ]; then

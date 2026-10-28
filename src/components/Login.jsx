@@ -12,6 +12,7 @@ import RecoveryKeySetup from '@/components/RecoveryKeySetup'
 import { keySession } from '@/keySession'
 import { Mail } from 'lucide-react'
 import SlothMark from '@/components/SlothMark'
+import { cryptoUnavailableMessage } from '@/lib/cryptoFailure'
 
 const Login = () => {
   const [phase, setPhase] = useState('login')
@@ -41,7 +42,19 @@ const Login = () => {
       // one-time setup token IS the credential, and it is stored raw, so it must
       // be sent raw. Hashing it would guarantee a mismatch.
       const looksLikeSetupToken = /^[0-9a-f]{64}$/i.test(password.trim())
-      const presented = looksLikeSetupToken ? password.trim() : await hashPassword(password)
+      // Hashing runs in the browser (Argon2 via WebAssembly). If that step fails —
+      // a content blocker, a policy that forbids wasm, a broken extension — nothing
+      // is sent at all, and saying "login failed" would blame the password for
+      // something the browser did. Reported separately, and named.
+      let presented
+      try {
+        presented = looksLikeSetupToken ? password.trim() : await hashPassword(password)
+      } catch (hashErr) {
+        console.error('[Login] ❌ Could not hash the password:', hashErr)
+        setError(cryptoUnavailableMessage('password step'))
+        setLoading(false)
+        return
+      }
       if (looksLikeSetupToken) console.log('[Login] Presenting a one-time setup token')
       console.log('[Login] Sending login request')
       const response = await api.post('/auth/login', { username, password: presented })

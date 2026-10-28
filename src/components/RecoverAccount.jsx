@@ -4,6 +4,7 @@ import { hashPassword, encryptPrivateKey } from '@/crypto'
 import { unwrapPrivateKeyWithRecovery, recoveryAuthProof } from '@/lib/recoveryKey'
 import { userFetchRecoveryBlob, userRestoreWithRecoveryKey } from '@/api'
 import AuthShell from '@/components/AuthShell'
+import { cryptoUnavailableMessage, isCryptoUnavailable } from '@/lib/cryptoFailure'
 
 /**
  * Public page: regain access with a saved recovery key.
@@ -24,7 +25,11 @@ export default function RecoverAccount() {
   const [error, setError] = useState('')
 
   const fail = (err, fallback) => {
-    setError(err?.response?.data?.error || err?.message || fallback)
+    setError(
+      isCryptoUnavailable(err)
+        ? cryptoUnavailableMessage('password step')
+        : err?.response?.data?.error || err?.message || fallback,
+    )
     setBusy(false)
   }
 
