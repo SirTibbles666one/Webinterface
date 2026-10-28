@@ -53,7 +53,16 @@ export default function SetupStrip({ items, onOpen, onDismiss }) {
         <ul className="animate-rise space-y-1.5 px-4 pb-3 pl-10">
           {items.map((item) => (
             <li key={item.id} className="text-[12px] leading-relaxed text-ink-2">
-              <span className="font-medium text-ink-1">{item.label}.</span> {item.note}
+              {item.href ? (
+                // Each gap opens the section that fixes it: a strip that only
+                // says "something is missing" makes the reader hunt for where.
+                <a href={item.href} className="underline decoration-line-strong/60 underline-offset-2 hover:text-ink-1">
+                  <span className="font-medium text-ink-1">{item.label}.</span>
+                </a>
+              ) : (
+                <span className="font-medium text-ink-1">{item.label}.</span>
+              )}{' '}
+              {item.note}
             </li>
           ))}
         </ul>

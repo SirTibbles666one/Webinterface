@@ -8,6 +8,7 @@ import ComposeWindow from '@/components/ComposeWindow'
 import { ConfirmModal, InputModal } from '@/components/ui/Modal'
 import { TopBar } from '@/components/TopBar'
 import SetupStrip from '@/components/SetupStrip'
+import { fetchPostQuantumStatus } from '@/lib/pqSetup'
 import { hasIdentity } from '@/pgp'
 import { UnlockModal } from '@/components/UnlockModal'
 import { EmailToolbar } from '@/components/EmailToolbar'
@@ -56,6 +57,8 @@ const AuthorizedLayout = () => {
     return () => { cancelled = true }
   }, [])
   const [hasOwnKey, setHasOwnKey] = useState(true)
+  // null = not known yet. An unanswered request must not be drawn as a gap.
+  const [pqEnabled, setPqEnabled] = useState(null)
 
   // Every incomplete security step, gathered so one strip can carry them all.
   const setupGaps = []
@@ -63,6 +66,7 @@ const AuthorizedLayout = () => {
     setupGaps.push({
       id: 'recovery',
       label: 'Recovery key',
+      href: '/settings#recovery',
       note: 'Without one, a forgotten password means your encrypted mail cannot be read again — the reset link cannot open it either.',
     })
   }
@@ -71,6 +75,15 @@ const AuthorizedLayout = () => {
       id: 'openpgp',
       label: 'OpenPGP key',
       note: 'Mail between mailboxes here is already encrypted with your account key. An OpenPGP key is what lets you exchange encrypted mail with people on other providers.',
+      href: '/settings#keys',
+    })
+  }
+  if (pqEnabled === false) {
+    setupGaps.push({
+      id: 'post-quantum',
+      label: 'Post-quantum protection',
+      note: 'Mail is sealed with RSA alone, and RSA is the part a quantum computer breaks. Turning it on adds a quantum-resistant half to every new message.',
+      href: '/settings#post-quantum',
     })
   }
   const dismissSetup = () => setSetupDismissed(true)
@@ -83,6 +96,14 @@ const AuthorizedLayout = () => {
     emailMeta, setEmailMeta, setUids, setPreviews, setSelectedUid, setGroups, groups,
   })
   const { createGroup, renameGroup, deleteGroup } = useGroupActions({ setGroups, setSelectedFolder, setModalState })
+
+  useEffect(() => {
+    let alive = true
+    fetchPostQuantumStatus()
+      .then((s) => { if (alive && !s?.unavailable) setPqEnabled(!!s?.enabled) })
+      .catch(() => { /* unknown stays unknown; no gap is invented */ })
+    return () => { alive = false }
+  }, [])
 
   const checkServer = useCallback(async () => {
     try {

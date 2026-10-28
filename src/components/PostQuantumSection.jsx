@@ -92,9 +92,9 @@ export default function PostQuantumSection() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Used once, here, to wrap the new key"
+              placeholder="Your password"
               autoComplete="current-password"
-              className="max-w-[260px] max-sm:min-h-[44px]"
+              className="w-full max-w-[320px] max-sm:min-h-[44px]"
             />
             <Button type="submit" disabled={busy} className="gap-2 max-sm:min-h-[44px]">
               {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}

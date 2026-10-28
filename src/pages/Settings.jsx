@@ -95,6 +95,9 @@ export default function Settings() {
       if (!el) return
       const top = el.getBoundingClientRect().top + window.scrollY - 72
       window.scrollTo({ top, behavior: 'auto' })
+      // The scroll spy only listens for scroll events, and a jump is not one:
+      // without this the nav kept highlighting the section you started on.
+      window.dispatchEvent(new Event('scroll'))
     }
     const timer = setTimeout(jump, 80)
     window.addEventListener('hashchange', jump)
