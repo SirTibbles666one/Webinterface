@@ -399,11 +399,22 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                     return (
                       <tr key={user.uid ?? user.username} className="border-b border-line/70 last:border-0">
                         <td className={cell}>
-                          <p className="font-medium text-ink-1">{user.username}</p>
-                          <p className="mono text-[11px] text-ink-3">{user.email ?? `${user.username}@slothlee.xyz`}</p>
+                          <p className="truncate font-medium text-ink-1" title={user.username}>{user.username}</p>
+                          <p className="mono truncate text-[11px] text-ink-3">{user.email ?? `${user.username}@slothlee.xyz`}</p>
                         </td>
-                        <td className={`${cell} hidden text-ink-2 sm:table-cell`}>
-                          {user.recovery_email || <span className="text-ink-4">not set</span>}
+                        <td className={`${cell} hidden sm:table-cell`}>
+                          {user.recovery_email ? (
+                            <span className="text-ink-2">{user.recovery_email}</span>
+                          ) : (
+                            // "not set" reads as a dead end; the useful thing to
+                            // offer is the way to set it.
+                            <button
+                              onClick={() => openRecovery(user)}
+                              className="text-[12px] text-ink-4 underline decoration-line-strong underline-offset-2 transition-colors duration-120 hover:text-primary"
+                            >
+                              Set recovery
+                            </button>
+                          )}
                         </td>
                         <td className={cell}>
                           <button
@@ -423,7 +434,8 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                         <td className={`${cell} text-right`}>
                           <button
                             onClick={() => openRecovery(user)}
-                            title={`Recovery for ${user.username}`}
+                            title={`Password recovery for ${user.username}`}
+                            aria-label={`Password recovery for ${user.username}`}
                             className="rounded p-1.5 text-ink-3 transition-colors duration-120 hover:bg-accent hover:text-primary"
                           >
                             <KeyRound className="size-4" />
@@ -431,6 +443,7 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                           <button
                             onClick={() => setModalState({ type: 'delete', username: user.username })}
                             title={`Delete ${user.username}`}
+                            aria-label={`Delete ${user.username}`}
                             className="rounded p-1.5 text-ink-3 transition-colors duration-120 hover:bg-destructive/10 hover:text-destructive"
                           >
                             <Trash2 className="size-4" />
@@ -613,6 +626,13 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                 {diskTotals.biggest.length === 0 ? (
                   <Empty>No mail stored yet.</Empty>
                 ) : (
+                  <>
+                  <div className="flex items-baseline justify-between border-b border-line px-4 py-2">
+                    <p className="label">Largest mailboxes</p>
+                    <p className="mono text-[10.5px] text-ink-4">
+                      {diskTotals.biggest.length} of {disk.length} · bar is share of total
+                    </p>
+                  </div>
                   <ul>
                     {diskTotals.biggest.map((row) => {
                       const share = diskTotals.bytesUsed ? (row.disk_usage_bytes ?? 0) / diskTotals.bytesUsed : 0
@@ -631,6 +651,7 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                       )
                     })}
                   </ul>
+                  </>
                 )}
               </>
             )}
