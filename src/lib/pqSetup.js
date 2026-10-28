@@ -79,6 +79,6 @@ export async function disablePostQuantum() {
 
 /** How much of the mailbox still sits in the pre-hybrid envelope. */
 export async function fetchPostQuantumMigration() {
-  const { data } = await api.get('/pq/migration')
+  const { data } = await api.get('/pq/migration', { headers: authHeaders() })
   return data
 }

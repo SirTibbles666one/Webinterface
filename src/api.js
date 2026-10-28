@@ -21,13 +21,37 @@ const api = axios.create({
   ],
 })
 
+// A 401 from one call is not proof the session is over: an endpoint reached
+// without its Authorization header answers exactly like an expired token, and
+// signing the user out for that is how a single page logs them out mid-use. Ask
+// the server whether the token itself is still good before throwing the session
+// away — /user/me through plain axios, so this check cannot recurse.
+let checkingSession = false
+
+async function tokenRejected(token) {
+  try {
+    await axios.get('/api/user/me', { headers: { Authorization: `Bearer ${token}` } })
+    return false
+  } catch (e) {
+    return e?.response?.status === 401
+  }
+}
+
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
-    if (err?.response?.status === 401 && !err?.config?.url?.includes('/auth/')) {
-      keySession.clear()
-      storage.clear()
-      window.location.href = '/login'
+  async (err) => {
+    const status = err?.response?.status
+    const url = err?.config?.url || ''
+    if (status === 401 && !url.includes('/auth/') && !checkingSession) {
+      const token = storage.getToken()
+      checkingSession = true
+      const dead = token ? await tokenRejected(token) : true
+      checkingSession = false
+      if (dead) {
+        keySession.clear()
+        storage.clear()
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(err)
   },

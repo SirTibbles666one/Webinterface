@@ -10,8 +10,15 @@ import { keySession } from '@/keySession'
 import { decryptEmailBytes, sealHybridPayload } from '@/crypto'
 import { isHybridEnvelopeB64 } from '@/lib/reseal'
 
-// Sending pre-serialised JSON: see the note in fetchMessage.
-const jsonBody = { headers: { 'Content-Type': 'application/json' } }
+// Sending pre-serialised JSON: see the note in fetchMessage. Every call carries
+// the token: a request without it comes back 401, and a 401 used to end the
+// session outright.
+const jsonBody = {
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${storage.getToken()}`,
+  },
+}
 
 export async function makeResealIo(status) {
   // Keys come from where the reader gets them, not from a second source.
@@ -23,7 +30,7 @@ export async function makeResealIo(status) {
 
   const io = {
     username,
-    status: async () => (await api.get('/pq/migration')).data,
+    status: async () => (await api.get('/pq/migration', { headers: jsonBody.headers })).data,
 
     fetchMessage: async (uid) => {
       const { data } = await api.post('/email/get', `{"uid":${uid}}`, jsonBody)
