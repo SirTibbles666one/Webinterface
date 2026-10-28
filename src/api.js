@@ -392,3 +392,21 @@ export const userDeleteAccount = async (passwordToken) => {
   )
   return response.data
 }
+
+// What Postfix is actually told to accept, and how much space each mailbox takes.
+// Both are read-only views of server state — no new capability.
+export const adminGetRecipients = async () => {
+  const token = storage.getToken()
+  const response = await api.get('/admin/recipients', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return response.data
+}
+
+export const adminGetDiskUsage = async () => {
+  const token = storage.getToken()
+  const response = await api.get('/admin/disk-usage', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return response.data
+}

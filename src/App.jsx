@@ -1,7 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import Login from './components/Login'
 import AuthorizedLayout from './components/AuthorizedLayout'
-import AdminPanel from './components/AdminPanel'
+import Admin from '@/pages/Admin'
 import Settings from '@/pages/Settings'
 import ResetPassword from './components/ResetPassword'
 import RecoverAccount from './components/RecoverAccount'
@@ -30,7 +30,7 @@ function App() {
         path="/admin"
         element={
           <ProtectedRoute>
-            <AdminPanel />
+            <Admin />
           </ProtectedRoute>
         }
       />
