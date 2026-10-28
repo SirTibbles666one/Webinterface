@@ -24,6 +24,8 @@ const mod = await import(path)
 
 export const {
   decryptEmail,
+  decryptEmailBytes,
+  sealHybridPayload,
   hashPassword,
   generateKeyPair,
   exportPublicKeyBase64,

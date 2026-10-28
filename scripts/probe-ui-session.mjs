@@ -8,7 +8,10 @@
  *   node scripts/probe-ui-session.mjs [username]
  */
 import fs from 'node:fs'
-import { hashPassword, generateKeyPair, exportPublicKeyBase64, encryptPrivateKey } from '../src/lib/probeCrypto.mjs'
+import {
+  hashPassword, generateKeyPair, exportPublicKeyBase64, encryptPrivateKey,
+  generatePqKeyPair, wrapSecretBytes,
+} from '../src/lib/probeCrypto.mjs'
 
 const BASE = 'https://mail.slothlee.xyz/api'
 const USER = (process.argv[2] || 'uipq').toLowerCase()
@@ -48,7 +51,39 @@ async function main() {
     { password: passwordHash, public_key: publicKeyB64, encrypted_private_key: encryptedKey }, token)
   if (setup.status !== 200) throw new Error(`setup failed ${setup.status} ${JSON.stringify(setup.json)}`)
 
-  fs.writeFileSync('/tmp/ui-probe.json', JSON.stringify({ username: USER, token, salt }), { mode: 0o600 })
+  // Optional preparation for UI work that needs real content: import a few
+  // messages *before* switching post-quantum on, so they sit in the old envelope,
+  // then enable it — and hand the browser the keys it needs to act on them.
+  const prep = process.argv.includes('--prep')
+  const extras = {}
+  if (prep) {
+    for (let i = 1; i <= 3; i += 1) {
+      const raw = [
+        'From: Sender <sender@elsewhere.example>',
+        `To: ${USER}@slothlee.xyz`,
+        `Subject: Before the switch ${i}`,
+        `Date: Wed, 14 Aug 2024 09:00:0${i} +0000`,
+        'MIME-Version: 1.0',
+        'Content-Type: text/plain; charset=utf-8',
+        '',
+        `Body of message ${i}.`,
+      ].join('\r\n')
+      const imp = await call('POST', '/import/message', { raw: Buffer.from(raw).toString('base64') }, token)
+      if (imp.status !== 200) throw new Error(`import failed ${imp.status} ${JSON.stringify(imp.json).slice(0, 60)}`)
+    }
+    const pq = generatePqKeyPair()
+    const pqPublicB64 = Buffer.from(pq.publicKey).toString('base64')
+    const en = await call('POST', '/user/pq-keys', {
+      public_key: pqPublicB64,
+      encrypted_private_key: await wrapSecretBytes(pq.secretKey, password, salt),
+    }, token)
+    if (en.status !== 200) throw new Error(`pq enable failed ${en.status} ${JSON.stringify(en.json).slice(0, 60)}`)
+    extras.publicKey = publicKeyB64
+    extras.jwk = await crypto.subtle.exportKey('jwk', rsa.privateKey)
+    extras.pqSecret = Buffer.from(pq.secretKey).toString('base64')
+    extras.pqPublic = pqPublicB64
+  }
+  fs.writeFileSync('/tmp/ui-probe.json', JSON.stringify({ username: USER, token, salt, ...extras }), { mode: 0o600 })
   console.log(JSON.stringify({ username: USER, ready: true, tokenWritten: '/tmp/ui-probe.json' }))
 }
 

@@ -397,7 +397,11 @@ async function combineHybridKey(rsaSeed, mlkemSecret, username) {
   return new Uint8Array(bits)
 }
 
-export async function decryptEmail(data, messageKey, privateKey, pqSecretKey = null, username = '') {
+export async function decryptEmailBytes(data, messageKey, privateKey, pqSecretKey = null, username = '') {
+  // The secret arrives as base64 from sessionStorage and as raw bytes from callers
+  // that already decoded it. Accepting both here means no call site has to know
+  // which, which is how one of them ended up passing a string to decapsulate.
+  if (typeof pqSecretKey === 'string' && pqSecretKey) pqSecretKey = fromB64(pqSecretKey)
   if (!messageKey) {
     // No per-recipient key means the message is either plain text from outside
     // or one we cannot open. Guessing "plain text" renders ciphertext as
@@ -408,7 +412,7 @@ export async function decryptEmail(data, messageKey, privateKey, pqSecretKey = n
     if (!looksLikeMessage) {
       throw new Error('no message key for this recipient')
     }
-    return decoded
+    return fromB64(data)
   }
 
   const keyBytesRaw = fromB64(messageKey)
@@ -456,7 +460,7 @@ export async function decryptEmail(data, messageKey, privateKey, pqSecretKey = n
       e.cause = err
       throw e
     }
-    return new TextDecoder().decode(plainPq)
+    return new Uint8Array(plainPq)
   }
 
   const envelope = unwrapKeyEnvelope(fromB64(messageKey))
@@ -473,7 +477,7 @@ export async function decryptEmail(data, messageKey, privateKey, pqSecretKey = n
     const iv        = dataBuf.slice(0, 12)
     const ciphertext = dataBuf.slice(12)
     const plain = forgeAesGcmDecrypt(aesRaw, iv, ciphertext)
-    return new TextDecoder().decode(plain)
+    return plain
   }
 
   let aesRaw
@@ -501,5 +505,46 @@ export async function decryptEmail(data, messageKey, privateKey, pqSecretKey = n
     e.cause = err
     throw e
   }
-  return new TextDecoder().decode(plain)
+  return plain
+}
+
+/** Reader-facing wrapper: bytes are for re-sealing, text is for display. */
+export async function decryptEmail(data, messageKey, privateKey, pqSecretKey = null, username = '') {
+  const bytes = await decryptEmailBytes(data, messageKey, privateKey, pqSecretKey, username)
+  return new TextDecoder().decode(bytes)
+}
+
+/**
+ * Seal bytes under both the RSA and the ML-KEM public key of an account.
+ *
+ * Used to move mail that was stored before post-quantum protection existed into
+ * the hybrid envelope: the browser does the sealing because only it can open the
+ * old message first, and the plaintext never leaves the machine.
+ */
+export async function sealHybridPayload(bytes, rsaPublicKeyBase64, pqPublicKeyBase64, username) {
+  if (!hasSubtleCrypto) throw new Error('re-sealing needs a secure HTTPS connection')
+  const rsaPublic = await crypto.subtle.importKey(
+    'spki', fromB64(rsaPublicKeyBase64), { name: 'RSA-OAEP', hash: 'SHA-256' }, true, ['encrypt'],
+  )
+  const seed = randomBytes(32)
+  const rsaCiphertext = new Uint8Array(await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, rsaPublic, seed))
+  const { cipherText, sharedSecret } = ml_kem768.encapsulate(fromB64(pqPublicKeyBase64))
+  const keyBytes = await combineHybridKey(seed, sharedSecret, username)
+
+  const iv = randomBytes(12)
+  const aesKey = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt'])
+  const sealed = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, bytes))
+
+  const body = new Uint8Array(12 + sealed.length)
+  body.set(iv, 0)
+  body.set(sealed, 12)
+
+  const envelope = new Uint8Array(6 + rsaCiphertext.length + cipherText.length)
+  envelope.set(PQ_MAGIC, 0)
+  envelope[4] = (rsaCiphertext.length >> 8) & 0xff
+  envelope[5] = rsaCiphertext.length & 0xff
+  envelope.set(rsaCiphertext, 6)
+  envelope.set(cipherText, 6 + rsaCiphertext.length)
+
+  return { data: toB64(body.buffer), messageKey: toB64(envelope.buffer) }
 }

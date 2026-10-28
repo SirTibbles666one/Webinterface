@@ -75,3 +75,10 @@ export async function disablePostQuantum() {
   await api.delete('/user/pq-keys', { headers: authHeaders() })
   keySession.setPq(null)
 }
+
+
+/** How much of the mailbox still sits in the pre-hybrid envelope. */
+export async function fetchPostQuantumMigration() {
+  const { data } = await api.get('/pq/migration')
+  return data
+}
