@@ -44,13 +44,13 @@ export default function RecoveryKeySection() {
   }
 
   return (
-    <section className="rounded-xl border border-border p-3">
+    <section className="rounded-xl border border-line p-3">
       <div className="flex items-center gap-2">
         <KeyRound className="w-3.5 h-3.5 text-primary" />
-        <h3 className="text-xs font-medium uppercase tracking-wide text-foreground/60">Recovery key</h3>
+        <h3 className="text-xs font-medium uppercase tracking-wide text-ink-2">Recovery key</h3>
       </div>
 
-      {status === null && !error && <p className="mt-2 text-xs text-foreground/40">Checking…</p>}
+      {status === null && !error && <p className="mt-2 text-xs text-ink-3">Checking…</p>}
 
       {status && (
         <div className="mt-2 space-y-2">
@@ -72,7 +72,7 @@ export default function RecoveryKeySection() {
 
           <button
             onClick={start}
-            className="w-full rounded-lg border border-border px-3 py-2 text-xs hover:bg-foreground/5"
+            className="w-full rounded-lg border border-line-strong px-3 py-2 text-xs hover:bg-foreground/5"
           >
             {status.set ? 'Replace recovery key' : 'Create recovery key'}
           </button>

@@ -4,8 +4,21 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu'
-import { Trash2, MailOpen, Mail, Folder, ChevronLeft, ChevronRight, Check, RefreshCw } from 'lucide-react'
+import { Trash2, MailOpen, Mail, Folder, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 
+const FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'unread', label: 'Unread' },
+  { id: 'read', label: 'Read' },
+]
+
+/**
+ * One toolbar for the list.
+ *
+ * Bulk actions only exist while something is selected — an always-present row of
+ * disabled icons reads as broken furniture. The pager only exists when there is a
+ * second page, because "1–6 of 6" with two dead chevrons is furniture too.
+ */
 export function EmailToolbar({
   pagedUids,
   checkedUids,
@@ -16,7 +29,8 @@ export function EmailToolbar({
   pageCount,
   hasMore,
   groups,
-  onToggleSelectAll,
+  filterMode = 'all',
+  onFilterModeChange,
   onDeleteSelected,
   onMarkSelectedRead,
   onMarkSelectedUnread,
@@ -26,85 +40,64 @@ export function EmailToolbar({
   onRefresh,
   refreshing,
 }) {
-  const allChecked = pagedUids.length > 0 && pagedUids.every(uid => checkedUids.has(uid))
+  const selected = checkedUids.size
+  const showPager = pageCount > 1 || hasMore
+
+  const action = 'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] transition-colors duration-120'
 
   return (
-    <div className="flex items-center justify-between px-3 py-1.5 border-b border-border text-foreground/60 bg-background">
-      <div className="flex items-center gap-1">
-        <div
-          onClick={onToggleSelectAll}
-          className={`w-4 h-4 border-2 rounded flex items-center justify-center cursor-pointer p-0.5 transition-colors ${
-            allChecked
-              ? 'bg-primary border-primary'
-              : 'border-foreground/40 hover:border-foreground/70 text-foreground/60 hover:text-foreground'
-          }`}
-          title="Select all"
-        >
-          {allChecked && <Check className="w-full h-full text-primary-foreground" />}
+    <div className="border-b border-line">
+      <div className="mx-auto flex w-full max-w-[1040px] items-center gap-3 px-4 py-1.5">
+        <div className="flex w-full items-center gap-3">
+      {selected === 0 ? (
+        <div className="flex items-center gap-1" role="tablist" aria-label="Filter messages">
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              role="tab"
+              aria-selected={filterMode === f.id}
+              onClick={() => onFilterModeChange?.(f.id)}
+              className={`rounded-full px-2.5 py-1 text-[11.5px] font-medium transition-colors duration-120 ${
+                filterMode === f.id
+                  ? 'bg-secondary text-ink-1'
+                  : 'text-ink-3 hover:bg-accent hover:text-ink-2'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
-
-        <div className="w-px h-4 bg-border mx-1" />
-
-        <button
-          onClick={() => checkedUids.size > 0 && onDeleteSelected()}
-          disabled={checkedUids.size === 0}
-          className={`p-1.5 rounded transition-colors ${
-            checkedUids.size > 0
-              ? 'text-destructive hover:bg-destructive/15'
-              : 'text-foreground/25 cursor-default'
-          }`}
-          title="Delete selected"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => checkedUids.size > 0 && onMarkSelectedRead()}
-          disabled={checkedUids.size === 0}
-          className={`p-1.5 rounded transition-colors ${
-            checkedUids.size > 0
-              ? 'text-foreground/70 hover:bg-accent hover:text-foreground'
-              : 'text-foreground/25 cursor-default'
-          }`}
-          title="Mark selected as read"
-        >
-          <MailOpen className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => checkedUids.size > 0 && onMarkSelectedUnread()}
-          disabled={checkedUids.size === 0}
-          className={`p-1.5 rounded transition-colors ${
-            checkedUids.size > 0
-              ? 'text-foreground/70 hover:bg-accent hover:text-foreground'
-              : 'text-foreground/25 cursor-default'
-          }`}
-          title="Mark selected as unread"
-        >
-          <Mail className="w-4 h-4" />
-        </button>
-        <button
-          onClick={onRefresh}
-          disabled={refreshing}
-          className="p-1.5 rounded transition-colors text-foreground/70 hover:bg-accent hover:text-foreground disabled:opacity-40"
-          title="Refresh"
-        >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-        </button>
-        {groups.length > 0 && (
-          <DropdownMenuRoot>
-            <DropdownMenuTrigger asChild>
-              <button
-                disabled={checkedUids.size === 0}
-                className={`p-1.5 rounded transition-colors ${
-                  checkedUids.size > 0
-                    ? 'text-foreground/70 hover:bg-accent hover:text-foreground'
-                    : 'text-foreground/25 cursor-default'
-                }`}
-                title="Move selected to group"
-              >
-                <Folder className="w-4 h-4" />
-              </button>
-            </DropdownMenuTrigger>
-            {checkedUids.size > 0 && (
+      ) : (
+        <div className="flex items-center gap-1">
+          <span className="mr-1 mono text-[11.5px] text-ink-2">{selected} selected</span>
+          <button
+            type="button"
+            onClick={onMarkSelectedRead}
+            className={`${action} text-ink-2 hover:bg-accent hover:text-ink-1`}
+            title="Mark as read"
+          >
+            <MailOpen className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onMarkSelectedUnread}
+            className={`${action} text-ink-2 hover:bg-accent hover:text-ink-1`}
+            title="Mark as unread"
+          >
+            <Mail className="size-3.5" />
+          </button>
+          {groups.length > 0 && (
+            <DropdownMenuRoot>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className={`${action} text-ink-2 hover:bg-accent hover:text-ink-1`}
+                  title="Move to group"
+                >
+                  <Folder className="size-3.5" />
+                </button>
+              </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 {groups.map((g) => (
                   <DropdownMenuItem key={g.uid} onClick={() => onMoveSelectedToGroup(g.uid)}>
@@ -112,31 +105,63 @@ export function EmailToolbar({
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
-            )}
-          </DropdownMenuRoot>
+            </DropdownMenuRoot>
+          )}
+          {/* Destructive: colour, never size or fill. */}
+          <button
+            type="button"
+            onClick={onDeleteSelected}
+            className={`${action} text-destructive hover:bg-destructive/10`}
+            title="Delete selected"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+        </div>
+      )}
+
+      <div className="ml-auto flex items-center gap-2">
+        {showPager && (
+          <>
+            <span className="mono text-[11.5px] text-ink-3">
+              {pageStart}–{pageEnd} of {totalFiltered}
+            </span>
+            <div className="flex items-center">
+              <button
+                type="button"
+                aria-label="Previous page"
+                className="rounded p-1 text-ink-3 transition-colors duration-120 hover:bg-accent hover:text-ink-1 disabled:opacity-30"
+                disabled={safePage === 0}
+                onClick={onPrevPage}
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+              <button
+                type="button"
+                aria-label="Next page"
+                className="rounded p-1 text-ink-3 transition-colors duration-120 hover:bg-accent hover:text-ink-1 disabled:opacity-30"
+                disabled={safePage >= pageCount - 1 && !hasMore}
+                onClick={onNextPage}
+              >
+                <ChevronRight className="size-4" />
+              </button>
+            </div>
+          </>
         )}
-      </div>
-      <div className="flex items-center gap-3 text-xs">
-        <span className="text-foreground/60">
-          {checkedUids.size > 0
-            ? `${checkedUids.size} selected`
-            : totalFiltered === 0 ? '0' : `${pageStart}–${pageEnd} of ${totalFiltered}`}
-        </span>
-        <div className="flex items-center gap-1">
-          <button
-            className="p-1 rounded hover:bg-accent hover:text-foreground disabled:opacity-30"
-            disabled={safePage === 0}
-            onClick={onPrevPage}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <button
-            className="p-1 rounded hover:bg-accent hover:text-foreground disabled:opacity-30"
-            disabled={safePage >= pageCount - 1 && !hasMore}
-            onClick={onNextPage}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
+        {!showPager && totalFiltered > 0 && (
+          <span className="mono text-[11.5px] text-ink-3">
+            {totalFiltered} {totalFiltered === 1 ? 'message' : 'messages'}
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={refreshing}
+          aria-label="Refresh"
+          className="rounded p-1.5 text-ink-3 transition-colors duration-120 hover:bg-accent hover:text-ink-1 disabled:opacity-40"
+        >
+          <RefreshCw className={`size-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+        </button>
+        </div>
         </div>
       </div>
     </div>

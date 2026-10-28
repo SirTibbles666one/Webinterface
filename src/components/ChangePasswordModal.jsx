@@ -161,14 +161,14 @@ export function ChangePasswordModal({ isOpen, onClose }) {
       {phase === 'form' && (
         <form onSubmit={handleSubmit}>
           <ModalContent>
-            <p className="text-sm text-foreground/60">
+            <p className="text-sm text-ink-2">
               Changing your password generates a new encryption key pair. All stored emails will
               be sequentially re-encrypted with the new key.
             </p>
             <div className="space-y-3 pt-1">
               {!forgot ? (
                 <div>
-                  <label className="text-xs font-medium text-foreground/60 mb-1 block">Current Password</label>
+                  <label className="text-xs font-medium text-ink-2 mb-1 block">Current Password</label>
                   <Input
                     type="password"
                     placeholder="Current password"
@@ -180,7 +180,7 @@ export function ChangePasswordModal({ isOpen, onClose }) {
                   <button
                     type="button"
                     onClick={() => { setForgot(true); setFormError('') }}
-                    className="mt-1.5 text-[11px] text-foreground/50 hover:text-primary underline-offset-2 hover:underline"
+                    className="mt-1.5 text-[11px] text-ink-3 hover:text-primary underline-offset-2 hover:underline"
                   >
                     I don't know my current password
                   </button>
@@ -195,14 +195,14 @@ export function ChangePasswordModal({ isOpen, onClose }) {
                   <button
                     type="button"
                     onClick={() => setForgot(false)}
-                    className="mt-1 text-[11px] text-foreground/60 hover:text-foreground underline"
+                    className="mt-1 text-[11px] text-ink-2 hover:text-foreground underline"
                   >
                     I do know it — go back
                   </button>
                 </div>
               )}
               <div>
-                <label className="text-xs font-medium text-foreground/60 mb-1 block">New Password</label>
+                <label className="text-xs font-medium text-ink-2 mb-1 block">New Password</label>
                 <Input
                   type="password"
                   placeholder="New password"
@@ -213,7 +213,7 @@ export function ChangePasswordModal({ isOpen, onClose }) {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-foreground/60 mb-1 block">Confirm New Password</label>
+                <label className="text-xs font-medium text-ink-2 mb-1 block">Confirm New Password</label>
                 <Input
                   type="password"
                   placeholder="Confirm new password"
@@ -242,7 +242,7 @@ export function ChangePasswordModal({ isOpen, onClose }) {
         <ModalContent>
           <div className="flex flex-col items-center gap-4 py-4">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <p className="text-sm text-foreground/70 text-center">{status}</p>
+            <p className="text-sm text-ink-2 text-center">{status}</p>
             {progress.total > 0 && (
               <div className="w-full space-y-2">
                 <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
@@ -251,7 +251,7 @@ export function ChangePasswordModal({ isOpen, onClose }) {
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-xs text-foreground/50">
+                <div className="flex justify-between text-xs text-ink-3">
                   <span>{progress.done} / {progress.total} emails</span>
                   {progress.failed > 0 && (
                     <span className="text-amber-500">{progress.failed} skipped</span>
@@ -272,9 +272,9 @@ export function ChangePasswordModal({ isOpen, onClose }) {
             ) : (
               <XCircle className="w-10 h-10 text-amber-500" />
             )}
-            <p className="text-sm text-foreground/80">{status}</p>
+            <p className="text-sm text-ink-1">{status}</p>
             {progress.failed > 0 && (
-              <p className="text-xs text-foreground/50 max-w-xs">
+              <p className="text-xs text-ink-3 max-w-xs">
                 Emails that could not be re-encrypted were already unreadable with the old key.
                 They remain on the server in their previous state.
               </p>

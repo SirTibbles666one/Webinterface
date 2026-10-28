@@ -73,19 +73,19 @@ export default function NotificationsSection() {
   }
 
   return (
-    <section className="mb-4 rounded-xl border border-border/70 bg-card/50 p-4">
+    <section className="mb-4 rounded-xl border border-line/70 bg-card/50 p-4">
       <div className="mb-2 flex items-center gap-2">
         <Bell size={16} className="text-muted-foreground" />
         <h3 className="text-sm font-medium text-foreground/90">New mail notifications</h3>
       </div>
-      <p className="mb-3 text-xs text-foreground/50">
+      <p className="mb-3 text-xs text-ink-3">
         Tells this browser when a message arrives, even when the app is closed. The
         notification says who it is from — never the subject or the message, because
         that text would be drawn on a lock screen.
       </p>
 
       {!supported && (
-        <p className="text-xs text-foreground/60">
+        <p className="text-xs text-ink-2">
           This browser cannot show notifications. Chrome, Edge and Firefox on a
           computer, and Android, all can.
         </p>
@@ -105,7 +105,7 @@ export default function NotificationsSection() {
             disabled={busy}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium disabled:opacity-50 ${
               on
-                ? 'border border-border/70 text-foreground/80 hover:border-border'
+                ? 'border border-line/70 text-ink-1 hover:border-line'
                 : 'bg-primary text-primary-foreground hover:opacity-90'
             }`}
           >
@@ -115,16 +115,16 @@ export default function NotificationsSection() {
             <button
               onClick={test}
               disabled={busy}
-              className="rounded-lg border border-border/70 px-3 py-1.5 text-sm text-foreground/70 hover:border-border disabled:opacity-50"
+              className="rounded-lg border border-line/70 px-3 py-1.5 text-sm text-ink-2 hover:border-line disabled:opacity-50"
             >
               Send a test
             </button>
           )}
-          <span className="text-xs text-foreground/45">{on ? 'On for this browser' : 'Off'}</span>
+          <span className="text-xs text-ink-3">{on ? 'On for this browser' : 'Off'}</span>
         </div>
       )}
 
-      {status ? <p className="mt-2 text-xs text-foreground/60">{status}</p> : null}
+      {status ? <p className="mt-2 text-xs text-ink-2">{status}</p> : null}
     </section>
   )
 }

@@ -10,9 +10,45 @@ import {
   DropdownMenuSubContent,
   DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu'
-import { Star, Folder, MailOpen, Mail, Trash2, MoreHorizontal, Check, Paperclip, Lock, LockKeyhole } from 'lucide-react'
-import { formatEmailDate } from '@/emailParser'
+import { Star, Folder, MailOpen, Mail, Trash2, MoreHorizontal, Check, Paperclip, Lock } from 'lucide-react'
 import { SenderAvatar } from '@/components/SenderAvatar'
+
+/**
+ * A clock for the eye, not a date library: the row is inside a day group, so the
+ * only thing worth printing is the time — or the day, for anything older.
+ */
+export function rowTime(date) {
+  if (!date) return ''
+  const d = date instanceof Date ? date : new Date(date)
+  if (Number.isNaN(d.getTime())) return ''
+  const now = new Date()
+  const sameDay =
+    d.getDate() === now.getDate() &&
+    d.getMonth() === now.getMonth() &&
+    d.getFullYear() === now.getFullYear()
+  if (sameDay) {
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+  }
+  const sameYear = d.getFullYear() === now.getFullYear()
+  return d.toLocaleDateString([], sameYear ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: '2-digit' })
+}
+
+/** Which day a message belongs to, for the list's day headings. */
+export function dayBucket(date) {
+  if (!date) return 'Earlier'
+  const d = date instanceof Date ? date : new Date(date)
+  if (Number.isNaN(d.getTime())) return 'Earlier'
+  const now = new Date()
+  const midnight = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime()
+  const days = Math.round((midnight(now) - midnight(d)) / 86400000)
+  if (days <= 0) return 'Today'
+  if (days === 1) return 'Yesterday'
+  if (days < 7) return 'Earlier this week'
+  return 'Earlier'
+}
+
+const rowBase =
+  '@container mail-row group/item relative flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors duration-120 cursor-pointer'
 
 export function EmailListItem({
   uid,
@@ -32,234 +68,196 @@ export function EmailListItem({
   groups,
   selectedFolder,
 }) {
-  if (!preview) {
-    return (
-      <div className="flex items-start gap-3 p-3 border-b border-[#211F27]">
-        <div className="w-8 h-8 rounded-md shrink-0 bg-white/5 animate-pulse" />
-        <div className="flex-1 space-y-2 pt-0.5">
-          <div className="h-3.5 w-28 rounded bg-white/5 animate-pulse" />
-          <div className="h-3 w-40 rounded bg-white/5 animate-pulse" />
-        </div>
-      </div>
-    )
-  }
-
-  const senderLabel =
-    preview.from
-      ? preview.from.name !== preview.from.email.split('@')[0]
-        ? preview.from.name
-        : preview.from.email
-      : uid
-
-  const isInGroup = selectedFolder && selectedFolder !== 'inbox' && selectedFolder !== 'starred'
   const [menuOpen, setMenuOpen] = useState(false)
 
-  if (preview.decryptFailed) {
-    return (
-      <div
-        role="button"
-        onClick={() => onSelect(uid)}
-        className={`flex items-start gap-3 p-3 cursor-pointer border-b border-l-2 transition-colors group/item ${
-          isSelected
-            ? 'bg-amber-950/40 border-l-amber-500 border-b-amber-900/40'
-            : 'border-l-amber-600/50 border-b-border hover:bg-amber-950/20'
-        }`}
-      >
-        <div
-          onClick={(e) => { e.stopPropagation(); onCheck(uid) }}
-          className={`shrink-0 mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center cursor-pointer transition-all ${
-            isChecked ? 'bg-primary border-primary opacity-100' : 'border-foreground/25 hover:border-foreground/50 opacity-0 group-hover/item:opacity-100'
-          }`}
-        >
-          {isChecked && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
-        </div>
-        <div className={`w-8 h-8 rounded-md shrink-0 flex items-center justify-center ${
-          isSelected ? 'bg-amber-500/20' : 'bg-amber-900/20'
-        }`}>
-          <LockKeyhole className="w-4 h-4 text-amber-500/70" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-0.5 gap-2">
-            <span className={`font-medium text-sm truncate ${
-              isSelected ? 'text-amber-200' : 'text-amber-500/80'
-            }`}>
-              Encrypted message
-            </span>
-            <span className={`text-xs whitespace-nowrap ${
-              isSelected ? 'text-amber-200/60' : 'text-foreground/40'
-            }`}>
-              {preview.date ? formatEmailDate(preview.date) : ''}
-            </span>
-          </div>
-          <p className={`text-xs ${
-            isSelected ? 'text-amber-200/60' : 'text-amber-600/70'
-          }`}>
-            Cannot be decrypted with the current key
-          </p>
-        </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDeleteEmail(uid) }}
-          className="shrink-0 p-1 rounded text-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover/item:opacity-100"
-          title="Delete"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
-      </div>
-    )
-  }
+  // A message whose body will not open is not "empty" — say why, in sand, so it
+  // is not mistaken for an ordinary unread message.
+  const undecryptable = !!preview?.decryptFailed
+  const isInGroup = selectedFolder && selectedFolder !== 'inbox' && selectedFolder !== 'starred'
+
+  const senderLabel = preview?.from?.name || preview?.from?.email || uid
+
+  const snippet = undecryptable
+    ? 'Cannot be decrypted with the key on this device'
+    : preview?.preview || ''
+
+  const ground = isSelected
+    ? 'bg-[color-mix(in_srgb,var(--color-primary)_9%,transparent)]'
+    : 'hover:bg-accent'
+  const unreadWeight = isUnread ? 'font-semibold' : 'font-normal'
 
   return (
     <div
       role="button"
+      tabIndex={0}
+      aria-current={isSelected ? 'true' : undefined}
       onClick={() => onSelect(uid)}
-      className={`flex items-start gap-3 p-3 cursor-pointer border-b transition-colors group/item ${
-        isSelected
-          ? 'bg-primary/40 border-primary'
-          : 'border-border hover:bg-accent'
-      }`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onSelect(uid)
+        }
+      }}
+      className={`${rowBase} ${ground} ${isChecked ? 'bg-primary/[0.06]' : ''}`}
     >
+      {/* The open row is marked by a rule at its edge, not by a colour block
+          behind the text. */}
+      <span
+        aria-hidden="true"
+        className={`absolute inset-y-0 left-0 w-[2px] transition-opacity duration-120 ${
+          isSelected ? 'bg-primary opacity-100' : 'opacity-0'
+        }`}
+      />
+
+      <div className="flex w-4 shrink-0 items-center justify-center self-stretch">
+        <button
+          type="button"
+          aria-label={isChecked ? 'Unselect message' : 'Select message'}
+          onClick={(e) => {
+            e.stopPropagation()
+            onCheck(uid)
+          }}
+          className={`flex size-4 items-center justify-center rounded border transition-all duration-120 ${
+            isChecked
+              ? 'border-primary bg-primary opacity-100'
+              : 'border-ink-4 opacity-0 hover:border-ink-2 group-hover/item:opacity-100 focus-visible:opacity-100'
+          }`}
+        >
+          {isChecked && <Check className="size-2.5 text-primary-foreground" strokeWidth={3} />}
+        </button>
+      </div>
+
+      <SenderAvatar from={preview?.from} isSelected={isSelected} />
+
+      {/* One dot slot for the whole column: the unread mark lands in the same
+          place on every row, so the eye reads a straight edge rather than dots
+          scattered after subjects of different lengths. */}
+      <span className="flex w-1.5 shrink-0 justify-center" aria-hidden={!isUnread}>
+        {isUnread && <span className="size-1.5 rounded-full bg-primary" />}
+        {isUnread && <span className="sr-only">Unread</span>}
+      </span>
+
+      {/* Two columns of information on a wide screen, two lines on a phone —
+          both aligned to the same gutters as the toolbar above. */}
+      <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-0.5 @[520px]:grid-cols-[minmax(0,180px)_minmax(0,1fr)_auto]">
+        <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-1.5">
+          <span className={`truncate text-[13.5px] ${unreadWeight} ${undecryptable ? 'text-sand' : 'text-ink-1'}`}>
+            {undecryptable ? 'Encrypted message' : senderLabel}
+          </span>
+          {preview?.e2ee && <Lock className="size-3 shrink-0 text-ink-3" aria-label="End-to-end encrypted" />}
+          {preview?.attachments?.length > 0 && (
+            <Paperclip className="size-3 shrink-0 text-ink-3" aria-label="Has attachments" />
+          )}
+        </div>
+
+        <span className="col-start-2 row-start-1 justify-self-end mono shrink-0 text-[12px] text-ink-3 @[520px]:col-start-3">
+          {rowTime(preview?.date)}
+        </span>
+
+        <div className="col-span-2 row-start-2 min-w-0 @[520px]:col-span-1 @[520px]:col-start-2 @[520px]:row-start-1">
+          <div className="flex min-w-0 items-baseline gap-2">
+            <p className={`truncate text-[13px] ${isUnread ? 'text-ink-1' : 'text-ink-2'}`}>
+              {preview?.subject || '(no subject)'}
+            </p>
+            {isStarred && <Star className="size-3 shrink-0 self-center fill-sand text-sand" aria-label="Starred" />}
+          </div>
+          {snippet && (
+            <p className="mail-row-snippet mt-0.5 truncate text-[12.5px] leading-snug text-ink-3">{snippet}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Actions occupy the space the timestamp already holds, so hovering moves
+          nothing. */}
       <div
-        onClick={(e) => { e.stopPropagation(); onCheck(uid) }}
-        className={`shrink-0 mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center cursor-pointer transition-all ${
-          isChecked
-            ? 'bg-primary border-primary opacity-100'
-            : isSelected
-            ? 'border-white/40 hover:border-white/70 opacity-100'
-            : 'border-foreground/25 hover:border-foreground/50 opacity-0 group-hover/item:opacity-100'
+        className={`absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-0.5 rounded-md border border-line bg-card/95 px-1 py-0.5 shadow-sm transition-opacity duration-120 ${
+          menuOpen ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100'
         }`}
       >
-        {isChecked && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
-      </div>
-      <SenderAvatar from={preview.from} isSelected={isSelected} />
+        <button
+          type="button"
+          aria-label={isStarred ? 'Remove star' : 'Star message'}
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggleStar(uid)
+          }}
+          className={`rounded p-1.5 transition-colors duration-120 hover:bg-accent ${
+            isStarred ? 'text-sand' : 'text-ink-3 hover:text-sand'
+          }`}
+        >
+          <Star className={`size-3.5 ${isStarred ? 'fill-sand' : ''}`} />
+        </button>
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between mb-0.5 gap-2">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span
-              className={`font-medium text-sm truncate ${
-                isSelected ? 'text-white' : 'text-foreground'
-              }`}
-            >
-              {senderLabel}
-            </span>
-            {preview.e2ee && (
-              <Lock
-                className={`w-3 h-3 shrink-0 ${isSelected ? 'text-primary-foreground/70' : 'text-primary/70'}`}
-                title="End-to-end encrypted"
-              />
-            )}
-            {isUnread && !isSelected && (
-              <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-            )}
-          </div>
-          <span
-            className={`text-xs whitespace-nowrap ${
-              isSelected ? 'text-primary-foreground/80' : 'text-foreground/50'
-            }`}
-          >
-            {preview.date ? formatEmailDate(preview.date) : ''}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
-          <p
-            className={`text-sm truncate ${
-              isSelected ? 'text-primary-foreground/90' : 'text-foreground/65'
-            }`}
-          >
-            {preview.subject}
-          </p>
-
-          <div className={`flex items-center gap-0.5 transition-opacity shrink-0 ${menuOpen ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100'}`}>
+        <DropdownMenuRoot onOpenChange={setMenuOpen}>
+          <DropdownMenuTrigger asChild>
             <button
-              onClick={(e) => { e.stopPropagation(); onToggleStar(uid) }}
-              className={`p-1 rounded transition-colors ${
-                isStarred
-                  ? 'text-yellow-400'
-                  : isSelected
-                  ? 'text-primary-foreground/60 hover:text-yellow-400'
-                  : 'text-foreground/50 hover:text-yellow-400'
-              }`}
-              title={isStarred ? 'Unstar' : 'Star'}
+              type="button"
+              aria-label="More actions"
+              onClick={(e) => e.stopPropagation()}
+              className="rounded p-1.5 text-ink-3 transition-colors duration-120 hover:bg-accent hover:text-ink-1"
             >
-              <Star className={`w-3.5 h-3.5 ${isStarred ? 'fill-yellow-400' : ''}`} />
+              <MoreHorizontal className="size-3.5" />
             </button>
-            <DropdownMenuRoot onOpenChange={setMenuOpen}>
-              <DropdownMenuTrigger asChild>
-                <button
-                  onClick={(e) => e.stopPropagation()}
-                  className={`p-1 rounded transition-colors ${
-                    isSelected ? 'text-primary-foreground/60 hover:text-primary-foreground' : 'text-foreground/50 hover:text-foreground'
-                  }`}
-                >
-                  <MoreHorizontal className="w-3.5 h-3.5" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                {isUnread ? (
-                  <DropdownMenuItem onClick={() => onMarkRead(uid)}>
-                    <MailOpen className="size-4" /> Mark as read
-                  </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem onClick={() => onMarkUnread(uid)}>
-                    <Mail className="size-4" /> Mark as unread
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <Folder className="size-4" /> Move to group
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent>
-                      {groups.length > 0 ? groups.map((g) => (
-                        <DropdownMenuItem key={g.uid} onClick={() => onMoveToGroup(uid, g.uid)}>
-                          <Folder className="size-4" /> {g.title}
-                        </DropdownMenuItem>
-                      )) : (
-                        <DropdownMenuItem disabled>
-                          <span className="text-foreground/40">No groups yet</span>
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-                {isInGroup && (
-                  <DropdownMenuItem onClick={() => onRemoveFromGroup(uid)}>
-                    Remove from group
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem destructive onClick={() => onDeleteEmail(uid)}>
-                  <Trash2 className="size-4" /> Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenuRoot>
-          </div>
-        </div>
-
-        {preview.attachments?.length > 0 && (
-          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            <Paperclip className="w-3 h-3 text-foreground/40 shrink-0" />
-            {preview.attachments.slice(0, 3).map((att, i) => (
-              <span
-                key={i}
-                className={`text-xs rounded px-1.5 py-0.5 truncate max-w-[120px] border ${
-                  isSelected
-                    ? 'bg-white/10 border-white/20 text-primary-foreground/70'
-                    : 'bg-white/5 border-white/10 text-foreground/55'
-                }`}
-              >
-                {att.name}
-              </span>
-            ))}
-            {preview.attachments.length > 3 && (
-              <span className={`text-xs ${isSelected ? 'text-primary-foreground/55' : 'text-foreground/40'}`}>
-                +{preview.attachments.length - 3} more
-              </span>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {isUnread ? (
+              <DropdownMenuItem onClick={() => onMarkRead(uid)}>
+                <MailOpen className="size-4" /> Mark as read
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={() => onMarkUnread(uid)}>
+                <Mail className="size-4" /> Mark as unread
+              </DropdownMenuItem>
             )}
-          </div>
-        )}
+            <DropdownMenuSeparator />
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <Folder className="size-4" /> Move to group
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent>
+                  {groups.length > 0 ? (
+                    groups.map((g) => (
+                      <DropdownMenuItem key={g.uid} onClick={() => onMoveToGroup(uid, g.uid)}>
+                        <Folder className="size-4" /> {g.title}
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <DropdownMenuItem disabled>
+                      <span className="text-ink-3">No groups yet</span>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
+            {isInGroup && (
+              <DropdownMenuItem onClick={() => onRemoveFromGroup(uid)}>Remove from group</DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem destructive onClick={() => onDeleteEmail(uid)}>
+              <Trash2 className="size-4" /> Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenuRoot>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The loading shape, matched to the loaded row: same height, same column widths,
+ * so the swap costs no layout. A component that renders nothing while fetching
+ * is a layout shift, not a loading state.
+ */
+export function EmailRowSkeleton() {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3" aria-hidden="true">
+      <div className="size-4 shrink-0" />
+      <div className="size-8 shrink-0 animate-breathe rounded-lg bg-white/[0.045]" />
+      <div className="min-w-0 flex-1">
+        <div className="h-[11px] w-32 animate-breathe rounded bg-white/[0.05]" />
+        <div className="mt-2 h-[10px] w-3/5 animate-breathe rounded bg-white/[0.04]" />
+        <div className="mt-1.5 h-[9px] w-4/5 animate-breathe rounded bg-white/[0.03]" />
       </div>
     </div>
   )

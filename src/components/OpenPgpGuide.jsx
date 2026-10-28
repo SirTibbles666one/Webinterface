@@ -111,28 +111,28 @@ export default function OpenPgpGuide() {
   }
 
   return (
-    <section className="mb-4 rounded-xl border border-neutral-800 bg-neutral-900/50 p-4">
+    <section className="mb-4 rounded-xl border border-line bg-card/50 p-4">
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-2 text-left"
       >
         <span className="flex items-center gap-2">
-          <HelpCircle size={16} className="text-neutral-400" />
-          <span className="text-sm font-medium text-neutral-200">How encryption works here</span>
+          <HelpCircle size={16} className="text-ink-2" />
+          <span className="text-sm font-medium text-ink-1">How encryption works here</span>
         </span>
-        <ChevronDown size={16} className={`text-neutral-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown size={16} className={`text-ink-3 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       <button
         onClick={runSelfTest}
-        className="mt-3 rounded-lg border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300 hover:bg-neutral-800"
+        className="mt-3 rounded-lg border border-line-strong px-3 py-1.5 text-xs text-ink-2 hover:bg-accent"
       >
         Run a quick self-test
       </button>
       {test ? (
         <p
           className={`mt-2 text-xs ${
-            test.state === 'fail' ? 'text-red-300' : test.state === 'pass' ? 'text-emerald-300' : 'text-neutral-400'
+            test.state === 'fail' ? 'text-red-300' : test.state === 'pass' ? 'text-emerald-300' : 'text-ink-2'
           }`}
         >
           {test.text}
@@ -140,22 +140,22 @@ export default function OpenPgpGuide() {
       ) : null}
 
       {!open ? (
-        <p className="mt-2 text-xs text-neutral-500">
+        <p className="mt-2 text-xs text-ink-3">
           Seven short steps: creating a key, sharing it, writing to others, and what stays unencrypted.
         </p>
       ) : (
         <ol className="mt-3 space-y-2">
           {STEPS.map((s, i) => (
-            <li key={s.title} className="rounded-lg border border-neutral-800 bg-neutral-950/60">
+            <li key={s.title} className="rounded-lg border border-line-strong bg-field/60">
               <button
                 onClick={() => setStep(step === i ? null : i)}
                 className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
               >
-                <span className="text-xs font-medium text-neutral-200">{s.title}</span>
-                <ChevronDown size={13} className={`shrink-0 text-neutral-600 transition-transform ${step === i ? 'rotate-180' : ''}`} />
+                <span className="text-xs font-medium text-ink-1">{s.title}</span>
+                <ChevronDown size={13} className={`shrink-0 text-ink-4 transition-transform ${step === i ? 'rotate-180' : ''}`} />
               </button>
               {step === i ? (
-                <p className="whitespace-pre-line px-3 pb-3 text-xs leading-relaxed text-neutral-400">{s.body}</p>
+                <p className="whitespace-pre-line px-3 pb-3 text-xs leading-relaxed text-ink-2">{s.body}</p>
               ) : null}
             </li>
           ))}

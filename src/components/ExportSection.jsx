@@ -42,12 +42,12 @@ export default function ExportSection() {
   }
 
   return (
-    <section className="mb-4 rounded-xl border border-neutral-800 bg-neutral-900/50 p-4">
+    <section className="mb-4 rounded-xl border border-line bg-card/50 p-4">
       <div className="mb-2 flex items-center gap-2">
-        <Download size={16} className="text-neutral-400" />
-        <h3 className="text-sm font-medium text-neutral-200">Download your mail</h3>
+        <Download size={16} className="text-ink-2" />
+        <h3 className="text-sm font-medium text-ink-1">Download your mail</h3>
       </div>
-      <p className="mb-3 text-xs text-neutral-500">
+      <p className="mb-3 text-xs text-ink-3">
         Saves every message as an .mbox file, decrypted on this device. Import it
         into Thunderbird or any mbox-compatible client. Attachments stay part of
         each message.
@@ -55,11 +55,11 @@ export default function ExportSection() {
       <button
         onClick={run}
         disabled={busy}
-        className="rounded-lg bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-900 hover:bg-white disabled:opacity-50"
+        className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
       >
         {busy ? 'Preparing…' : 'Download .mbox'}
       </button>
-      {status ? <p className="mt-2 text-xs text-neutral-400">{status}</p> : null}
+      {status ? <p className="mt-2 text-xs text-ink-2">{status}</p> : null}
     </section>
   )
 }

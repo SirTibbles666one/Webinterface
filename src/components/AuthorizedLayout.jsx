@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Sidebar from '@/components/Sidebar'
 import EmailList from '@/components/EmailList'
 import ScheduledPanel from '@/components/ScheduledPanel'
@@ -6,11 +7,9 @@ import EmailView from '@/components/EmailView'
 import ComposeWindow from '@/components/ComposeWindow'
 import { ConfirmModal, InputModal } from '@/components/ui/Modal'
 import { TopBar } from '@/components/TopBar'
-import { PgpModal } from '@/components/PgpModal'
+import SetupStrip from '@/components/SetupStrip'
 import { hasIdentity } from '@/pgp'
-import { Lock, ShieldAlert } from 'lucide-react'
 import { UnlockModal } from '@/components/UnlockModal'
-import { ChangePasswordModal } from '@/components/ChangePasswordModal'
 import { EmailToolbar } from '@/components/EmailToolbar'
 import { useEmailFetch } from '@/hooks/useEmailFetch'
 import { useSentEmails } from '@/hooks/useSentEmails'
@@ -39,11 +38,10 @@ const AuthorizedLayout = () => {
   const [replyData, setReplyData] = useState(null)
   const [composeDraftId, setComposeDraftId] = useState(null)
   const [drafts, setDrafts] = useState(() => storage.getDrafts())
+  const navigate = useNavigate()
   const [userEmail, setUserEmail] = useState('')
   const [isAdmin, setIsAdmin] = useState(() => storage.getIsAdmin())
-  const [showChangePassword, setShowChangePassword] = useState(false)
-  const [showPgp, setShowPgp] = useState(false)
-  const [keyPromptDismissed, setKeyPromptDismissed] = useState(false)
+  const [setupDismissed, setSetupDismissed] = useState(false)
   // null = unknown (not fetched yet), false = no recovery key on file.
   const [recoveryKeySet, setRecoveryKeySet] = useState(null)
   const [recoveryPromptDismissed, setRecoveryPromptDismissed] = useState(false)
@@ -54,8 +52,26 @@ const AuthorizedLayout = () => {
       .then((data) => { if (!cancelled) setRecoveryKeySet(!!data.set) })
       .catch(() => { if (!cancelled) setRecoveryKeySet(null) })
     return () => { cancelled = true }
-  }, [showPgp])
+  }, [])
   const [hasOwnKey, setHasOwnKey] = useState(true)
+
+  // Every incomplete security step, gathered so one strip can carry them all.
+  const setupGaps = []
+  if (recoveryKeySet === false) {
+    setupGaps.push({
+      id: 'recovery',
+      label: 'Recovery key',
+      note: 'Without one, a forgotten password means your encrypted mail cannot be read again — the reset link cannot open it either.',
+    })
+  }
+  if (!hasOwnKey) {
+    setupGaps.push({
+      id: 'openpgp',
+      label: 'OpenPGP key',
+      note: 'Mail between mailboxes here is already encrypted with your account key. An OpenPGP key is what lets you exchange encrypted mail with people on other providers.',
+    })
+  }
+  const dismissSetup = () => setSetupDismissed(true)
   const [needsUnlock, setNeedsUnlock] = useState(false)
   const [serverStatus, setServerStatus] = useState('checking')
 
@@ -128,7 +144,7 @@ const AuthorizedLayout = () => {
     } catch {
       setHasOwnKey(true)
     }
-  }, [showPgp])
+  }, [])
 
   const visibleUids = (() => {
     if (selectedFolder === 'inbox') return uids
@@ -336,6 +352,7 @@ const AuthorizedLayout = () => {
             sentCount={sentUids.length}
             draftsCount={drafts.length}
             onCompose={() => setComposeOpen(true)}
+            onOpenSettings={() => navigate('/settings')}
           />
         </div>
         {/* Mobile folder drawer */}
@@ -358,6 +375,7 @@ const AuthorizedLayout = () => {
                 sentCount={sentUids.length}
                 draftsCount={drafts.length}
                 onCompose={() => { setNavOpen(false); setComposeOpen(true) }}
+                onOpenSettings={() => { setNavOpen(false); navigate('/settings') }}
               />
             </div>
           </div>
@@ -371,57 +389,23 @@ const AuthorizedLayout = () => {
             serverStatus={serverStatus}
             onLogout={handleLogout}
             onRetryServer={checkServer}
-            onChangePassword={() => setShowChangePassword(true)}
+            
             onOpenNav={() => setNavOpen(true)}
-            onOpenPgp={() => setShowPgp(true)}
+            
           />
-          {recoveryKeySet === false && !recoveryPromptDismissed && (
-            <div className="flex items-start gap-3 px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/25 text-[12px]">
-              <ShieldAlert className="w-3.5 h-3.5 mt-0.5 text-amber-400 shrink-0" />
-              <p className="flex-1 text-foreground/80">
-                <span className="font-medium">No recovery key.</span> If you forget your password,
-                your encrypted mail cannot be recovered — the reset link cannot open it either.
-              </p>
-              <button
-                onClick={() => { setShowPgp(true); setRecoveryPromptDismissed(true) }}
-                className="shrink-0 rounded-md border border-amber-500/40 px-2 py-1 text-amber-300 hover:bg-amber-500/10"
-              >
-                Create recovery key
-              </button>
-              <button
-                onClick={() => setRecoveryPromptDismissed(true)}
-                className="shrink-0 text-foreground/40 hover:text-foreground/70"
-                aria-label="Dismiss"
-              >
-                ×
-              </button>
-            </div>
-          )}
-          {!hasOwnKey && !keyPromptDismissed && (
-            <div className="flex items-start gap-3 px-4 py-2.5 bg-primary/10 border-b border-primary/20 text-[12px]">
-              <Lock className="w-3.5 h-3.5 mt-0.5 text-primary shrink-0" />
-              <p className="flex-1 text-foreground/80">
-                <span className="font-medium">No OpenPGP key yet.</span> Mail between mailboxes on
-                this server is already encrypted with your account key. An OpenPGP key is what lets
-                you exchange encrypted mail with people on other providers.
-              </p>
-              <button
-                onClick={() => setShowPgp(true)}
-                className="shrink-0 rounded-md border border-primary/40 px-2 py-1.5 sm:py-1 text-primary hover:bg-primary/10"
-              >
-                Create OpenPGP key
-              </button>
-              <button
-                onClick={() => setKeyPromptDismissed(true)}
-                className="shrink-0 text-foreground/40 hover:text-foreground/70"
-                aria-label="Dismiss"
-              >
-                ×
-              </button>
-            </div>
-          )}
+          <SetupStrip
+            items={setupDismissed ? [] : setupGaps}
+            onOpen={() => navigate('/settings')}
+            onDismiss={dismissSetup}
+          />
           <div className="flex-1 flex min-h-0">
-            <div className="w-full md:w-[680px] md:shrink-0 border-l border-r border-border flex flex-col overflow-hidden">
+            {/* With nothing open the list takes the whole width. An empty reading
+                pane on a resting screen is half the app showing nothing. */}
+            <div
+              className={`flex w-full flex-col overflow-hidden ${
+                selectedUid ? 'md:w-[400px] md:shrink-0 md:border-r md:border-line' : ''
+              }`}
+            >
               {selectedFolder !== 'drafts' && (
               <EmailToolbar
                 pagedUids={pagedUids}
@@ -433,7 +417,8 @@ const AuthorizedLayout = () => {
                 pageCount={pageCount}
                 hasMore={selectedFolder === 'inbox' && hasMore}
                 groups={groups}
-                onToggleSelectAll={handleToggleSelectAll}
+                filterMode={filterMode}
+                onFilterModeChange={(m) => { setFilterMode(m); setPage(0) }}
                 onDeleteSelected={() => setModalState({ type: 'delete-selected' })}
                 onMarkSelectedRead={markSelectedRead}
                 onMarkSelectedUnread={markSelectedUnread}
@@ -457,7 +442,6 @@ const AuthorizedLayout = () => {
                 checkedUids={checkedUids}
                 onSelect={handleSelect}
                 onCheck={handleCheck}
-                onToggleSelectAll={handleToggleSelectAll}
                 loading={loading}
                 hasMore={selectedFolder === 'inbox' && hasMore}
                 onLoadMore={loadMore}
@@ -473,19 +457,16 @@ const AuthorizedLayout = () => {
                 groups={groups}
                 folderLabel={folderLabel}
                 selectedFolder={selectedFolder}
-                filterMode={filterMode}
-                onFilterModeChange={(m) => { setFilterMode(m); setPage(0) }}
               />
             </div>
-            <div className={`${selectedUid ? 'fixed inset-0 z-40 bg-background flex flex-col md:static md:z-auto md:block' : 'hidden md:block'} flex-1 min-w-0`}>
-              {selectedUid && (
-                <button
-                  onClick={() => setSelectedUid(null)}
+            {selectedUid && (
+            <div className="fixed inset-0 z-40 flex min-w-0 flex-1 flex-col bg-background md:static md:z-auto md:block">
+              <button
+                onClick={() => setSelectedUid(null)}
                   className="md:hidden flex items-center gap-1.5 px-3 py-2 border-b border-border text-sm text-foreground/70"
                 >
-                  <span aria-hidden="true">←</span> Back to inbox
-                </button>
-              )}
+                <span aria-hidden="true">←</span> Back to inbox
+              </button>
               <EmailView
                 key={selectedUid}
                 uid={selectedUid}
@@ -515,6 +496,7 @@ const AuthorizedLayout = () => {
                 onComposeTo={handleComposeTo}
               />
             </div>
+            )}
           </div>
         </div>
       </div>
@@ -571,19 +553,8 @@ const AuthorizedLayout = () => {
         />
       )}
 
-      <ChangePasswordModal
-        isOpen={showChangePassword}
-        onClose={() => setShowChangePassword(false)}
-      />
-
-      <PgpModal
-        isOpen={showPgp}
-        onClose={() => setShowPgp(false)}
-        accountEmail={userEmail}
-      />
-
       <UnlockModal
-        isOpen={needsUnlock && !showPgp}
+        isOpen={needsUnlock}
         onUnlocked={() => window.location.reload()}
       />
     </div>

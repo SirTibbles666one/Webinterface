@@ -87,13 +87,13 @@ export default function SessionsSection() {
   if (!rows && !error) return null
 
   return (
-    <div data-testid="sessions-section" className="rounded-lg border border-border p-3">
+    <div data-testid="sessions-section" className="rounded-lg border border-line p-3">
       <div className="flex items-center gap-2">
-        <Monitor className="w-4 h-4 text-foreground/60" />
+        <Monitor className="w-4 h-4 text-ink-2" />
         <h4 className="text-sm font-medium flex-1">Signed-in devices</h4>
-        <span className="text-[11px] text-foreground/50">{rows?.length ?? 0}</span>
+        <span className="text-[11px] text-ink-3">{rows?.length ?? 0}</span>
       </div>
-      <p className="mt-1 text-[11px] text-foreground/60">
+      <p className="mt-1 text-[11px] text-ink-2">
         Signing a device out ends its session immediately. Useful if you left yourself signed in somewhere.
       </p>
 
@@ -105,7 +105,7 @@ export default function SessionsSection() {
                 {describeAgent(row.user_agent)}
                 {row.current && <span className="ml-1.5 rounded bg-primary/20 px-1 text-[10px] text-primary">this device</span>}
               </p>
-              <p className="truncate text-[10px] text-foreground/45">
+              <p className="truncate text-[10px] text-ink-3">
                 {row.ip || 'unknown address'} · seen {describeWhen(row.last_seen_at)}
               </p>
             </div>
@@ -114,7 +114,7 @@ export default function SessionsSection() {
                 type="button"
                 onClick={() => revoke(row.id)}
                 disabled={busy === row.id}
-                className="shrink-0 rounded-md border border-border px-2 py-0.5 text-[11px] hover:bg-foreground/5 disabled:opacity-50"
+                className="shrink-0 rounded-md border border-line px-2 py-0.5 text-[11px] hover:bg-foreground/5 disabled:opacity-50"
               >
                 {busy === row.id ? 'Signing out…' : 'Sign out'}
               </button>
@@ -131,11 +131,11 @@ export default function SessionsSection() {
             {busy === 'all' ? 'Signing out…' : 'Yes, sign out all'}
           </button>
           <button type="button" onClick={() => setConfirmAll(false)}
-            className="rounded-md border border-border px-2 py-1 text-[11px]">Cancel</button>
+            className="rounded-md border border-line px-2 py-1 text-[11px]">Cancel</button>
         </div>
       ) : (
         <button type="button" onClick={() => setConfirmAll(true)}
-          className="mt-2 flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-foreground/5">
+          className="mt-2 flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] hover:bg-foreground/5">
           <LogOut className="w-3 h-3" /> Sign out everywhere
         </button>
       )}

@@ -47,7 +47,7 @@ export default function DeleteAccountSection({ onDeleted }) {
         <Trash2 size={16} className="text-red-400" />
         <h3 className="text-sm font-medium text-red-200">Delete this account</h3>
       </div>
-      <p className="mb-3 text-xs text-neutral-400">
+      <p className="mb-3 text-xs text-ink-2">
         Deletes the mailbox, every message stored for it, your recovery record,
         two-factor setup and all signed-in devices. This cannot be undone, and
         mail already sent to others is not affected.
@@ -72,13 +72,13 @@ export default function DeleteAccountSection({ onDeleted }) {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Your password"
             autoComplete="current-password"
-            className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-neutral-500"
+            className="w-full rounded-lg border border-line-strong bg-field px-3 py-2 text-sm text-ink-1 outline-none focus:border-line-strong"
           />
           <input
             value={confirmWord}
             onChange={(e) => setConfirmWord(e.target.value)}
             placeholder="Type DELETE to confirm"
-            className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-neutral-500"
+            className="w-full rounded-lg border border-line-strong bg-field px-3 py-2 text-sm text-ink-1 outline-none focus:border-line-strong"
           />
           {error ? <p className="text-xs text-red-300">{error}</p> : null}
           <div className="flex gap-2">
@@ -92,7 +92,7 @@ export default function DeleteAccountSection({ onDeleted }) {
             <button
               type="button"
               onClick={() => { setOpen(false); setError(''); setPassword(''); setConfirmWord('') }}
-              className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-800"
+              className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-ink-2 hover:bg-accent"
             >
               Cancel
             </button>

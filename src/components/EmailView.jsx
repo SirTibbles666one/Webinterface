@@ -39,6 +39,13 @@ import { EmailBody } from '@/components/email/EmailBody'
 import { PgpAttachment, isPgpAttachment } from '@/components/email/PgpAttachment'
 import { AddressRow } from '@/components/email/AddressRow'
 
+/** "to me", or the people it actually went to — never a chip the eye has to decode. */
+function toSummary(to, myEmail) {
+  if (!to || to.length === 0) return 'me'
+  if (to.length === 1 && to[0]?.email === myEmail) return 'me'
+  return to.map((a) => a.name || a.email).join(', ')
+}
+
 const EmailView = ({
   uid,
   myEmail,
@@ -195,99 +202,100 @@ const EmailView = ({
 
   return (
     <div className="flex flex-col h-full bg-background overflow-hidden">
-      <div className="h-14 px-4 border-b border-border shrink-0 bg-background flex items-center justify-between gap-3">
-        {email && (
-          <p className="text-sm font-semibold text-foreground truncate flex-1 min-w-0 flex items-center gap-1.5">
-            {email.e2ee && <Lock className="w-3.5 h-3.5 shrink-0 text-primary/70" title="End-to-end encrypted" />}
-            {email.subject || '(no subject)'}
-          </p>
-        )}
-        {uid === null && <span className="flex-1" />}
-        {uid !== null && (
-          <div className="flex items-center gap-2 shrink-0">
-            {email && (
+      {/* The bar carries actions only. What the message is, and who sent it,
+          belongs in the reading column below, where the eye already is. */}
+      <div className="flex h-14 shrink-0 items-center gap-1 border-b border-line px-3">
+        <div className="ml-auto flex items-center gap-0.5">
+          <Button
+            onClick={() => (isUnread ? onMarkRead(uid) : onMarkUnread(uid))}
+            variant="ghost"
+            size="icon"
+            className="size-8 text-ink-3 hover:bg-accent hover:text-ink-1"
+            title={isUnread ? 'Mark as read' : 'Mark as unread'}
+          >
+            {isUnread ? <MailOpen className="size-4" /> : <Mail className="size-4" />}
+          </Button>
+
+          <Button
+            onClick={() => onToggleStar(uid)}
+            variant="ghost"
+            size="icon"
+            className={`size-8 hover:bg-accent ${isStarred ? 'text-sand' : 'text-ink-3 hover:text-sand'}`}
+            title={isStarred ? 'Unstar' : 'Star'}
+          >
+            <Star className={`size-4 ${isStarred ? 'fill-current' : ''}`} />
+          </Button>
+
+          <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />
+
+          <DropdownMenuRoot>
+            <DropdownMenuTrigger asChild>
               <Button
-                onClick={() => onReply?.({ ...email, alias: arrivedAt })}
                 variant="ghost"
                 size="icon"
-                className="text-muted-foreground/80 hover:text-foreground"
-                title="Reply"
+                className="size-8 text-ink-3 hover:bg-accent hover:text-ink-1"
+                title="More"
               >
-                <Reply className="size-5" />
+                <MoreHorizontal className="size-4" />
               </Button>
-            )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Folder className="size-4" /> Move to group
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent>
+                    {groups.length > 0 ? groups.map((g) => (
+                      <DropdownMenuItem key={g.uid} onClick={() => onMoveToGroup(uid, g.uid)}>
+                        <Folder className="size-4" /> {g.title}
+                      </DropdownMenuItem>
+                    )) : (
+                      <DropdownMenuItem disabled>
+                        <span className="text-ink-3">No groups yet</span>
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+              {isInGroup && (
+                <DropdownMenuItem onClick={() => onRemoveFromGroup(uid)}>
+                  <X className="size-4" /> Remove from group
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenuRoot>
 
-            <Button
-              onClick={() => (isUnread ? onMarkRead(uid) : onMarkUnread(uid))}
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground/80 hover:text-foreground"
-              title={isUnread ? 'Mark as read' : 'Mark as unread'}
-            >
-              {isUnread ? <MailOpen className="size-5" /> : <Mail className="size-5" />}
-            </Button>
+          <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />
 
-            <Button
-              onClick={() => onToggleStar(uid)}
-              variant="ghost"
-              size="icon"
-              className={isStarred ? 'text-amber-500' : 'text-muted-foreground/80 hover:text-amber-500'}
-              title={isStarred ? 'Unstar' : 'Star'}
-            >
-              <Star className={isStarred ? 'size-5 fill-current' : 'size-5'} />
-            </Button>
-
-            <Button
-              onClick={() => onDeleteEmail(uid)}
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground/80 hover:text-destructive"
-              title="Delete"
-            >
-              <Trash2 className="size-5" />
-            </Button>
-
-            <div className="w-px h-6 bg-border mx-1" />
-
-            <DropdownMenuRoot>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground/80 hover:text-foreground"
-                >
-                  <MoreHorizontal className="size-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <Folder className="size-4" /> Move to group
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent>
-                      {groups.length > 0 ? groups.map((g) => (
-                        <DropdownMenuItem key={g.uid} onClick={() => onMoveToGroup(uid, g.uid)}>
-                          <Folder className="size-4" /> {g.title}
-                        </DropdownMenuItem>
-                      )) : (
-                        <DropdownMenuItem disabled>
-                          <span className="text-foreground/40">No groups yet</span>
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-                {isInGroup && (
-                  <DropdownMenuItem onClick={() => onRemoveFromGroup(uid)}>
-                    <X className="size-4" /> Remove from group
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenuRoot>
-          </div>
-        )}
+          {/* Destructive: colour, and it sits apart from the rest. */}
+          <Button
+            onClick={() => onDeleteEmail(uid)}
+            variant="ghost"
+            size="icon"
+            className="size-8 text-ink-3 hover:bg-destructive/10 hover:text-destructive"
+            title="Delete"
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
       </div>
+
+      {/* Reply sits where the message ends, which is where a reader finishes. */}
+      {email && (
+        <div className="shrink-0 border-t border-line px-4 py-2.5">
+          <div className="mx-auto flex w-full max-w-[720px] items-center gap-2">
+            <Button
+              onClick={() => onReply?.({ ...email, alias: arrivedAt })}
+              variant="outline"
+              size="sm"
+              className="gap-1.5 px-3 text-[12.5px]"
+            >
+              <Reply className="size-3.5" /> Reply
+            </Button>
+          </div>
+        </div>
+      )}
 
       {note && (
         <div className="flex items-start gap-2 px-4 py-2 border-b border-border bg-muted/50 text-xs text-muted-foreground shrink-0">
@@ -321,54 +329,62 @@ const EmailView = ({
         </div>
       ) : email ? (
         <ScrollArea className="flex-1">
-          <div className="p-6 border-b border-border space-y-6">
-            <div className="flex items-start gap-4">
+          {/* One measure for the whole message: a line of text that runs the
+              width of a wide window is unreadable, and the header has to sit in
+              the same column as the body it introduces. */}
+          <div className="mx-auto w-full max-w-[720px] px-6 pb-12">
+            <h1 className="display mt-7 flex items-start gap-2 text-[22px] leading-snug text-ink-1">
+              <span className="min-w-0">{email.subject || '(no subject)'}</span>
+              {email.e2ee && (
+                <Lock className="mt-1.5 size-3.5 shrink-0 text-primary" aria-label="End-to-end encrypted" />
+              )}
+            </h1>
+
+            <div className="mt-5 flex items-start gap-3">
               <SenderAvatar from={email.from} variant="view" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-base font-semibold text-foreground truncate">
-                      {email.from
-                        ? email.from.name !== email.from.email.split('@')[0]
-                          ? email.from.name
-                          : email.from.email
-                        : '(unknown sender)'}
-                    </p>
-                    {email.from && (
-                      <p
-                        title={email.from.email}
-                        onClick={
-                          email.from.email !== myEmail && onComposeTo
-                            ? () => onComposeTo(email.from.email)
-                            : undefined
-                        }
-                        className={`text-sm text-foreground/60 truncate ${
-                          email.from.email !== myEmail && onComposeTo
-                            ? 'cursor-pointer hover:text-primary transition-colors'
-                            : ''
-                        }`}
-                      >
-                        {email.from.email}
-                      </p>
-                    )}
-                  </div>
-                  {email.date && (
-                    <span className="text-sm text-foreground/60 shrink-0 whitespace-nowrap pt-0.5">
-                      {formatEmailDate(email.date)}
-                    </span>
-                  )}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="truncate text-[13.5px] font-semibold text-ink-1">
+                    {email.from?.name || email.from?.email || '(unknown sender)'}
+                  </p>
+                  <span className="mono shrink-0 text-[11.5px] text-ink-3">
+                    {formatEmailDate(email.date)}
+                  </span>
                 </div>
+                {email.from?.name && email.from.name !== email.from.email?.split('@')[0] && (
+                  <p
+                    title={email.from.email}
+                    onClick={
+                      email.from.email !== myEmail && onComposeTo
+                        ? () => onComposeTo(email.from.email)
+                        : undefined
+                    }
+                    className={`mono truncate text-[11.5px] text-ink-3 ${
+                      email.from.email !== myEmail && onComposeTo
+                        ? 'cursor-pointer transition-colors duration-120 hover:text-primary'
+                        : ''
+                    }`}
+                  >
+                    {email.from.email}
+                  </p>
+                )}
+                <p className="mt-1 text-[12px] text-ink-2">
+                  to {toSummary(email.to, myEmail)}
+                </p>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <AddressRow label="To" addrs={email.to} myEmail={myEmail} onComposeTo={onComposeTo} />
-              <AddressRow label="CC" addrs={email.cc} myEmail={myEmail} onComposeTo={onComposeTo} />
-              <AddressRow label="BCC" addrs={email.bcc} myEmail={myEmail} onComposeTo={onComposeTo} />
-            </div>
+            {(email.cc?.length > 0 || email.bcc?.length > 0) && (
+              <div className="mt-3 space-y-1.5">
+                <AddressRow label="CC" addrs={email.cc} myEmail={myEmail} onComposeTo={onComposeTo} />
+                <AddressRow label="BCC" addrs={email.bcc} myEmail={myEmail} onComposeTo={onComposeTo} />
+              </div>
+            )}
+
+            <div className="my-5 h-px bg-line" />
           </div>
 
-          <div className="p-6">
+          <div className="mx-auto w-full max-w-[720px] px-6 pb-10">
             {sealed.length > 0 && (
               <div className="mb-4 space-y-2">
                 {sealed.map((n) => (

@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import Login from './components/Login'
 import AuthorizedLayout from './components/AuthorizedLayout'
 import AdminPanel from './components/AdminPanel'
+import Settings from '@/pages/Settings'
 import ResetPassword from './components/ResetPassword'
 import RecoverAccount from './components/RecoverAccount'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -20,6 +21,10 @@ function App() {
             <AuthorizedLayout />
           </ProtectedRoute>
         }
+      />
+      <Route
+        path="/settings"
+        element={<Settings />}
       />
       <Route
         path="/admin"

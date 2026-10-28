@@ -22,17 +22,17 @@ export default function ProfileSection() {
   }
 
   return (
-    <section className="mb-4 rounded-xl border border-neutral-800 bg-neutral-900/50 p-4">
+    <section className="mb-4 rounded-xl border border-line bg-card/50 p-4">
       <div className="mb-3 flex items-center gap-2">
-        <User size={16} className="text-neutral-400" />
-        <h3 className="text-sm font-medium text-neutral-200">Your name and signature</h3>
+        <User size={16} className="text-ink-2" />
+        <h3 className="text-sm font-medium text-ink-1">Your name and signature</h3>
       </div>
-      <p className="mb-3 text-xs text-neutral-500">
+      <p className="mb-3 text-xs text-ink-3">
         Stored on this device only. The name appears on the mail you send; the
         signature is added below each new message.
       </p>
 
-      <label className="mb-1 block text-xs text-neutral-400" htmlFor="profile-name">
+      <label className="mb-1 block text-xs text-ink-2" htmlFor="profile-name">
         Display name
       </label>
       <input
@@ -40,10 +40,10 @@ export default function ProfileSection() {
         value={displayName}
         onChange={(e) => setDisplayName(e.target.value)}
         placeholder="Your name"
-        className="mb-3 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-neutral-500"
+        className="mb-3 w-full rounded-lg border border-line-strong bg-field px-3 py-2 text-sm text-ink-1 outline-none focus:border-line-strong"
       />
 
-      <label className="mb-1 block text-xs text-neutral-400" htmlFor="profile-signature">
+      <label className="mb-1 block text-xs text-ink-2" htmlFor="profile-signature">
         Signature
       </label>
       <textarea
@@ -52,12 +52,12 @@ export default function ProfileSection() {
         onChange={(e) => setSignature(e.target.value)}
         placeholder="— sent from Sloth Lee Mail"
         rows={3}
-        className="mb-3 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-neutral-500"
+        className="mb-3 w-full resize-y rounded-lg border border-line-strong bg-field px-3 py-2 text-sm text-ink-1 outline-none focus:border-line-strong"
       />
 
       <button
         onClick={save}
-        className="inline-flex items-center gap-2 rounded-lg bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-900 hover:bg-white"
+        className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
       >
         {saved ? <Check size={14} /> : null}
         {saved ? 'Saved' : 'Save'}
