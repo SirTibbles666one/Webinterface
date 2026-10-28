@@ -625,7 +625,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                placeholder="My super secret subject"
+                placeholder="Subject"
                 className="flex-1 py-1.5 bg-transparent outline-none text-sm text-card-foreground placeholder:text-muted-foreground/60"
               />
             </div>

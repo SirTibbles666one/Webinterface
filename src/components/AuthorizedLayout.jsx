@@ -20,6 +20,7 @@ import { mergeServerFlags } from '@/lib/mailboxState'
 import { storage } from '@/storage'
 import { buildQuotedBody } from '@/emailParser'
 import api, { userRecoveryKeyStatus } from '@/api'
+import useSearchShortcut from '@/hooks/useSearchShortcut'
 
 const PAGE_SIZE = 20
 
@@ -27,6 +28,7 @@ const AuthorizedLayout = () => {
   const [selectedUid, setSelectedUid] = useState(null)
   const [navOpen, setNavOpen] = useState(false)
   const [selectedFolder, setSelectedFolder] = useState('inbox')
+  useSearchShortcut()
   const [searchQuery, setSearchQuery] = useState('')
   const [filterMode, setFilterMode] = useState('all')
   const [page, setPage] = useState(0)
