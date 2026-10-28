@@ -25,3 +25,4 @@ dist-ssr
 sealed-key.mjs
 sealed-test.*.asc
 note.asc
+seal-pass.mjs

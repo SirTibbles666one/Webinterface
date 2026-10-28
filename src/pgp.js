@@ -393,6 +393,26 @@ export async function sealToRecipients({ text, recipients }) {
 }
 
 /**
+ * Seal a note with a passphrase instead of a key.
+ *
+ * A recipient on another provider often has no OpenPGP key at all, and asking
+ * a stranger to install one is not a design. Symmetric armour lets them read
+ * the note on any device with the phrase the sender passes on separately; the
+ * server holds the ciphertext and never sees either.
+ */
+export async function sealWithPassphrase({ text, passphrase }) {
+  const phrase = (passphrase ?? '').trim()
+  if (phrase.length < 12) {
+    throw new Error('Use a longer passphrase — at least 12 characters')
+  }
+  return openpgp.encrypt({
+    message: await openpgp.createMessage({ text }),
+    passwords: [phrase],
+    format: 'armored',
+  })
+}
+
+/**
  * Encrypt a file's bytes for a set of recipients.
  *
  * Inline PGP can only protect a body, so attachments travel as their own

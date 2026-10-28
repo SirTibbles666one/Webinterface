@@ -20,7 +20,8 @@ import { useAttachments } from '@/hooks/useAttachments'
 import { useResizable } from '@/hooks/useResizable'
 import { useIsPhone } from '@/hooks/useIsPhone'
 import { Lock, LockOpen } from 'lucide-react'
-import { keyCoverage, encryptBody, encryptAttachment, hasIdentity, importPublicKey, sealToRecipients } from '@/pgp'
+import { keyCoverage, encryptBody, encryptAttachment, hasIdentity, importPublicKey, sealToRecipients, sealWithPassphrase } from '@/pgp'
+import { makePassphrase } from '@/lib/passphrase'
 import { lookupKey } from '@/lib/wkd'
 import { loadProfile } from '@/lib/profile'
 import api from '@/api'
@@ -69,6 +70,11 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
   // Other providers keep whatever they are sent, so for them the body is not
   // sent at all: it is sealed behind a link this server can delete.
   const [sealExternal, setSealExternal] = useState(false)
+  // How the note is locked: to the recipient's key, or to a phrase the sender
+  // passes on separately (the only option when they have no key at all).
+  const [sealMode, setSealMode] = useState('key')
+  const [sealPhrase, setSealPhrase] = useState('')
+  const [phraseCopied, setPhraseCopied] = useState(false)
   const [pgpPass, setPgpPass] = useState('')
   const [keyPasteOpen, setKeyPasteOpen] = useState(false)
   const [keyPaste, setKeyPaste] = useState('')
@@ -133,7 +139,9 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
     if (sealed.length) {
       return {
         tone: 'good',
-        text: `Sealed link to ${offServerRecipients.join(', ')} — the body never leaves this server`,
+        text: sealMode === 'phrase'
+          ? `Sealed link to ${offServerRecipients.join(', ')} — locked with a passphrase, body stays here`
+          : `Sealed link to ${offServerRecipients.join(', ')} — the body never leaves this server`,
       }
     }
 
@@ -190,9 +198,14 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
 
   const sendWithPgpIfNeeded = async () => {
     if (sealExternal && offServerRecipients.length > 0) {
-      const coverageForSeal = keyCoverage(offServerRecipients)
-      if (!coverageForSeal.canEncrypt) {
-        setPgpError(`No OpenPGP key for: ${coverageForSeal.missing.join(', ')} — a sealed note is encrypted to their key`)
+      if (sealMode === 'key') {
+        const coverageForSeal = keyCoverage(offServerRecipients)
+        if (!coverageForSeal.canEncrypt) {
+          setPgpError(`No OpenPGP key for: ${coverageForSeal.missing.join(', ')} — switch to a passphrase, or get their key`)
+          return
+        }
+      } else if (!sealPhrase) {
+        setPgpError('Generate a passphrase for the sealed note first')
         return
       }
       if (attachments.length > 0) {
@@ -210,11 +223,25 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
         ].join('\n')
 
         const sealed = {}
+        if (sealMode === 'phrase') {
+          // One phrase, one armour: every sealed recipient gets the same note
+          // with their own link.
+          const armor = await sealWithPassphrase({ text: noteBody, passphrase: sealPhrase })
+          for (const address of offServerRecipients) sealed[address] = armor
+          setPgpBusy(false)
+          handleSend({
+            toChips, ccChips, bccChips, subject, body, attachments,
+            ephemeral: ephemeralPayload(), sealed,
+            sealMode: 'passphrase', sealedPhrase: sealPhrase,
+          })
+          return
+        }
+
         for (const address of offServerRecipients) {
           sealed[address] = await sealToRecipients({ text: noteBody, recipients: [address] })
         }
         setPgpBusy(false)
-        handleSend({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral: ephemeralPayload(), sealed })
+        handleSend({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral: ephemeralPayload(), sealed, sealMode: 'pgp' })
         return
       } catch (err) {
         setPgpBusy(false)
@@ -524,7 +551,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                       ? `${offServerRecipients.length === 1 ? 'body stays here' : 'bodies stay here'} for ${offServerRecipients.length} recipient${offServerRecipients.length === 1 ? '' : 's'} elsewhere`
                       : `needs their OpenPGP key: ${keyCoverage(offServerRecipients).missing.join(', ')}`}
                   </span>
-                  {!keyCoverage(offServerRecipients).canEncrypt && (
+                  {sealMode === 'key' && !keyCoverage(offServerRecipients).canEncrypt && (
                     <>
                       <button
                         type="button"
@@ -544,6 +571,28 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                     </>
                   )}
                 </>
+              )}
+              {sealExternal && offServerRecipients.length > 0 && (
+                <span className="flex items-center gap-1 text-[11px]">
+                  <span className="text-foreground/40">lock with</span>
+                  <button
+                    type="button"
+                    onClick={() => { setSealMode('key'); setSealPhrase('') }}
+                    className={`px-1.5 py-0.5 rounded ${sealMode === 'key' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+                  >
+                    their key
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSealMode('phrase')
+                      if (!sealPhrase) setSealPhrase(makePassphrase())
+                    }}
+                    className={`px-1.5 py-0.5 rounded ${sealMode === 'phrase' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+                  >
+                    a passphrase
+                  </button>
+                </span>
               )}
               {pgpOn && (
                 <>
@@ -589,6 +638,29 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                 </>
               )}
             </div>
+            {sealExternal && sealMode === 'phrase' && offServerRecipients.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-border/60 text-[11px]">
+                <span className="text-foreground/50">Send this to them another way:</span>
+                <code className="px-2 py-1 rounded bg-muted text-foreground font-mono text-[12px] select-all">{sealPhrase}</code>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try { await navigator.clipboard.writeText(sealPhrase); setPhraseCopied(true); setTimeout(() => setPhraseCopied(false), 1500) } catch { /* select and copy by hand */ }
+                  }}
+                  className="text-primary underline underline-offset-2"
+                >
+                  {phraseCopied ? 'copied' : 'copy'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setSealPhrase(makePassphrase()); setPhraseCopied(false) }}
+                  className="text-foreground/50 underline underline-offset-2"
+                >
+                  new phrase
+                </button>
+                <span className="text-amber-600 dark:text-amber-400 w-full">It is not in the email — anything else you use to tell them is the weak link.</span>
+              </div>
+            )}
             {Object.keys(keySuggestions).length > 0 && (
               <div className="px-3 py-2 border-b border-border/60 space-y-1">
                 {Object.entries(keySuggestions).map(([address, hit]) => (

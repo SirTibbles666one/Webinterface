@@ -28,6 +28,29 @@ So for those recipients we do not send the body at all.
    the same write. The page then shows the armour to copy, or the recipient
    decrypts the file with their own key.
 
+## Two ways to lock a note
+
+- **To their key** (default): armour encrypted to the recipient's OpenPGP key.
+  Nothing to explain, nothing to share — but it needs a key, and a stranger on
+  another provider often has none.
+- **With a passphrase**: symmetric armour locked with four words and digits that
+  the compose window generates (e.g. `donkey-ginger-onyx-indigo-604`). The
+  recipient opens the link, types the phrase, and reads the message on whatever
+  device they have — no key, no client, no install. The sender passes the phrase
+  on another channel; it is never in the email.
+
+Passphrase notes are the reason a sealed note is worth sending to someone
+without PGP at all. The costs are stated in the UI: the phrase travels outside
+the mail, and anyone holding both the link and the phrase can read it.
+
+Because a typo must not destroy the message, a passphrase note is not burned by
+being fetched. It is cleared when the page reports a successful decrypt
+(`POST /note/burn`), or by the timer, and the link stops working after five
+fetches.
+
+The sender's own copy in Sent carries the link, the phrase and the deadline —
+that is the only place they are written down.
+
 ## What is enforced, and what is not
 
 Enforced by us, because the only copy is on our disk:
@@ -51,7 +74,9 @@ Not enforced:
 - The server stores ciphertext and a 32-byte random token. It has no key that
   opens a note, so it cannot read one.
 - Notes are **unsigned**: signing needs the sender's private-key passphrase, and
-  a sealed note must be writable without it. Provenance comes from the
+  a sealed note must be writable without it. A passphrase note is additionally
+  *not* bound to a key, so anyone with the link and the phrase can read it —
+  that is the point, and the limit. Provenance comes from the
   notification email, which is DKIM-signed by this server.
 - The token is a capability: whoever has the link can open the note once. It
   travels in the URL, so the page sends `Referrer-Policy: no-referrer` and the

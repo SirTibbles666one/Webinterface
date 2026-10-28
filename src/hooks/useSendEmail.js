@@ -22,8 +22,25 @@ function formatDeadline(expiresAt) {
   })
 }
 
-function sealedNotice({ url, expiresAt, subject, from }) {
+function sealedNotice({ url, expiresAt, subject, from, passphrase }) {
   const deadline = formatDeadline(expiresAt)
+  const how = passphrase
+    ? [
+        'The message itself is not in this email. It is locked with a passphrase',
+        'the sender will send you separately, and held on their server until you',
+        'open the link — then it is deleted and the link stops working.',
+        '',
+        'Open the link, type the passphrase, and the message appears. Nothing to',
+        'install.',
+      ]
+    : [
+        'The message itself is not in this email. It is encrypted to your OpenPGP',
+        "key and held on the sender's server until you open the link — then it is",
+        'deleted, and the link stops working.',
+        '',
+        'You will need your private key to read it: your mail client, or',
+        'gpg --decrypt on the text the page gives you.',
+      ]
   return [
     `${from} sent you a sealed note.`,
     '',
@@ -32,14 +49,9 @@ function sealedNotice({ url, expiresAt, subject, from }) {
     'Open it here:',
     url,
     '',
-    'The message itself is not in this email. It is encrypted to your OpenPGP',
-    'key and held on the sender\'s server until you open the link — then it is',
-    'deleted, and the link stops working.',
+    ...how,
     '',
     deadline ? `The link closes on ${deadline}.` : '',
-    '',
-    'You will need your private key to read it: your mail client, or',
-    'gpg --decrypt on the text the page gives you.',
   ].filter((line) => line !== null).join('\n')
 }
 
@@ -60,7 +72,7 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
    * sent at all. It is PGP-armoured by the compose window ("sealed" here) and
    * stored on this server; the recipient gets a link that we can delete.
    */
-  const handleSend = async ({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral, sealed }) => {
+  const handleSend = async ({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral, sealed, sealMode, sealedPhrase }) => {
     const allTo  = toChips.filter((a) => a.trim())
     const allCc  = ccChips.filter((a) => a.trim())
     const allBcc = bccChips.filter((a) => a.trim())
@@ -129,7 +141,9 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
       if (!privateKey) throw new Error('Session expired - please log in again.')
 
       const myPublicKey = await getPublicCryptoKeyFromPrivate(privateKey)
-      const localCopy   = await encryptEmail(rawEmail, myPublicKey)
+      // Filled in below when a sealed note is created: the sender's own copy is
+      // the only place the link — and a passphrase — is written down.
+      let localCopy = await encryptEmail(rawEmail, myPublicKey)
 
       let publicKeyHash = ''
       const storedPubKey = storage.getPublicKey()
@@ -165,13 +179,14 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
             armored: sealedMap[addr],
             deletes_on_read: true,
             expires_in_seconds: seconds,
+            mode: sealMode === 'passphrase' ? 'passphrase' : 'pgp',
           },
           { headers },
         )
         const { url, expires_at } = noteRes.data
         notes.push({ address: addr, url, expiresAt: expires_at })
 
-        const notice = sealedNotice({ url, expiresAt: expires_at, subject, from: fromHeader })
+        const notice = sealedNotice({ url, expiresAt: expires_at, subject, from: fromHeader, passphrase: sealMode === 'passphrase' })
         const noticeEmail = buildEmail({
           from:        fromHeader,
           to:          [addr],
@@ -192,6 +207,29 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
         } else {
           recipientsPayload[addr] = { aes_encrypted: '', data_encrypted: utf8ToBase64(noticeEmail), e2ee: false }
         }
+      }
+
+      if (notes.length > 0) {
+        const block = notes
+          .map((n) => [
+            `Sealed note to ${n.address}`,
+            `  link: ${n.url}`,
+            sealMode === 'passphrase' ? `  passphrase: ${sealedPhrase}` : '  locked to their OpenPGP key',
+            `  closes: ${formatDeadline(n.expiresAt)}`,
+          ].join('\n'))
+          .join('\n\n')
+        const localRaw = buildEmail({
+          from:        fromHeader,
+          to:          allTo,
+          cc:          allCc,
+          subject,
+          body:        `${bodyWithSignature}\n\n---\n${block}\n`,
+          attachments: attachments.map(({ name, type, data }) => ({ name, type, data })),
+          inReplyTo:   replyData?.inReplyTo ?? '',
+          references:  replyData?.references ?? '',
+          e2ee:        hasAnyKey,
+        })
+        localCopy = await encryptEmail(localRaw, myPublicKey)
       }
 
       setSendState('sending')
