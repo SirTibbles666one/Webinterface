@@ -367,12 +367,23 @@ export async function encryptBody({ text, recipients, passphrase }) {
  */
 export async function sealToRecipients({ text, recipients }) {
   const ring = loadRing()
-  const coverage = keyCoverage(recipients)
+  // Contacts are stored under the lower-case address. Looking one up with the
+  // case the sender typed ("Samsmith@…") finds nothing, and openpgp's own error
+  // for a missing armoredKey ("readKey: must pass options object…") names
+  // neither the address nor the problem.
+  const targets = (recipients ?? [])
+    .map((address) => (address ?? '').toLowerCase().trim())
+    .filter(Boolean)
+  const coverage = keyCoverage(targets)
   if (!coverage.canEncrypt) {
     throw new Error(`No OpenPGP key for: ${coverage.missing.join(', ')}`)
   }
   const encryptionKeys = await Promise.all(
-    recipients.map((address) => openpgp.readKey({ armoredKey: contactArmor(ring.contacts[address]) })),
+    targets.map(async (address) => {
+      const armor = contactArmor(ring.contacts[address])
+      if (!armor) throw new Error(`No OpenPGP key for: ${address}`)
+      return openpgp.readKey({ armoredKey: armor })
+    }),
   )
   return openpgp.encrypt({
     message: await openpgp.createMessage({ text }),
