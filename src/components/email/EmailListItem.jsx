@@ -110,7 +110,7 @@ export function EmailListItem({
         }`}
       />
 
-      <div className="flex w-4 shrink-0 items-center justify-center self-stretch">
+      <div className="flex w-4 shrink-0 items-center justify-center self-stretch max-sm:w-7">
         <button
           type="button"
           aria-label={isChecked ? 'Unselect message' : 'Select message'}
@@ -118,7 +118,7 @@ export function EmailListItem({
             e.stopPropagation()
             onCheck(uid)
           }}
-          className={`flex size-4 items-center justify-center rounded border transition-all duration-120 ${
+          className={`flex size-4 items-center justify-center rounded border transition-all duration-120 max-sm:size-5 ${
             isChecked
               ? 'border-primary bg-primary opacity-100'
               : 'border-ink-4 opacity-0 hover:border-ink-2 group-hover/item:opacity-100 focus-visible:opacity-100'
@@ -184,7 +184,7 @@ export function EmailListItem({
             e.stopPropagation()
             onToggleStar(uid)
           }}
-          className={`rounded p-1.5 transition-colors duration-120 hover:bg-accent ${
+          className={`rounded p-1.5 transition-colors duration-120 hover:bg-accent max-sm:p-2.5 ${
             isStarred ? 'text-sand' : 'text-ink-3 hover:text-sand'
           }`}
         >
@@ -197,7 +197,7 @@ export function EmailListItem({
               type="button"
               aria-label="More actions"
               onClick={(e) => e.stopPropagation()}
-              className="rounded p-1.5 text-ink-3 transition-colors duration-120 hover:bg-accent hover:text-ink-1"
+              className="rounded p-1.5 text-ink-3 transition-colors duration-120 hover:bg-accent hover:text-ink-1 max-sm:p-2.5"
             >
               <MoreHorizontal className="size-3.5" />
             </button>

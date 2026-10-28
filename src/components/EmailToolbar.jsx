@@ -58,7 +58,7 @@ export function EmailToolbar({
               role="tab"
               aria-selected={filterMode === f.id}
               onClick={() => onFilterModeChange?.(f.id)}
-              className={`rounded-full px-2.5 py-1 text-[11.5px] font-medium transition-colors duration-120 ${
+              className={`rounded-full px-2.5 py-1 text-[11.5px] font-medium transition-colors duration-120 max-sm:min-h-[34px] max-sm:px-3 ${
                 filterMode === f.id
                   ? 'bg-secondary text-ink-1'
                   : 'text-ink-3 hover:bg-accent hover:text-ink-2'
@@ -157,7 +157,7 @@ export function EmailToolbar({
           onClick={onRefresh}
           disabled={refreshing}
           aria-label="Refresh"
-          className="rounded p-1.5 text-ink-3 transition-colors duration-120 hover:bg-accent hover:text-ink-1 disabled:opacity-40"
+          className="rounded p-1.5 text-ink-3 transition-colors duration-120 hover:bg-accent hover:text-ink-1 disabled:opacity-40 max-sm:p-2"
         >
           <RefreshCw className={`size-3.5 ${refreshing ? 'animate-spin' : ''}`} />
         </button>

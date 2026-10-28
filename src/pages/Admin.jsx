@@ -421,7 +421,7 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                             onClick={() => toggleAdmin(user)}
                             disabled={self}
                             title={self ? 'You cannot change your own role' : user.is_admin ? 'Revoke admin' : 'Grant admin'}
-                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors duration-120 ${
+                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors duration-120 max-sm:min-h-[30px] max-sm:px-2.5 ${
                               user.is_admin
                                 ? 'border-primary/35 bg-primary/10 text-primary'
                                 : 'border-line text-ink-3 hover:border-line-strong hover:text-ink-2'
@@ -436,7 +436,7 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                             onClick={() => openRecovery(user)}
                             title={`Password recovery for ${user.username}`}
                             aria-label={`Password recovery for ${user.username}`}
-                            className="rounded p-1.5 text-ink-3 transition-colors duration-120 hover:bg-accent hover:text-primary"
+                            className="rounded p-1.5 text-ink-3 transition-colors duration-120 hover:bg-accent hover:text-primary max-sm:p-2.5"
                           >
                             <KeyRound className="size-4" />
                           </button>
@@ -444,7 +444,7 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                             onClick={() => setModalState({ type: 'delete', username: user.username })}
                             title={`Delete ${user.username}`}
                             aria-label={`Delete ${user.username}`}
-                            className="rounded p-1.5 text-ink-3 transition-colors duration-120 hover:bg-destructive/10 hover:text-destructive"
+                            className="rounded p-1.5 text-ink-3 transition-colors duration-120 hover:bg-destructive/10 hover:text-destructive max-sm:p-2.5"
                           >
                             <Trash2 className="size-4" />
                           </button>
