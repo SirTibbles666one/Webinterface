@@ -38,6 +38,7 @@ import { SenderAvatar } from '@/components/SenderAvatar'
 import { EmailBody } from '@/components/email/EmailBody'
 import { PgpAttachment, isPgpAttachment } from '@/components/email/PgpAttachment'
 import { AddressRow } from '@/components/email/AddressRow'
+import { copyWithToast } from '@/lib/toast'
 
 /** "to me", or the people it actually went to — never a chip the eye has to decode. */
 function toSummary(to, myEmail) {
@@ -77,10 +78,9 @@ const EmailView = ({
   const noteUrl = (token) => `${window.location.origin}/api/note?t=${token}`
   const when = (secs) => (secs ? new Date(secs * 1000).toLocaleString() : '')
   const copyText = async (text, label) => {
-    try {
-      await navigator.clipboard.writeText(text)
+    if (await copyWithToast(text, `${label} copied`)) {
       setSealedMsg(`${label} copied`)
-    } catch {
+    } else {
       setSealedMsg('Could not copy — select it from the message below')
     }
     setTimeout(() => setSealedMsg(''), 2500)

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ShieldCheck, ShieldAlert, Copy, Check } from 'lucide-react'
 import { userTwoFactorStatus, userTwoFactorStart, userTwoFactorConfirm, userTwoFactorDisable } from '@/api'
+import { copyWithToast } from '@/lib/toast'
 
 /**
  * Two-factor authentication settings.
@@ -28,11 +29,10 @@ export default function TwoFactorSection() {
   useEffect(() => { refresh() }, [])
 
   const copy = async (text, what) => {
-    try {
-      await navigator.clipboard.writeText(text)
+    if (await copyWithToast(text, `${what} copied`)) {
       setCopied(what)
       setTimeout(() => setCopied(''), 1500)
-    } catch { /* clipboard blocked; the text is on screen */ }
+    }
   }
 
   const download = () => {

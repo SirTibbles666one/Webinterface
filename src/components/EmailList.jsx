@@ -95,9 +95,12 @@ const EmailList = ({
     const added = [...ids].filter((id) => !seen.current.has(id))
     // No overlap at all means the folder changed, not that mail arrived.
     const replaced = [...ids].every((id) => !seen.current.has(id))
+    // "Load older mail" appends rows that are genuinely new to this view but
+    // arrived long ago. Only a new row at the top of the list is an arrival.
+    const newest = threads[0]?.latestUid
     seen.current = ids
-    if (!added.length || replaced) return
-    setFresh(new Set(added))
+    if (!added.length || replaced || !added.includes(newest)) return
+    setFresh(new Set([newest]))
     const timer = setTimeout(() => setFresh(new Set()), 1400)
     return () => clearTimeout(timer)
   }, [threads, loading])

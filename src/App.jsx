@@ -3,6 +3,7 @@ import Login from './components/Login'
 import AuthorizedLayout from './components/AuthorizedLayout'
 import Admin from '@/pages/Admin'
 import NotFound from '@/pages/NotFound'
+import Toaster from '@/components/Toaster'
 import Settings from '@/pages/Settings'
 import ResetPassword from './components/ResetPassword'
 import RecoverAccount from './components/RecoverAccount'
@@ -10,6 +11,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
   return (
+    <>
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/setup" element={<Login />} />
@@ -37,6 +39,8 @@ function App() {
       />
           <Route path="*" element={<NotFound />} />
 </Routes>
+      <Toaster />
+    </>
   )
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Copy, Check, Plus, Trash2, Power } from 'lucide-react'
 import { listAliases, createAlias, setAliasDisabled, deleteAlias } from '@/api'
+import { copyWithToast } from '@/lib/toast'
 
 /**
  * Addresses you can hand out and then kill.
@@ -34,11 +35,14 @@ export function AliasesSection() {
   }, [])
 
   const copy = async (address) => {
-    try {
-      await navigator.clipboard.writeText(address)
+    const ok = await copyWithToast(address, `${address} copied`)
+    if (ok) {
+      // A failed copy left a red line in this card; a good one has to clear it,
+      // or the page says both "could not copy" and "copied" at once.
+      setError('')
       setCopied(address)
       setTimeout(() => setCopied(''), 2000)
-    } catch {
+    } else {
       setError('Could not copy — long-press the address instead')
     }
   }

@@ -26,6 +26,7 @@ import {
 } from '@/pgp'
 import { wkdUrl, publishToKeyserver } from '@/lib/wkd'
 import { pgpPublishWkd, pgpWkdStatus } from '@/api'
+import { copyWithToast } from '@/lib/toast'
 
 /**
  * Key management for OpenPGP mail: create this account's key, import a
@@ -267,12 +268,8 @@ export default function KeysSection({ accountEmail }) {
   }
 
   const copyKey = async () => {
-    try {
-      await navigator.clipboard.writeText(exportPublicKey() ?? '')
-      setNotice('Public key copied')
-    } catch {
-      setError('Copying was blocked by the browser — select the text below instead')
-    }
+    const ok = await copyWithToast(exportPublicKey() ?? '', 'Public key copied')
+    if (!ok) setError('Copying was blocked by the browser — select the text below instead')
   }
 
   const downloadKey = () => {
