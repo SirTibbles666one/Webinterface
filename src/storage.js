@@ -17,6 +17,8 @@ export const storage = {
   getForceReset: () => load().force_reset ?? false,
   getUsername: () => load().username ?? null,
   getIsAdmin: () => load().is_admin ?? false,
+  // The last deletion-log head this browser saw, so a shorter history is noticed.
+  getDeletionLogPin: () => load().deletion_log_seen ?? null,
   getEncryptedKey: () => load().encrypted_key ?? null,
   getPublicKey: () => load().public_key ?? null,
   set: (obj) => save(obj),

@@ -15,6 +15,7 @@ import RecoveryKeySection from '@/components/RecoveryKeySection'
 import ExportSection from '@/components/ExportSection'
 import ImportSection from '@/components/ImportSection'
 import PostQuantumSection from '@/components/PostQuantumSection'
+import DeletionLogSection from '@/components/DeletionLogSection'
 import DeleteAccountSection from '@/components/DeleteAccountSection'
 
 /**
@@ -52,6 +53,7 @@ const GROUPS = [
       // Sits directly under the keys it extends, because it is not a separate
       // feature: it is a stronger half of the same seal.
       { id: 'post-quantum', label: 'Post-quantum', title: 'Post-quantum protection', note: 'A second half to the key that seals new mail, so breaking RSA alone does not open it.', Component: PostQuantumSection },
+      { id: 'deletion-log', label: 'Deletion log', title: 'Deletion log', note: 'Messages deleted from this mailbox, in a record that cannot be silently rewritten.', Component: DeletionLogSection },
       { id: 'recovery', label: 'Recovery', title: 'Recovery key', note: 'The only way back into encrypted mail if you forget your password.', Component: RecoveryKeySection },
     ],
   },
