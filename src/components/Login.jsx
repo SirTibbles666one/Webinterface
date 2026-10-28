@@ -6,6 +6,7 @@ import AuthShell, { Field, PasswordInput } from '@/components/AuthShell'
 import api from '@/api'
 import { storage } from '@/storage'
 import { loginSecondFactor } from '@/api'
+import { enablePostQuantum, loadPostQuantumKey } from '@/lib/pqSetup'
 import { hashPassword, generateKeyPair, exportPublicKeyBase64, encryptPrivateKey, decryptPrivateKey, hasSubtleCrypto } from '@/crypto'
 import RecoveryKeySetup from '@/components/RecoveryKeySetup'
 import { keySession } from '@/keySession'
@@ -99,6 +100,9 @@ const Login = () => {
             console.log('[Login] Decrypting private key with salt:', salt)
             const privateKey = await decryptPrivateKey(encrypted_private_key, passwordUsed, salt)
             await keySession.set(privateKey)
+            // Same password, same salt: the post-quantum secret unlocks with the
+            // account key it sits beside. Accounts without one simply skip this.
+            await loadPostQuantumKey(passwordUsed, salt)
             console.log('[Login] ✅ Private key decrypted and loaded into session')
           } catch (keyErr) {
             console.error('[Login] ❌ Failed to decrypt private key:', keyErr)
@@ -159,6 +163,16 @@ const Login = () => {
         { password: passwordHash, public_key: publicKeyBase64, encrypted_private_key: encryptedKey },
         { headers: { Authorization: `Bearer ${activeToken}` } },
       )
+
+      // Post-quantum protection is on from the first message for new accounts.
+      // A failure here must not sink the account: the keys exist, and Settings
+      // can add the PQ half later.
+      try {
+        await enablePostQuantum(setupPassword, serverSalt)
+        console.log('[Setup] Post-quantum key created and uploaded')
+      } catch (pqErr) {
+        console.warn('[Setup] Post-quantum key not created:', pqErr?.message || pqErr)
+      }
 
       console.log('[Setup] Loading private key into session')
       await keySession.set(keyPair.privateKey)

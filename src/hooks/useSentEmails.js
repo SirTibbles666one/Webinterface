@@ -3,6 +3,7 @@ import { storage } from '@/storage'
 import { keySession } from '@/keySession'
 import api from '@/api'
 import { decryptEmail } from '@/crypto'
+import { decryptStored } from '@/lib/decryptStored'
 import { parseEmail } from '@/emailParser'
 
 export function useSentEmails(setPreviews) {
@@ -46,7 +47,7 @@ export function useSentEmails(setPreviews) {
               newPreviews[uid] = { subject: '(key unavailable)', from: null, date: received_at ? new Date(received_at) : null, preview: '', attachments: [], decryptFailed: true }
               return
             }
-            const text = await decryptEmail(data, message_key, privateKey)
+            const text = await decryptStored(data, message_key, privateKey)
             const parsed = parseEmail(text)
             newPreviews[uid] = {
               subject:     parsed?.subject     ?? '(no subject)',

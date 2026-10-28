@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { KeyRound, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { Modal, ModalHeader, ModalContent, ModalFooter } from '@/components/ui/Modal'
+import { decryptStored } from '@/lib/decryptStored'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -11,7 +12,6 @@ import {
   hashPassword,
   getPublicCryptoKeyFromPrivate,
   encryptEmail,
-  decryptEmail,
 } from '@/crypto'
 import { keySession } from '@/keySession'
 import { storage } from '@/storage'
@@ -129,7 +129,7 @@ export function ChangePasswordModal({ isOpen, onClose }) {
         if (abortRef.current) break
         try {
           const { data: rawData, message_key: rawMsgKey } = await emailGetRaw(uid)
-          const plaintext = await decryptEmail(rawData, rawMsgKey, oldPrivateKey)
+          const plaintext = await decryptStored(rawData, rawMsgKey, oldPrivateKey)
           const { aes_encrypted, data_encrypted } = await encryptEmail(plaintext, newKeyPair.publicKey)
           await emailSetRaw(uid, data_encrypted, aes_encrypted)
           done++

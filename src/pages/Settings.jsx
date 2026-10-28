@@ -14,6 +14,7 @@ import KeysSection from '@/components/KeysSection'
 import RecoveryKeySection from '@/components/RecoveryKeySection'
 import ExportSection from '@/components/ExportSection'
 import ImportSection from '@/components/ImportSection'
+import PostQuantumSection from '@/components/PostQuantumSection'
 import DeleteAccountSection from '@/components/DeleteAccountSection'
 
 /**
@@ -48,6 +49,9 @@ const GROUPS = [
     label: 'Security',
     items: [
       { id: 'keys', label: 'Encryption keys', title: 'Encryption keys', note: 'The OpenPGP key that lets you exchange encrypted mail with other providers.', Component: KeysSection, takesEmail: true },
+      // Sits directly under the keys it extends, because it is not a separate
+      // feature: it is a stronger half of the same seal.
+      { id: 'post-quantum', label: 'Post-quantum', title: 'Post-quantum protection', note: 'A second half to the key that seals new mail, so breaking RSA alone does not open it.', Component: PostQuantumSection },
       { id: 'recovery', label: 'Recovery', title: 'Recovery key', note: 'The only way back into encrypted mail if you forget your password.', Component: RecoveryKeySection },
     ],
   },

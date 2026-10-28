@@ -3,6 +3,7 @@ import { storage } from '@/storage'
 import { keySession } from '@/keySession'
 import api from '@/api'
 import { decryptEmail } from '@/crypto'
+import { decryptStored } from '@/lib/decryptStored'
 import { importAutocryptKey } from '@/pgp'
 import { parseEmail } from '@/emailParser'
 import { addressBook } from '@/addressBook'
@@ -62,7 +63,7 @@ export function useEmailFetch() {
                 newPreviews[uid] = { subject: '(key unavailable)', from: null, date: received_at ? new Date(received_at) : null, preview: '', attachments: [], decryptFailed: true }
                 return
               }
-              const text = await decryptEmail(data, message_key, privateKey)
+              const text = await decryptStored(data, message_key, privateKey)
               const parsed = parseEmail(text)
               // A sender who attaches their key (Autocrypt) saves everyone a
               // lookup. Failures are silent by design: a bad header in one

@@ -30,6 +30,7 @@ import {
 import api from '@/api'
 import { storage } from '@/storage'
 import { decryptEmail } from '@/crypto'
+import { decryptStored } from '@/lib/decryptStored'
 import { keySession } from '@/keySession'
 import { parseEmail, formatEmailDate } from '@/emailParser'
 import { downloadAttachment } from '@/lib/utils'
@@ -132,7 +133,7 @@ const EmailView = ({
         })
         const privateKey = await keySession.get()
         if (!privateKey) throw new Error('Private key is not available. Please log out and log back in.')
-        const text = await decryptEmail(res.data.data, res.data.message_key, privateKey)
+        const text = await decryptStored(res.data.data, res.data.message_key, privateKey)
         const parsed = parseEmail(text)
         addressBook.addAll(parsed?.from ? [parsed.from] : [])
         addressBook.addAll(parsed?.to ?? [])
