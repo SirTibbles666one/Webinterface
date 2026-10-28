@@ -67,7 +67,7 @@ function whenPresets() {
   return out
 }
 
-const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = null, onDeleteDraft }) => {
+const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = null, onDeleteDraft, onScheduled, replaceId = null }) => {
   const [minimized, setMinimized] = useState(false)
   const isPhone = useIsPhone()
 
@@ -103,7 +103,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
     .filter((a) => !myDomain || !a.toLowerCase().trim().endsWith('@' + myDomain))
 
   const { sendState, sendError, sendResults, scheduledFor, handleSend, reportError } = useSendEmail({
-    myEmail, replyData, draftId, onDeleteDraft, onSent, onClose,
+    myEmail, replyData, draftId, onDeleteDraft, onSent, onClose, onScheduled, replaceId,
   })
 
   // Only shown when there is something to choose from, so an account with no

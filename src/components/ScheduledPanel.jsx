@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Clock, X, AlertCircle } from 'lucide-react'
+import { Clock, Pencil, X, AlertCircle } from 'lucide-react'
 import { listScheduled, cancelScheduled } from '@/api'
 
 function whenLabel(seconds, now) {
@@ -20,7 +20,7 @@ function whenLabel(seconds, now) {
  * Shown above the list in Sent, because a scheduled message is not in Sent yet —
  * the point of the panel is that its absence from the list is not a mystery.
  */
-export function ScheduledPanel({ onCount }) {
+export function ScheduledPanel({ onCount, onEdit, editableIds, onItems, onCancelled, version = 0 }) {
   const [items, setItems] = useState([])
   const [now, setNow] = useState(Math.floor(Date.now() / 1000))
   const [busy, setBusy] = useState('')
@@ -32,6 +32,7 @@ export function ScheduledPanel({ onCount }) {
       setItems(data.items ?? [])
       setNow(data.now ?? Math.floor(Date.now() / 1000))
       onCount?.((data.items ?? []).filter((i) => i.status === 'pending').length)
+      onItems?.(data.items ?? [])
     } catch {
       // A missing panel is better than a panel that guesses.
     }
@@ -42,13 +43,15 @@ export function ScheduledPanel({ onCount }) {
     const timer = setInterval(load, 60000)
     return () => clearInterval(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [version])
 
   const cancel = async (id) => {
     setBusy(id)
     setError('')
     try {
       await cancelScheduled(id)
+      // The local copy is only useful while the message is waiting.
+      onCancelled?.(id)
       await load()
     } catch (err) {
       setError(err.response?.data?.error ?? 'Could not take that back')
@@ -83,15 +86,33 @@ export function ScheduledPanel({ onCount }) {
               {item.status === 'failed' ? `couldn't send — ${item.error || 'unknown reason'}` : whenLabel(item.send_at, now)}
             </span>
             {item.status === 'pending' && (
-              <button
-                type="button"
-                onClick={() => cancel(item.id)}
-                disabled={busy === item.id}
-                title="Take it back"
-                className="shrink-0 text-foreground/50 hover:text-destructive disabled:opacity-40"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+              <>
+                {/* Editing is only offered when this device still holds the plaintext:
+                    the server keeps the sealed request and cannot hand it back, so a
+                    button that opened an empty composer would be a lie. */}
+                {editableIds?.has(item.id) && (
+                  <button
+                    type="button"
+                    onClick={() => onEdit?.(item)}
+                    disabled={busy === item.id}
+                    title="Edit before it goes"
+                    aria-label="Edit before it goes"
+                    className="shrink-0 flex items-center justify-center h-11 w-11 md:h-7 md:w-7 text-foreground/50 hover:text-foreground disabled:opacity-40"
+                  >
+                    <Pencil className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => cancel(item.id)}
+                  disabled={busy === item.id}
+                  title="Take it back"
+                  aria-label="Take it back"
+                  className="shrink-0 flex items-center justify-center h-11 w-11 md:h-7 md:w-7 text-foreground/50 hover:text-destructive disabled:opacity-40"
+                >
+                  <X className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                </button>
+              </>
             )}
           </li>
         ))}

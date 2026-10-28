@@ -40,6 +40,12 @@ const AuthorizedLayout = () => {
   const [composeOpen, setComposeOpen] = useState(false)
   const [replyData, setReplyData] = useState(null)
   const [composeDraftId, setComposeDraftId] = useState(null)
+  // Set when the composer was opened from a held message, so sending it edits that
+  // message instead of queueing a second one.
+  const [composeReplaceId, setComposeReplaceId] = useState(null)
+  // Bumped whenever a held message changes, so the panel does not wait a minute
+  // to show the edit the sender just made.
+  const [scheduledVersion, setScheduledVersion] = useState(0)
   const [drafts, setDrafts] = useState(() => storage.getDrafts())
   const navigate = useNavigate()
   const [userEmail, setUserEmail] = useState('')
@@ -330,6 +336,41 @@ const AuthorizedLayout = () => {
     setComposeOpen(false)
     setReplyData(null)
     setComposeDraftId(null)
+    setComposeReplaceId(null)
+  }, [])
+
+  const handleScheduled = useCallback(({ id, sendAt, draft }) => {
+    if (!id || !draft) return
+    storage.saveScheduledDraft(id, sendAt, draft)
+    setDrafts(storage.getDrafts())
+    setScheduledVersion((n) => n + 1)
+  }, [])
+
+  const handleEditScheduled = useCallback((item) => {
+    const draft = storage.getScheduledDraft(item.id)
+    if (!draft) {
+      // Only reachable from another device: the copy that could be edited lives
+      // on the one that composed it.
+      return
+    }
+    setReplyData({
+      to: draft.to ?? [], cc: draft.cc ?? [], bcc: draft.bcc ?? [],
+      subject: draft.subject ?? '', body: draft.body ?? '',
+    })
+    setComposeDraftId(draft.id)
+    setComposeReplaceId(item.id)
+    setComposeOpen(true)
+  }, [])
+
+  const handleCancelledScheduled = useCallback((id) => {
+    storage.deleteDraft(`sched_${id}`)
+    setDrafts(storage.getDrafts())
+  }, [])
+
+  const handleScheduledItems = useCallback((items) => {
+    const live = new Set(items.filter((i) => i.status === 'pending').map((i) => i.id))
+    const next = storage.pruneScheduledDrafts(live)
+    setDrafts(next)
   }, [])
 
   const handleDeleteDraft = useCallback((draftId) => {
@@ -456,7 +497,15 @@ const AuthorizedLayout = () => {
                 refreshing={loading}
               />
               )}
-              {selectedFolder === 'sent' && <ScheduledPanel />}
+              {selectedFolder === 'sent' && (
+                <ScheduledPanel
+                  editableIds={new Set(drafts.filter((d) => d.scheduledId).map((d) => d.scheduledId))}
+                  onEdit={handleEditScheduled}
+                  onCancelled={handleCancelledScheduled}
+                  onItems={handleScheduledItems}
+                  version={scheduledVersion}
+                />
+              )}
               <EmailList
                 searchQuery={searchQuery}
                 filterMode={filterMode}
@@ -575,6 +624,8 @@ const AuthorizedLayout = () => {
           replyData={replyData}
           draftId={composeDraftId}
           onDeleteDraft={handleDeleteDraft}
+          onScheduled={handleScheduled}
+          replaceId={composeReplaceId}
         />
       )}
 

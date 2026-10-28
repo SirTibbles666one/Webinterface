@@ -55,7 +55,7 @@ function sealedNotice({ url, expiresAt, subject, from, passphrase }) {
   ].filter((line) => line !== null).join('\n')
 }
 
-export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSent, onClose, onScheduled }) {
+export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSent, onClose, onScheduled, replaceId = null }) {
   const [sendState, setSendState] = useState('idle')
   const [scheduledFor, setScheduledFor] = useState(0)
   const [sendError, setSendError] = useState('')
@@ -264,6 +264,9 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
             ? { ephemeral }
             : {}),
           ...(sendAt > 0 ? { send_at: sendAt, subject } : {}),
+          // Editing a held message: the server replaces it in place and keeps the
+          // id, so this is the same request shape as a first scheduling.
+          ...(replaceId && sendAt > 0 ? { replace_id: replaceId } : {}),
           // Keep the account address in the sent copy either way: the message
           // went out as the alias, and this is where it is filed.
           ...aliasField,
@@ -275,8 +278,15 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
         // Nothing went out yet, so there is no sent copy to record. The compose
         // window says when it will go and closes.
         setScheduledFor(res.data.send_at)
-        onScheduled?.(res.data)
-        if (draftId) onDeleteDraft?.(draftId)
+        // The server cannot hand the plaintext back — it never had it. The device
+        // keeps its own copy so the message can be reopened and edited here.
+        onScheduled?.({
+          ...res.data,
+          draft: { to: allTo, cc: allCc, bcc: allBcc, subject, body },
+        })
+        // An edit keeps the device-side copy: it is the only thing that can reopen
+        // this message later. A first scheduling still clears the plain draft.
+        if (draftId && !replaceId) onDeleteDraft?.(draftId)
         setSendState('scheduled')
         return
       }

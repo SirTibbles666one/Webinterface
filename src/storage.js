@@ -66,4 +66,28 @@ export const storage = {
     const drafts = (load().drafts ?? []).filter((d) => d.id !== id)
     save({ drafts })
   },
+  /**
+   * A held message can only be edited from the device that composed it: the server
+   * stores the sealed request and cannot give the plaintext back, so the copy kept
+   * here is what makes "edit" possible at all. It is the same local draft store the
+   * composer already uses, tagged with the scheduled id.
+   */
+  saveScheduledDraft: (scheduledId, sendAt, draft) => {
+    const drafts = load().drafts ?? []
+    const id = `sched_${scheduledId}`
+    const entry = { ...draft, id, scheduledId, sendAt }
+    const idx = drafts.findIndex((d) => d.id === id)
+    if (idx >= 0) drafts[idx] = entry
+    else drafts.unshift(entry)
+    save({ drafts })
+  },
+  getScheduledDraft: (scheduledId) => {
+    return (load().drafts ?? []).find((d) => d.scheduledId === scheduledId) ?? null
+  },
+  pruneScheduledDrafts: (liveIds) => {
+    const drafts = load().drafts ?? []
+    const kept = drafts.filter((d) => !d.scheduledId || liveIds.has(d.scheduledId))
+    if (kept.length !== drafts.length) save({ drafts: kept })
+    return kept
+  },
 }
