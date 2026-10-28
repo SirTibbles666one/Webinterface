@@ -13,6 +13,7 @@ import AppearanceSection from '@/components/AppearanceSection'
 import KeysSection from '@/components/KeysSection'
 import RecoveryKeySection from '@/components/RecoveryKeySection'
 import ExportSection from '@/components/ExportSection'
+import ImportSection from '@/components/ImportSection'
 import DeleteAccountSection from '@/components/DeleteAccountSection'
 
 /**
@@ -55,6 +56,9 @@ const GROUPS = [
     label: 'Data',
     items: [
       { id: 'export', label: 'Export', title: 'Export', note: 'A copy of every message, in a format any mail program can read.', Component: ExportSection },
+      // Import sits next to export on purpose: leaving and arriving should be
+      // one pair of doors, not a feature on each side of the product.
+      { id: 'import', label: 'Import', title: 'Import mail', note: 'Bring an archive from another provider into this mailbox.', Component: ImportSection },
       { id: 'delete', label: 'Delete account', title: 'Delete account', note: 'Removes the mailbox, the keys and every message. This cannot be undone.', Component: DeleteAccountSection, destructive: true },
     ],
   },
@@ -75,6 +79,26 @@ export default function Settings() {
       .then((res) => setEmail(res.data?.email ?? res.data?.username ?? ''))
       .catch(() => { /* the page still works; the address is only shown in two places */ })
   }, [navigate])
+
+  // A link to a section has to land on it. The sections mount after the first
+  // reads, so the browser's own jump happens before there is anything to jump
+  // to — /settings#import used to open at the top of the page.
+  useEffect(() => {
+    const jump = () => {
+      const id = decodeURIComponent(window.location.hash.replace('#', ''))
+      if (!id) return
+      const el = document.getElementById(id)
+      if (!el) return
+      const top = el.getBoundingClientRect().top + window.scrollY - 72
+      window.scrollTo({ top, behavior: 'auto' })
+    }
+    const timer = setTimeout(jump, 80)
+    window.addEventListener('hashchange', jump)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('hashchange', jump)
+    }
+  }, [])
 
   // Mark the section being read. Cheap scroll spy: the last heading above the fold.
   useEffect(() => {

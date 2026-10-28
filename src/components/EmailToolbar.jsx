@@ -76,6 +76,7 @@ export function EmailToolbar({
             onClick={onMarkSelectedRead}
             className={`${action} text-ink-2 hover:bg-accent hover:text-ink-1`}
             title="Mark as read"
+            aria-label="Mark selected as read"
           >
             <MailOpen className="size-3.5" />
           </button>
@@ -84,6 +85,7 @@ export function EmailToolbar({
             onClick={onMarkSelectedUnread}
             className={`${action} text-ink-2 hover:bg-accent hover:text-ink-1`}
             title="Mark as unread"
+            aria-label="Mark selected as unread"
           >
             <Mail className="size-3.5" />
           </button>
@@ -94,6 +96,7 @@ export function EmailToolbar({
                   type="button"
                   className={`${action} text-ink-2 hover:bg-accent hover:text-ink-1`}
                   title="Move to group"
+                  aria-label="Move selected to a group"
                 >
                   <Folder className="size-3.5" />
                 </button>
@@ -113,6 +116,7 @@ export function EmailToolbar({
             onClick={onDeleteSelected}
             className={`${action} text-destructive hover:bg-destructive/10`}
             title="Delete selected"
+            aria-label="Delete selected messages"
           >
             <Trash2 className="size-3.5" />
           </button>

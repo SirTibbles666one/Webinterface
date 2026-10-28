@@ -410,3 +410,14 @@ export const adminGetDiskUsage = async () => {
   })
   return response.data
 }
+
+// One RFC 822 message, base64, with the date the message itself carries. The
+// server encrypts it to the account key exactly as SMTP delivery would.
+export const importMessage = async (raw, dateUnix) => {
+  const { data } = await api.post(
+    '/import/message',
+    { raw, date_unix: dateUnix ?? null },
+    { headers: { Authorization: `Bearer ${storage.getToken()}` } },
+  )
+  return data
+}
