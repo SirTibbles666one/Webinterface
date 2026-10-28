@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+sealed-key.mjs
+sealed-test.*.asc
+note.asc

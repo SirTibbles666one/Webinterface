@@ -8,17 +8,59 @@ import { loadProfile, formatSender } from '@/lib/profile'
 import { utf8ToBase64 } from '@/lib/mime'
 import { isValidEmail } from '@/lib/utils'
 
+/**
+ * A sealed note nobody can find is litter on the server, so every note gets a
+ * deadline even when the sender picked "delete when read" and no timer.
+ */
+const SEALED_DEFAULT_SECONDS = 7 * 24 * 60 * 60
+
+function formatDeadline(expiresAt) {
+  if (!expiresAt) return ''
+  const date = new Date(expiresAt * 1000)
+  return date.toLocaleString(undefined, {
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
+}
+
+function sealedNotice({ url, expiresAt, subject, from }) {
+  const deadline = formatDeadline(expiresAt)
+  return [
+    `${from} sent you a sealed note.`,
+    '',
+    `Subject: ${subject || '(no subject)'}`,
+    '',
+    'Open it here:',
+    url,
+    '',
+    'The message itself is not in this email. It is encrypted to your OpenPGP',
+    'key and held on the sender\'s server until you open the link — then it is',
+    'deleted, and the link stops working.',
+    '',
+    deadline ? `The link closes on ${deadline}.` : '',
+    '',
+    'You will need your private key to read it: your mail client, or',
+    'gpg --decrypt on the text the page gives you.',
+  ].filter((line) => line !== null).join('\n')
+}
+
 export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSent, onClose }) {
   const [sendState, setSendState] = useState('idle')
   const [sendError, setSendError] = useState('')
   const [sendResults, setSendResults] = useState([])
+  // Notes created by the last send, so the window can name their links.
+  const [sealedNotes, setSealedNotes] = useState([])
 
   const reportError = useCallback((msg) => {
     setSendError(msg)
     setSendState('error')
   }, [])
 
-  const handleSend = async ({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral }) => {
+  /**
+   * Sealed notes: for a recipient on another provider the message body is not
+   * sent at all. It is PGP-armoured by the compose window ("sealed" here) and
+   * stored on this server; the recipient gets a link that we can delete.
+   */
+  const handleSend = async ({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral, sealed }) => {
     const allTo  = toChips.filter((a) => a.trim())
     const allCc  = ccChips.filter((a) => a.trim())
     const allBcc = bccChips.filter((a) => a.trim())
@@ -93,8 +135,12 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
       const storedPubKey = storage.getPublicKey()
       if (storedPubKey) publicKeyHash = await hashPublicKey(storedPubKey)
 
+      const sealedMap = sealed && typeof sealed === 'object' ? sealed : {}
+      const sealedAddrs = allRecipients.filter((addr) => sealedMap[addr])
+
       const recipientsPayload = {}
       for (const addr of allRecipients) {
+        if (sealedAddrs.includes(addr)) continue
         const recipientKeyB64 = keyMap[addr.toLowerCase()]
         if (recipientKeyB64) {
           const recipientKey = await importPublicKeyBase64(recipientKeyB64)
@@ -102,6 +148,49 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
           recipientsPayload[addr] = { aes_encrypted, data_encrypted, e2ee: true }
         } else {
           recipientsPayload[addr] = { aes_encrypted: '', data_encrypted: utf8ToBase64(rawEmail), e2ee: false }
+        }
+      }
+
+      // A note has to exist before the notification that points at it goes out.
+      // If the send then fails, the note is unreachable: nobody has the link,
+      // and its timer clears it.
+      const notes = []
+      for (const addr of sealedAddrs) {
+        const seconds = ephemeral?.expires_in_seconds ?? SEALED_DEFAULT_SECONDS
+        const noteRes = await api.post(
+          '/note/create',
+          {
+            recipient: addr,
+            subject,
+            armored: sealedMap[addr],
+            deletes_on_read: true,
+            expires_in_seconds: seconds,
+          },
+          { headers },
+        )
+        const { url, expires_at } = noteRes.data
+        notes.push({ address: addr, url, expiresAt: expires_at })
+
+        const notice = sealedNotice({ url, expiresAt: expires_at, subject, from: fromHeader })
+        const noticeEmail = buildEmail({
+          from:        fromHeader,
+          to:          [addr],
+          cc:          [],
+          subject,
+          body:        notice,
+          attachments: [],
+          inReplyTo:   replyData?.inReplyTo ?? '',
+          references:  replyData?.references ?? '',
+          e2ee:        !!keyMap[addr.toLowerCase()],
+        })
+
+        const recipientKeyB64 = keyMap[addr.toLowerCase()]
+        if (recipientKeyB64) {
+          const recipientKey = await importPublicKeyBase64(recipientKeyB64)
+          const { aes_encrypted, data_encrypted } = await encryptEmail(noticeEmail, recipientKey)
+          recipientsPayload[addr] = { aes_encrypted, data_encrypted, e2ee: true }
+        } else {
+          recipientsPayload[addr] = { aes_encrypted: '', data_encrypted: utf8ToBase64(noticeEmail), e2ee: false }
         }
       }
 
@@ -132,6 +221,9 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
 
       const results = res.data.delivery_results ?? []
       setSendResults(results)
+      if (notes.length > 0) {
+        setSealedNotes(notes)
+      }
       if (onSent) onSent(res.data.sent_email_uid)
 
       // The server reports delivery per recipient. A rejected address is not a
@@ -144,7 +236,12 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
           .map((r) => `${r.address}${r.error ? ` — ${r.error}` : ''}`)
           .join('; ')
         const more = failed.length > 3 ? ` (+${failed.length - 3} more)` : ''
-        setSendError(`Not delivered to ${failed.length} of ${results.length}: ${summary}${more}`)
+        // A notification that never arrives leaves a note nobody has the link
+        // to: say so, and when it dies, instead of only "not delivered".
+        const noteLine = notes.length
+          ? ` The sealed note could not be announced; it closes unopened on ${formatDeadline(notes[0].expiresAt)}.`
+          : ''
+        setSendError(`Not delivered to ${failed.length} of ${results.length}: ${summary}${more}.${noteLine}`)
         setSendState('error')
         return
       }
@@ -156,5 +253,5 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
     }
   }
 
-  return { sendState, sendError, sendResults, handleSend, reportError }
+  return { sendState, sendError, sendResults, sealedNotes, handleSend, reportError }
 }

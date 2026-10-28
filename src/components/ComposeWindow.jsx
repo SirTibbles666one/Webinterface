@@ -10,6 +10,7 @@ import {
   Paperclip,
   Trash2,
   Flame,
+  Link2,
 } from 'lucide-react'
 import { AddressField } from '@/components/compose/AddressField'
 import { AttachmentChip } from '@/components/compose/AttachmentChip'
@@ -19,8 +20,9 @@ import { useAttachments } from '@/hooks/useAttachments'
 import { useResizable } from '@/hooks/useResizable'
 import { useIsPhone } from '@/hooks/useIsPhone'
 import { Lock, LockOpen } from 'lucide-react'
-import { keyCoverage, encryptBody, encryptAttachment, hasIdentity, importPublicKey } from '@/pgp'
+import { keyCoverage, encryptBody, encryptAttachment, hasIdentity, importPublicKey, sealToRecipients } from '@/pgp'
 import { lookupKey } from '@/lib/wkd'
+import { loadProfile } from '@/lib/profile'
 import api from '@/api'
 import { storage } from '@/storage'
 
@@ -64,6 +66,9 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
   // OpenPGP (inline) is separate from the server-side E2EE the send hook does:
   // it is what makes mail readable by correspondents on other providers.
   const [pgpOn, setPgpOn] = useState(false)
+  // Other providers keep whatever they are sent, so for them the body is not
+  // sent at all: it is sealed behind a link this server can delete.
+  const [sealExternal, setSealExternal] = useState(false)
   const [pgpPass, setPgpPass] = useState('')
   const [keyPasteOpen, setKeyPasteOpen] = useState(false)
   const [keyPaste, setKeyPaste] = useState('')
@@ -122,6 +127,16 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
       return { tone: 'good', text: `OpenPGP to ${recipients.length} recipient${recipients.length === 1 ? '' : 's'}` }
     }
 
+    // A sealed recipient gets no message at all — only a link — so neither the
+    // encrypted nor the "not encrypted" verdict describes them.
+    const sealed = sealExternal ? offServerRecipients.map((a) => String(a).toLowerCase()) : []
+    if (sealed.length) {
+      return {
+        tone: 'good',
+        text: `Sealed link to ${offServerRecipients.join(', ')} — the body never leaves this server`,
+      }
+    }
+
     if (!Object.keys(serverKeys).length) return null
     const unknown = recipients.filter((a) => !serverKeys[String(a).toLowerCase()])
     if (unknown.length) {
@@ -174,6 +189,40 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
       .trim()
 
   const sendWithPgpIfNeeded = async () => {
+    if (sealExternal && offServerRecipients.length > 0) {
+      const coverageForSeal = keyCoverage(offServerRecipients)
+      if (!coverageForSeal.canEncrypt) {
+        setPgpError(`No OpenPGP key for: ${coverageForSeal.missing.join(', ')} — a sealed note is encrypted to their key`)
+        return
+      }
+      if (attachments.length > 0) {
+        setPgpError('A sealed note carries the message text only — remove the attachments or send this one as ordinary mail')
+        return
+      }
+      setPgpBusy(true)
+      try {
+        const signature = (loadProfile().signature || '').trim()
+        const noteBody = [
+          `Subject: ${subject || '(no subject)'}`,
+          '',
+          plainText(body),
+          signature ? `\n-- \n${signature}` : '',
+        ].join('\n')
+
+        const sealed = {}
+        for (const address of offServerRecipients) {
+          sealed[address] = await sealToRecipients({ text: noteBody, recipients: [address] })
+        }
+        setPgpBusy(false)
+        handleSend({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral: ephemeralPayload(), sealed })
+        return
+      } catch (err) {
+        setPgpBusy(false)
+        setPgpError(err.message || 'Sealing failed')
+        return
+      }
+    }
+
     if (!pgpOn) {
       handleSend({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral: ephemeralPayload() })
       return
@@ -270,7 +319,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
     // Only hunt for OpenPGP keys when the sender has asked for OpenPGP. The
     // message is encrypted to this server's keys either way, so an unsolicited
     // "no key for …" paragraph reads as a contradiction of that.
-    if (!pgpOn) return
+    if (!pgpOn && !sealExternal) return
     const pending = coverage.missing.filter((a) => !lookedUp.current.has(a))
     if (!pending.length || finding) return
     pending.forEach((a) => lookedUp.current.add(a))
@@ -309,7 +358,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
     })()
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pgpOn, recipients.join(','), coverage.missing.join(',')])
+  }, [pgpOn, sealExternal, recipients.join(','), coverage.missing.join(',')])
 
   const buildDraft = useCallback(() => {
     const hasContent = toChips.length > 0 || subject.trim() || (body && body.replace(/<(.|\n)*?>/g, '').trim()) || attachments.length > 0
@@ -455,6 +504,47 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                 {pgpOn ? <Lock className="w-3.5 h-3.5" /> : <LockOpen className="w-3.5 h-3.5" />}
                 OpenPGP
               </button>
+              {offServerRecipients.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => { setSealExternal(!sealExternal); setPgpError(''); if (!sealExternal) setPgpOn(false) }}
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded transition-colors ${
+                    sealExternal ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted'
+                  }`}
+                  title="Do not email the body to other providers: send a link to it instead, and delete it when they open it"
+                >
+                  <Link2 className="w-3.5 h-3.5" />
+                  Sealed link
+                </button>
+              )}
+              {sealExternal && offServerRecipients.length > 0 && (
+                <>
+                  <span className={`text-[11px] ${keyCoverage(offServerRecipients).canEncrypt ? 'text-primary' : 'text-destructive'}`}>
+                    {keyCoverage(offServerRecipients).canEncrypt
+                      ? `${offServerRecipients.length === 1 ? 'body stays here' : 'bodies stay here'} for ${offServerRecipients.length} recipient${offServerRecipients.length === 1 ? '' : 's'} elsewhere`
+                      : `needs their OpenPGP key: ${keyCoverage(offServerRecipients).missing.join(', ')}`}
+                  </span>
+                  {!keyCoverage(offServerRecipients).canEncrypt && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={findMissingKeys}
+                        disabled={finding}
+                        className="text-[11px] underline underline-offset-2 text-primary/90 disabled:opacity-50"
+                      >
+                        {finding ? 'looking up…' : 'find key'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setKeyPasteOpen((v) => !v); setKeyPasteNote('') }}
+                        className="text-[11px] underline underline-offset-2 text-foreground/50"
+                      >
+                        paste a key by hand
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
               {pgpOn && (
                 <>
                   <input
@@ -681,7 +771,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                     className="hidden md:inline text-[10px] text-amber-600 dark:text-amber-400 max-w-[130px] leading-tight"
                     title={offServerRecipients.join(', ')}
                   >
-                    {offServerRecipients.length} recipient{offServerRecipients.length === 1 ? ' is' : 's are'} elsewhere — nothing to delete there
+                    {offServerRecipients.length} recipient{offServerRecipients.length === 1 ? ' is' : 's are'} elsewhere — {sealExternal ? 'sealed link, body stays here' : 'nothing to delete there'}
                   </span>
                 )}
                 <button

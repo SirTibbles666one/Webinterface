@@ -357,6 +357,31 @@ export async function encryptBody({ text, recipients, passphrase }) {
 }
 
 /**
+ * Seal a note to a set of recipients, and only them.
+ *
+ * Unlike encryptBody this does not add our own key and does not sign: the note
+ * is stored on the server until the recipient opens the link, and a copy
+ * encrypted to us would mean the server's operator could read a message the
+ * sender was promised was sealed. Unsigned is the price of not needing the
+ * private-key passphrase to write a note.
+ */
+export async function sealToRecipients({ text, recipients }) {
+  const ring = loadRing()
+  const coverage = keyCoverage(recipients)
+  if (!coverage.canEncrypt) {
+    throw new Error(`No OpenPGP key for: ${coverage.missing.join(', ')}`)
+  }
+  const encryptionKeys = await Promise.all(
+    recipients.map((address) => openpgp.readKey({ armoredKey: contactArmor(ring.contacts[address]) })),
+  )
+  return openpgp.encrypt({
+    message: await openpgp.createMessage({ text }),
+    encryptionKeys,
+    format: 'armored',
+  })
+}
+
+/**
  * Encrypt a file's bytes for a set of recipients.
  *
  * Inline PGP can only protect a body, so attachments travel as their own
