@@ -52,6 +52,7 @@ const EmailView = ({
   groups,
   selectedFolder,
   onReply,
+  arrivedAt = null,
   onComposeTo,
   onMessageDeleted,
 }) => {
@@ -206,7 +207,7 @@ const EmailView = ({
           <div className="flex items-center gap-2 shrink-0">
             {email && (
               <Button
-                onClick={() => onReply?.(email)}
+                onClick={() => onReply?.({ ...email, alias: arrivedAt })}
                 variant="ghost"
                 size="icon"
                 className="text-muted-foreground/80 hover:text-foreground"

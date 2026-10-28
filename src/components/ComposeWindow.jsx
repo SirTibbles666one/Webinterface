@@ -21,6 +21,7 @@ import { useAttachments } from '@/hooks/useAttachments'
 import { useResizable } from '@/hooks/useResizable'
 import { useIsPhone } from '@/hooks/useIsPhone'
 import { Lock, LockOpen } from 'lucide-react'
+import { listAliases } from '@/api'
 import { keyCoverage, encryptBody, encryptAttachment, hasIdentity, importPublicKey, sealToRecipients, sealWithPassphrase, sealFileWithPassphrase } from '@/pgp'
 import { makePassphrase } from '@/lib/passphrase'
 import { lookupKey } from '@/lib/wkd'
@@ -84,6 +85,10 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
   // When to hand the message over. Null means now; a date means the server holds
   // it and sends it at that time.
   const [sendAt, setSendAt] = useState(null)
+  // Which of my addresses this goes out from. Empty means the real one. A reply
+  // to mail that came through an alias starts on that alias.
+  const [fromAlias, setFromAlias] = useState(() => replyData?.fromAlias ?? '')
+  const [myAliases, setMyAliases] = useState([])
   const [whenOpen, setWhenOpen] = useState(false)
   const ephemeralPayload = () => {
     if (vanish === 'read') return { deletes_on_read: true }
@@ -101,6 +106,23 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
     myEmail, replyData, draftId, onDeleteDraft, onSent, onClose,
   })
 
+  // Only shown when there is something to choose from, so an account with no
+  // aliases never sees a picker with one option.
+  useEffect(() => {
+    let cancelled = false
+    listAliases()
+      .then((data) => {
+        if (cancelled) return
+        const live = (data.aliases ?? []).filter((a) => !a.disabled_at)
+        setMyAliases(live)
+        // A reply may name an alias that has since been switched off.
+        if (fromAlias && live.length && !live.some((a) => a.local === fromAlias)) setFromAlias('')
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // An attachment arrives as base64; sealing wants the bytes themselves.
   const attFileBytes = (att) => {
     if (!att.data) throw new Error(`${att.name} is still being read — try again in a moment`)
@@ -111,7 +133,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
   }
 
   // One place that adds the chosen time, so no send path can forget it.
-  const sendNow = (args) => handleSend({ ...args, sendAt })
+  const sendNow = (args) => handleSend({ ...args, sendAt, fromAlias })
 
   // A scheduled message has not gone anywhere yet: say when it will, then close.
   useEffect(() => {
@@ -564,6 +586,38 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
               <AddressField label="To:" chips={toChips} onChipsChange={setToChips} />
               <AddressField label="Cc:" chips={ccChips} onChipsChange={setCcChips} />
               <AddressField label="Bcc:" chips={bccChips} onChipsChange={setBccChips} />
+              {myAliases.length > 0 && (
+                <div className="flex items-start gap-2 py-1">
+                  <span className="text-sm font-semibold text-muted-foreground w-16 shrink-0 py-1.5">From:</span>
+                  <div className="flex flex-wrap gap-1.5 py-1">
+                    <button
+                      type="button"
+                      onClick={() => setFromAlias('')}
+                      className={`px-2 py-1 rounded-full text-[11px] border transition-colors ${
+                        fromAlias === ''
+                          ? 'bg-primary/15 border-primary/40 text-primary'
+                          : 'border-border/70 text-muted-foreground hover:border-border'
+                      }`}
+                    >
+                      {myEmail}
+                    </button>
+                    {myAliases.map((a) => (
+                      <button
+                        key={a.local}
+                        type="button"
+                        onClick={() => setFromAlias(a.local)}
+                        className={`px-2 py-1 rounded-full text-[11px] border transition-colors ${
+                          fromAlias === a.local
+                            ? 'bg-primary/15 border-primary/40 text-primary'
+                            : 'border-border/70 text-muted-foreground hover:border-border'
+                        }`}
+                      >
+                        {a.address}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2 px-3 sm:px-6">
               <span className="text-sm font-semibold text-muted-foreground w-16 shrink-0 py-1.5">Subject:</span>

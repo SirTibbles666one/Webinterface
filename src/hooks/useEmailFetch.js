@@ -40,7 +40,7 @@ export function useEmailFetch() {
         const privateKey = await keySession.get()
         const newPreviews = {}
         await Promise.all(
-          bulkRes.data.emails.map(async ({ uid, data, message_key, received_at, ephemeral, from }) => {
+          bulkRes.data.emails.map(async ({ uid, data, message_key, received_at, ephemeral, from, alias }) => {
             try {
               // A message that deletes on open is never delivered through this
               // path (the server withholds its body), so there is nothing to
@@ -53,6 +53,7 @@ export function useEmailFetch() {
                   preview: 'Deletes when you open it',
                   attachments: [],
                   ephemeral: 'read',
+                  alias: alias ?? null,
                 }
                 return
               }
@@ -73,6 +74,9 @@ export function useEmailFetch() {
               addressBook.addAll(parsed?.to ?? [])
               addressBook.addAll(parsed?.cc ?? [])
               newPreviews[uid] = {
+                // Which address this arrived at, when it was an alias: a reply
+                // should leave from the same one.
+                alias:       alias ?? null,
                 subject:     parsed?.subject     ?? '(no subject)',
                 from:        parsed?.from        ?? null,
                 date:        parsed?.date        ?? (received_at ? new Date(received_at) : null),

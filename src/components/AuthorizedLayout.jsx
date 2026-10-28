@@ -314,6 +314,8 @@ const AuthorizedLayout = () => {
       body:      `\n\n${buildQuotedBody(email)}`,
       inReplyTo: email.messageId ?? '',
       references: email.messageId ?? '',
+      // Answer from the address they wrote to, not from the real one.
+      fromAlias: email.alias ?? '',
     })
     setComposeOpen(true)
   }, [])
@@ -489,6 +491,7 @@ const AuthorizedLayout = () => {
                 uid={selectedUid}
                 myEmail={userEmail}
                 emailMeta={selectedUid ? (emailMeta[selectedUid] ?? {}) : null}
+                arrivedAt={selectedUid ? (previews[selectedUid]?.alias ?? null) : null}
                 onToggleStar={toggleStar}
                 onMarkRead={markRead}
                 onMarkUnread={markUnread}

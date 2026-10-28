@@ -45,3 +45,36 @@ mail for a mailbox nobody can read.
   address dies.
 - **Five seconds of lag.** The recipient map refreshes on a timer, so a brand-new
   address can bounce for a few seconds right after it is created.
+
+## A way out as well as a way in
+
+Mail that arrives at an alias is remembered as having arrived *there*. That
+association cannot live on the message: `Email` is bincode and positional, and a
+new field would make every existing message unreadable. It lives in
+`data/arrival.json`, keyed by message uid, and is pruned after 180 days.
+
+The inbox and the reader carry that fact as `alias` on the message, and the
+compose window turns it into a default: **reply to a message that came to an
+alias and the reply leaves from the alias.** The From row lists the real address
+and every switched-on alias, so the choice is visible and reversible — an account
+with no aliases never sees the row at all.
+
+Sending from an alias is checked on the server, not in the browser: the local part
+must belong to the caller and must not be switched off.
+
+- someone else's alias → `400 unknown_alias`
+- your own alias, switched off → `409 alias_disabled`
+- no alias asked for → the account address, unchanged
+
+A refusal is deliberate rather than a silent fallback. A message that goes out
+under the wrong name cannot be recalled, and quietly swapping the sender would
+make a bounced alias look like a normal send.
+
+The From header has to name the alias as well, and on the encrypted path the
+server never sees it — the headers are inside the ciphertext. So the compose
+window writes the header and the server sets the envelope; both have to agree or
+SPF and the visible sender would disagree with each other.
+
+The settings copy says what is true: mail arrives at the alias, replies leave
+from it, and a message you start yourself still goes from the real address unless
+you pick the alias in the From row.

@@ -185,8 +185,9 @@ export function AliasesSection() {
         {active === 0
           ? 'No address is currently accepting mail.'
           : `${active} address${active === 1 ? ' is' : 'es are'} accepting mail.`}{' '}
-        Incoming mail arrives here, but replies you send go out from your real address — the alias is a
-        way in, not yet a way out.
+        Mail arrives here, and a reply to it leaves from the same address — nobody you write back to learns
+        your real one. A new message you start yourself goes from your real address unless you pick this one
+        in the From row while composing.
       </p>
 
       {error && <p className="mt-1 text-[11px] text-destructive">{error}</p>}

@@ -73,11 +73,13 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
    * sent at all. It is PGP-armoured by the compose window ("sealed" here) and
    * stored on this server; the recipient gets a link that we can delete.
    */
-  const handleSend = async ({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral, sealed, sealMode, sealedPhrase, sealedFiles, sendAt: whenToSend }) => {
+  const handleSend = async ({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral, sealed, sealMode, sealedPhrase, sealedFiles, sendAt: whenToSend, fromAlias = '' }) => {
     const allTo  = toChips.filter((a) => a.trim())
     const allCc  = ccChips.filter((a) => a.trim())
     const allBcc = bccChips.filter((a) => a.trim())
     const allRecipients = [...allTo, ...allCc, ...allBcc]
+    // Empty means the account address. The server checks the alias is ours and on.
+    const aliasField = fromAlias ? { from_alias: fromAlias } : {}
 
     if (allTo.length === 0) {
       reportError('Add at least one recipient in the To field.')
@@ -117,7 +119,10 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
       const hasAnyKey = allRecipients.some((addr) => !!keyMap[addr.toLowerCase()])
 
       const profile = loadProfile()
-      const fromHeader = formatSender(myEmail, profile.displayName)
+      // Sending from an alias has to change the header too — on the encrypted
+      // path the server only sets the envelope, it never sees this text.
+      const sendAs = fromAlias ? `${fromAlias}@${myEmail.split('@').slice(1).join('@')}` : myEmail
+      const fromHeader = formatSender(sendAs, profile.displayName)
 
       // The signature is appended to the body, so it is inside the ciphertext
       // like everything else the recipient reads.
@@ -259,6 +264,9 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
             ? { ephemeral }
             : {}),
           ...(sendAt > 0 ? { send_at: sendAt, subject } : {}),
+          // Keep the account address in the sent copy either way: the message
+          // went out as the alias, and this is where it is filed.
+          ...aliasField,
         },
         { headers },
       )
