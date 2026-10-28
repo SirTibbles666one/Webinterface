@@ -61,7 +61,13 @@ const Login = () => {
       setLoading(false)
     } catch (err) {
       console.error('[Login] Login request failed:', err.response?.data ?? err.message)
-      setError(err.response?.data?.error || 'Login failed')
+      // A queued signup must not be told its password is wrong: it is right, and
+      // the account simply has not been reviewed yet.
+      if (err.response?.status === 403 && err.response?.data?.code === 'account_pending') {
+        setError('Your account is waiting for approval — you can sign in once it has been accepted.')
+      } else {
+        setError(err.response?.data?.error || 'Login failed')
+      }
       setLoading(false)
     }
   }
@@ -350,7 +356,7 @@ const Login = () => {
             <p className="mt-4 text-center text-xs text-foreground/50">
               Need an account?{' '}
               <a href="/signup" className="underline underline-offset-2 text-primary/90 hover:text-primary">
-                Request an invite
+                Create a mailbox
               </a>
             </p>
             <p className="mt-2 text-center text-[11px] text-foreground/35">

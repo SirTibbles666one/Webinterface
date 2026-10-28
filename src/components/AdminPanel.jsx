@@ -4,7 +4,7 @@ import { Plus, Trash2, ArrowLeft, RefreshCw, ShieldCheck, Shield, KeyRound, Copy
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ConfirmModal, InputModal } from '@/components/ui/Modal'
-import { adminGetUsers, adminCreateUser, adminDeleteUser, adminSetAdminStatus, adminGetWaitlist, adminApproveWaitlist, adminSetRecoveryAddress, adminSendRecovery } from '@/api'
+import { adminGetUsers, adminCreateUser, adminDeleteUser, adminSetAdminStatus, adminGetWaitlist, adminApproveWaitlist, adminGetPending, adminApprovePending, adminDenyPending, adminSetRecoveryAddress, adminSendRecovery } from '@/api'
 import { storage } from '@/storage'
 
 // Plain words: "used" alone reads like the invite was wasted, when it means
@@ -26,6 +26,40 @@ const AdminPanel = () => {
   const [invitesLoading, setInvitesLoading] = useState(true)
   const [approving, setApproving] = useState('')
   const [copied, setCopied] = useState('')
+
+  // ── Self-registration approval queue ─────────────────────────────────────
+  // Signups without an invite code are created but cannot sign in until they
+  // are approved here. Denying deletes the account, so a name cannot sit on a
+  // mailbox receiving mail nobody can read.
+  const [pending, setPending] = useState([])
+  const [pendingLoading, setPendingLoading] = useState(true)
+  const [pendingBusy, setPendingBusy] = useState('')
+
+  const fetchPending = useCallback(async () => {
+    setPendingLoading(true)
+    try {
+      const data = await adminGetPending()
+      setPending(data.entries ?? [])
+    } catch {
+      setPending([])
+    } finally {
+      setPendingLoading(false)
+    }
+  }, [])
+
+  const handlePending = async (username, action) => {
+    setPendingBusy(username)
+    setError('')
+    try {
+      if (action === 'approve') await adminApprovePending(username)
+      else await adminDenyPending(username)
+      await Promise.all([fetchPending(), fetchUsers()])
+    } catch (err) {
+      setError(err.response?.data?.error || `Could not ${action} that account`)
+    } finally {
+      setPendingBusy('')
+    }
+  }
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
@@ -164,7 +198,8 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
     }
     fetchUsers()
     fetchInvites()
-  }, [fetchUsers, fetchInvites, navigate])
+    fetchPending()
+  }, [fetchUsers, fetchInvites, fetchPending, navigate])
 
   const handleCreate = async (username) => {
     setModalState({ type: null })
@@ -242,6 +277,71 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
             {error}
           </div>
         )}
+
+        <div className="border border-border rounded-lg overflow-hidden mb-6">
+          <div className="px-4 py-3 border-b border-border bg-secondary/20 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-medium">
+                Pending accounts
+                {pending.length > 0 && (
+                  <span className="ml-2 text-[11px] px-1.5 py-0.5 rounded-full bg-primary/15 text-primary align-middle">
+                    {pending.length}
+                  </span>
+                )}
+              </h2>
+              <p className="text-xs text-foreground/50">
+                Signed up at <span className="font-mono">/signup</span> without an invite code. They
+                cannot sign in until approved; denying deletes the account.
+              </p>
+            </div>
+            <button
+              onClick={fetchPending}
+              className="p-2 rounded-md text-foreground/60 hover:text-foreground hover:bg-accent transition-colors"
+              title="Refresh pending accounts"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          </div>
+          {pendingLoading ? (
+            <div className="py-8 text-center text-sm text-foreground/50">Loading…</div>
+          ) : pending.length === 0 ? (
+            <div className="py-8 text-center text-sm text-foreground/50">
+              Nobody is waiting for approval.
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {pending.map((entry) => (
+                <li key={entry.username} className="px-4 py-3 flex flex-wrap items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm truncate font-mono">{entry.username}</p>
+                    <p className="text-[11px] text-foreground/45">
+                      {new Date(entry.requested_at * 1000).toLocaleString()}
+                      {entry.ip ? ` · from ${entry.ip}` : ' · address unknown'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handlePending(entry.username, 'approve')}
+                      disabled={pendingBusy === entry.username}
+                    >
+                      {pendingBusy === entry.username ? 'Working…' : 'Approve'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handlePending(entry.username, 'deny')}
+                      disabled={pendingBusy === entry.username}
+                      title="Delete this account request"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         <div className="border border-border rounded-lg overflow-hidden mb-6">
           <div className="px-4 py-3 border-b border-border bg-secondary/20 flex items-center justify-between">

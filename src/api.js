@@ -64,6 +64,34 @@ export const adminApproveWaitlist = async (email) => {
   return response.data
 }
 
+export const adminGetPending = async () => {
+  const token = storage.getToken()
+  const response = await api.get('/admin/pending', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return response.data
+}
+
+export const adminApprovePending = async (username) => {
+  const token = storage.getToken()
+  const response = await api.post(
+    '/admin/pending/approve',
+    { username },
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+  return response.data
+}
+
+export const adminDenyPending = async (username) => {
+  const token = storage.getToken()
+  const response = await api.post(
+    '/admin/pending/deny',
+    { username },
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+  return response.data
+}
+
 export const adminGetUsers = async () => {
   const token = storage.getToken()
   const response = await api.get('/admin/users', {

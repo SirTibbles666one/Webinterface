@@ -72,9 +72,9 @@
 
   <form id="f" autocomplete="off">
     <div class="field">
-      <label for="c">Invite code</label>
-      <input id="c" name="c" placeholder="from your approval email" autocapitalize="none" autocorrect="off" spellcheck="false" required>
-      <p class="fine" style="margin-top:8px">No code yet? Request one below.</p>
+      <label for="c">Invite code <span style="color:#6b7280">(optional)</span></label>
+      <input id="c" name="c" placeholder="if you have one" autocapitalize="none" autocorrect="off" spellcheck="false">
+      <p class="fine" style="margin-top:8px">No code? Create the account anyway. It will be held for approval, and you can sign in the moment it is accepted.</p>
     </div>
     <div class="field">
       <label for="u">Mailbox name</label>
@@ -197,6 +197,10 @@ async function solveChallenge(challenge, bits) {
   }
 }
 
+// Set once the server has queued the account: leaves the button inert instead of
+// inviting a second submit.
+let queued = false;
+
 f.addEventListener('submit', async (e) => {
   e.preventDefault();
   const username = u.value.trim().toLowerCase();
@@ -209,7 +213,6 @@ f.addEventListener('submit', async (e) => {
   if (password.length < 8) { say('Use at least 8 characters.', 'err'); return; }
   if (password !== p2.value) { say('Passwords do not match.', 'err'); return; }
   const invite = c.value.trim();
-  if (!invite) { say('Enter the invite code from your approval message.', 'err'); return; }
 
   go.disabled = true;
   say('Deriving your password token (this takes a second)…');
@@ -242,8 +245,17 @@ f.addEventListener('submit', async (e) => {
       setTimeout(() => { window.location.href = '/login'; }, 1400);
       return;
     }
+    // 202: the account exists and is held for approval. It cannot sign in yet,
+    // so do not send them to a login form that will only reject the password.
+    if (res.status === 202) {
+      say('Your account is waiting for approval — you can sign in once it has been accepted. Nothing else is needed from you.', 'ok');
+      // The account exists now: a second submit would only answer "name taken".
+      queued = true;
+      go.textContent = 'Waiting for approval';
+      return;
+    }
     if (res.status === 409) { say('That mailbox name is already taken.', 'err'); }
-    else if (res.status === 403 && body.code === 'invite_required') { say('That invite code is not valid, or it has already been used.', 'err'); }
+    else if (res.status === 403 && body.code === 'invite_required') { say('That invite code is not valid, or it has already been used. Clear the field to create the account without one.', 'err'); }
     else if (res.status === 403) { say('Registration is closed on this server.', 'err'); }
     else if (res.status === 429) { say('Too many attempts. Wait a few minutes and try again.', 'err'); }
     else { say(body.error || 'Could not create the account. Try again.', 'err'); }
@@ -251,7 +263,7 @@ f.addEventListener('submit', async (e) => {
     console.error('signup failed', err);
     say('Something went wrong creating the account. Try again.', 'err');
   } finally {
-    go.disabled = false;
+    if (!queued) go.disabled = false;
   }
 });
 </script>
