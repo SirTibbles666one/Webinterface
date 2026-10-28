@@ -56,6 +56,7 @@ export function EmailListItem({
   isSelected,
   isChecked,
   isUnread,
+  isFresh = false,
   isStarred,
   onSelect,
   onCheck,
@@ -98,7 +99,7 @@ export function EmailListItem({
           onSelect(uid)
         }
       }}
-      className={`${rowBase} ${ground} ${isChecked ? 'bg-primary/[0.06]' : ''}`}
+      className={`${rowBase} ${ground} ${isChecked ? 'bg-primary/[0.06]' : ''} ${isFresh ? 'row-in' : ''}`}
     >
       {/* The open row is marked by a rule at its edge, not by a colour block
           behind the text. */}
@@ -133,7 +134,9 @@ export function EmailListItem({
           place on every row, so the eye reads a straight edge rather than dots
           scattered after subjects of different lengths. */}
       <span className="flex w-1.5 shrink-0 justify-center" aria-hidden={!isUnread}>
-        {isUnread && <span className="size-1.5 rounded-full bg-primary" />}
+        <span
+          className={`size-1.5 rounded-full bg-primary transition-opacity duration-200 ${isUnread ? 'opacity-100' : 'opacity-0'}`}
+        />
         {isUnread && <span className="sr-only">Unread</span>}
       </span>
 

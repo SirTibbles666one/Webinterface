@@ -435,6 +435,8 @@ const AuthorizedLayout = () => {
               )}
               {selectedFolder === 'sent' && <ScheduledPanel />}
               <EmailList
+                searchQuery={searchQuery}
+                filterMode={filterMode}
                 uids={pagedUids}
                 previews={allPreviews}
                 emailMeta={emailMeta}

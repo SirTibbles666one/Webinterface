@@ -326,3 +326,33 @@
   /* the reveal control lives inside the field, so it stays compact */
   .auth-scope .pw-toggle { min-height: 30px; }
 }
+
+/* ── Motion that earns its place ────────────────────────────────────────────
+   Four moments move, and nothing else does. The test each one had to pass:
+   it tells you something happened. A row arriving says "this is new"; the dot
+   settling says "you have read it"; the sheet rising says "this came from the
+   bottom of the screen"; content fading in says "the wait is over". Decoration
+   for its own sake stays out — a mailbox you read every day should not perform.
+   All of it is off under prefers-reduced-motion, below. */
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(-5px); background-color: color-mix(in oklab, var(--color-primary) 7%, transparent); }
+  to   { opacity: 1; transform: none; }
+}
+.row-in { animation: row-in .34s cubic-bezier(.2, .7, .2, 1) both; }
+
+@keyframes sheet-up {
+  from { opacity: .6; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes sheet-pop {
+  from { opacity: 0; transform: translateY(8px) scale(.99); }
+  to   { opacity: 1; transform: none; }
+}
+.compose-window { animation: sheet-pop .2s cubic-bezier(.2, .7, .2, 1) both; }
+@media (max-width: 639px) {
+  .compose-window { animation: sheet-up .26s cubic-bezier(.2, .7, .2, 1) both; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row-in, .compose-window { animation: none !important; }
+}

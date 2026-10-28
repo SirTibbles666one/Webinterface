@@ -1,10 +1,13 @@
-import { useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight, Inbox as InboxIcon } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
+import EmptyArt from '@/components/EmptyArt'
 import { EmailListItem, EmailRowSkeleton, dayBucket, rowTime } from '@/components/email/EmailListItem'
 import { buildThreads } from '@/lib/threads'
 import { SenderAvatar } from '@/components/SenderAvatar'
 
 const EmailList = ({
+  searchQuery = '',
+  filterMode = 'all',
   uids,
   previews,
   emailMeta,
@@ -77,6 +80,28 @@ const EmailList = ({
   const showSkeleton = loading && threads.length === 0
   const showEmpty = !loading && threads.length === 0
 
+  // Arrival is an event, not a derivation: a memo that answers "which rows are
+  // new *right now*" loses the answer on the next render, because the id is
+  // already known by then. So the set is held for a moment instead.
+  const seen = useRef(null)
+  const [fresh, setFresh] = useState(() => new Set())
+  useEffect(() => {
+    if (loading || threads.length === 0) return
+    const ids = new Set(threads.map((t) => t.latestUid))
+    if (seen.current === null) {
+      seen.current = ids
+      return
+    }
+    const added = [...ids].filter((id) => !seen.current.has(id))
+    // No overlap at all means the folder changed, not that mail arrived.
+    const replaced = [...ids].every((id) => !seen.current.has(id))
+    seen.current = ids
+    if (!added.length || replaced) return
+    setFresh(new Set(added))
+    const timer = setTimeout(() => setFresh(new Set()), 1400)
+    return () => clearTimeout(timer)
+  }, [threads, loading])
+
   return (
     <div className="flex h-full flex-col bg-background">
       <div className="custom-scrollbar flex-1 overflow-y-auto">
@@ -102,7 +127,7 @@ const EmailList = ({
               if (thread.count === 1) {
                 return (
                   <div key={thread.latestUid} className="border-b border-line/70">
-                    <EmailListItem {...rowProps(thread.latestUid)} />
+                    <EmailListItem {...rowProps(thread.latestUid)} isFresh={fresh.has(thread.latestUid)} />
                   </div>
                 )
               }
@@ -171,7 +196,7 @@ const EmailList = ({
                   {open && (
                     <div className="ml-4 border-l border-line">
                       {thread.uids.map((uid) => (
-                        <EmailListItem key={uid} {...rowProps(uid)} />
+                        <EmailListItem key={uid} {...rowProps(uid)} isFresh={fresh.has(uid)} />
                       ))}
                     </div>
                   )}
@@ -181,19 +206,33 @@ const EmailList = ({
           </div>
         ))}
 
-        {showEmpty && (
-          <div className="flex flex-col items-center px-8 py-16 text-center">
-            <InboxIcon className="size-7 text-ink-4" strokeWidth={1.5} aria-hidden="true" />
-            <p className="display mt-3 text-[17px] text-ink-1">
-              Nothing in {folderLabel || 'this folder'} yet
-            </p>
-            <p className="mt-1.5 max-w-[34ch] text-[12.5px] leading-relaxed text-ink-3">
-              {selectedFolder === 'inbox'
+        {showEmpty && (() => {
+          // Three different emptinesses, three different sentences: a folder
+          // you have not used, a filter that hides everything, and a search
+          // that found nothing are not the same event.
+          const searching = searchQuery.trim().length > 0
+          const filtered = filterMode !== 'all'
+          const art = searching ? 'search' : selectedFolder === 'groups' ? 'groups' : 'inbox'
+          const heading = searching
+            ? `Nothing matches “${searchQuery.trim().slice(0, 40)}”`
+            : filtered
+              ? `No ${filterMode} mail in ${folderLabel || 'this folder'}`
+              : `Nothing in ${folderLabel || 'this folder'} yet`
+          const note = searching
+            ? 'Search runs over sender, subject and the beginning of each message. Try fewer words.'
+            : filtered
+              ? 'Every message here is the other way round. Clear the filter to see them.'
+              : selectedFolder === 'inbox'
                 ? 'Mail addressed to you lands here the moment it arrives. Nothing has arrived yet.'
-                : 'Messages appear here once there are some. Nothing has been filed here yet.'}
-            </p>
-          </div>
-        )}
+                : 'Messages appear here once there are some. Nothing has been filed here yet.'
+          return (
+            <div className="flex flex-col items-center px-8 py-14 text-center">
+              <EmptyArt kind={art} className="h-14 w-[74px] text-ink-4" />
+              <p className="display mt-4 text-[17px] text-ink-1">{heading}</p>
+              <p className="mt-1.5 max-w-[36ch] text-[12.5px] leading-relaxed text-ink-3">{note}</p>
+            </div>
+          )
+        })()}
 
         </div>
 

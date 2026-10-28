@@ -4,6 +4,7 @@ import {
   ArrowLeft, RefreshCw, Plus, Trash2, ShieldCheck, Shield, KeyRound, Copy, X,
   Search, Server, HardDrive, Inbox, ExternalLink,
 } from 'lucide-react'
+import EmptyArt from '@/components/EmptyArt'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ConfirmModal, InputModal } from '@/components/ui/Modal'
@@ -64,8 +65,13 @@ function Panel({ title, note, action, children }) {
   )
 }
 
-function Empty({ children }) {
-  return <p className="px-4 py-10 text-center text-[12.5px] text-ink-3">{children}</p>
+function Empty({ children, art }) {
+  return (
+    <div className="flex flex-col items-center px-6 py-10 text-center">
+      {art && <EmptyArt kind={art} className="h-11 w-[58px] text-ink-4" />}
+      <p className={`max-w-[46ch] text-[12.5px] leading-relaxed text-ink-3 ${art ? 'mt-3' : ''}`}>{children}</p>
+    </div>
+  )
 }
 
 function Admin() {
@@ -449,9 +455,9 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
               {pendingLoading ? (
                 <Empty>Loading…</Empty>
               ) : pending.length === 0 ? (
-                <Empty>
+                <Empty art={error ? undefined : 'queue'}>
                   {error
-                    ? `The queue could not be read${error ? `: ${error}` : ''}.`
+                    ? `The queue could not be read: ${error}.`
                     : 'Nobody is waiting. Requests appear here the moment someone signs up.'}
                 </Empty>
               ) : (

@@ -139,3 +139,31 @@ A pass is done when, on the deployed build:
 - no raw hex outside the token block; no text painted with `opacity`.
 - touch targets ≥ 44 px on phones, ≥ 32 px on desktop.
 - loading swap produces no measurable layout shift (CLS = 0 on a cold load).
+
+## Motion
+
+Four moments move; everything else is still. A mailbox you open every day
+should not perform for you, so each animation had to answer "what does this
+tell me?":
+
+- **A row arriving** — `row-in`, 340 ms. It says *this is new*. Fires only for
+  messages that appear after the first paint; a folder switch or a refresh
+  is not an arrival.
+- **The unread dot settling** — 200 ms opacity. It says *you have read it*.
+- **The compose sheet rising** — 260 ms from the bottom on a phone, 200 ms
+  scale-and-fade above 640 px. It says *this came from the bottom*.
+- **The sealed note opening** — 420 ms. It says *the wait is over*, once.
+
+All four are cancelled under `prefers-reduced-motion`.
+
+## Icons and drawings
+
+- The mark is one piece of geometry, drawn four ways: `favicon.svg` (any size),
+  `icon-192/512.png` (home screen), `icon-512-maskable.png` (Android, face
+  inside the 80 % safe circle), `apple-touch-icon.png` (opaque, because iOS
+  renders transparency as black). `scripts/make-icons.py` draws them from the
+  same numbers the app uses; nothing is hand-exported.
+- Empty states are line drawings (`EmptyArt.jsx`) at one stroke weight, 1.4,
+  no fills: inbox, search, queue, sealed note, groups. Illustration appears
+  nowhere else — a mail app that decorates its own furniture is a mail app
+  you stop trusting.
