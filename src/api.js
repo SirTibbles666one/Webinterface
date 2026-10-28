@@ -306,6 +306,45 @@ export const cancelScheduled = async (id) => {
 
 // Disposable addresses: mail to one lands in this mailbox, and switching it off
 // stops it working for the sender.
+// New-mail notifications. The key is public, but everything else belongs to the
+// signed-in account, and this file is where the token is attached.
+export const pushKey = async () => {
+  const response = await api.get('/push/key')
+  return response.data
+}
+
+export const pushStatus = async () => {
+  const token = storage.getToken()
+  const response = await api.get('/push/status', { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
+export const pushSubscribe = async ({ endpoint, key, auth, ua }) => {
+  const token = storage.getToken()
+  const response = await api.post(
+    '/push/subscribe',
+    { endpoint, keys: { p256dh: key, auth }, ua },
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+  return response.data
+}
+
+export const pushUnsubscribe = async (endpoint) => {
+  const token = storage.getToken()
+  const response = await api.post(
+    '/push/unsubscribe',
+    { endpoint },
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+  return response.data
+}
+
+export const pushTest = async () => {
+  const token = storage.getToken()
+  const response = await api.post('/push/test', {}, { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
 export const listAliases = async () => {
   const token = storage.getToken()
   const response = await api.get('/aliases', { headers: { Authorization: `Bearer ${token}` } })

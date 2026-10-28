@@ -6,7 +6,7 @@
  * a page that is already online. Anything that is not a GET for our own origin is
  * left alone — mail is fetched from the API and must never be cached on disk.
  */
-const CACHE = 'sloth-mail-shell-v34'
+const CACHE = 'sloth-mail-shell-v37'
 const SHELL = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/favicon.svg']
 
 self.addEventListener('install', (event) => {
@@ -58,6 +58,51 @@ self.addEventListener('fetch', (event) => {
         }
         return res
       })
+    }),
+  )
+})
+
+/*
+ * New mail.
+ *
+ * The push payload is sealed by the server to this browser's key, so what arrives
+ * here is already plain JSON — and it deliberately holds a sender and a count,
+ * never a subject or a body. A notification is drawn on a lock screen.
+ */
+self.addEventListener('push', (event) => {
+  let data = {}
+  try {
+    data = event.data ? event.data.json() : {}
+  } catch {
+    data = {}
+  }
+  const title = data.title || 'New mail'
+  const body = data.body || 'You have a new message.'
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      tag: data.tag || 'new-mail',
+      renotify: true,
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      data: { url: data.url || '/' },
+    }),
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const target = event.notification.data?.url || '/'
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      for (const client of windows) {
+        if (new URL(client.url).origin === self.location.origin) {
+          client.focus()
+          if ('navigate' in client) return client.navigate(target)
+          return undefined
+        }
+      }
+      return self.clients.openWindow(target)
     }),
   )
 })
