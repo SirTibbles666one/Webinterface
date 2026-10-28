@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import AuthShell, { Field, PasswordInput } from '@/components/AuthShell'
 import api from '@/api'
 import { storage } from '@/storage'
 import { loginSecondFactor } from '@/api'
@@ -185,64 +185,58 @@ const Login = () => {
 
   if (phase === 'setup') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md">
-          {renderLogo()}
-          {!newPrivateKey && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Create your encryption keys</CardTitle>
-              <CardDescription>
-                Type the same password you registered with — it unwraps the private key that
-                encrypts your mailbox. From here on, every message is protected with a key that
-                never leaves this device.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSetup} className="space-y-4">
-                <div>
-                  <label htmlFor="setup-password" className="block text-sm font-medium mb-1.5 text-foreground/80">Your password</label>
-                  <Input
-                    id="setup-password"
-                    type="password"
-                    value={setupPassword}
-                    onChange={(e) => setSetupPassword(e.target.value)}
-                    required
-                    placeholder="••••••••"
-                  />
+      <AuthShell>
+        {!newPrivateKey && (
+          <>
+            <h1 className="display text-[24px] leading-tight text-ink-1">Create your encryption keys</h1>
+            <p className="mt-2 text-[12.5px] leading-relaxed text-ink-3">
+              Type the same password you registered with. It unwraps the private key that encrypts
+              your mailbox — the key is made here and never sent anywhere.
+            </p>
 
-                </div>
-                <div>
-                  <label htmlFor="setup-confirm" className="block text-sm font-medium mb-1.5 text-foreground/80">Confirm Password</label>
-                  <Input
-                    id="setup-confirm"
-                    type="password"
-                    value={setupConfirm}
-                    onChange={(e) => setSetupConfirm(e.target.value)}
-                    required
-                    placeholder="••••••••"
-                  />
-                </div>
-                {error && <p className="text-destructive text-sm">{error}</p>}
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Generating keys…' : 'Setup Account & Login'}
-                </Button>
-                {loading && (
-                  hasSubtleCrypto ? (
-                    <p className="text-xs text-foreground/50 text-center pt-1">
-                      Generating RSA-4096 key pair, this may take a moment…
-                    </p>
-                  ) : (
-                    <p className="text-xs text-destructive text-center pt-1 font-medium">
-                      No SSL connection detected — using software fallback (this will be significantly slower)
-                    </p>
-                  )
-                )}
-              </form>
-            </CardContent>
-          </Card>
-          )}
-        </div>
+            <form onSubmit={handleSetup} className="mt-7 space-y-4">
+              <Field label="Your password" id="setup-password">
+                <PasswordInput
+                  id="setup-password"
+                  value={setupPassword}
+                  onChange={(e) => setSetupPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+              </Field>
+              <Field label="Confirm password" id="setup-confirm">
+                <Input
+                  id="setup-confirm"
+                  type="password"
+                  value={setupConfirm}
+                  onChange={(e) => setSetupConfirm(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                />
+              </Field>
+
+              {error && <p className="text-[12.5px] text-destructive">{error}</p>}
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Generating keys…' : 'Create keys and sign in'}
+              </Button>
+
+              {loading && (
+                hasSubtleCrypto ? (
+                  <p className="text-center text-[11.5px] text-ink-3">
+                    Generating a 4096-bit key pair. This takes a few seconds on a phone.
+                  </p>
+                ) : (
+                  <p className="text-center text-[11.5px] font-medium text-destructive">
+                    No secure context — using a slow software fallback. Mail is still encrypted,
+                    it just takes longer.
+                  </p>
+                )
+              )}
+            </form>
+          </>
+        )}
 
         {newPrivateKey && (
           <RecoveryKeySetup
@@ -257,93 +251,95 @@ const Login = () => {
             }}
           />
         )}
-      </div>
+      </AuthShell>
     )
   }
 
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm">
-        {renderLogo()}
-        <Card>
-          <CardHeader>
-            <CardTitle>Welcome back</CardTitle>
-            <CardDescription>Enter your credentials to access your account.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {phase === 'twofactor' && (
-              <form onSubmit={handleTwoFactor} className="space-y-4" data-testid="two-factor-form">
-                <div className="space-y-1">
-                  <p className="text-sm text-foreground/70">
-                    Enter the six-digit code from your authenticator app. A recovery code works too.
-                  </p>
-                </div>
-                <Input
-                  id="twofactor-code"
-                  autoComplete="one-time-code"
-                  inputMode="numeric"
-                  autoFocus
-                  placeholder="123456"
-                  value={twoFactorCode}
-                  onChange={(e) => setTwoFactorCode(e.target.value.trim())}
-                />
-                <Button type="submit" className="w-full" disabled={loading || !twoFactorCode}>
-                  {loading ? 'Checking…' : 'Continue'}
-                </Button>
-                <button
-                  type="button"
-                  onClick={() => { setPhase('login'); setTwoFactorCode(''); setChallenge(''); setError('') }}
-                  className="w-full text-xs text-foreground/50 hover:text-foreground/80"
-                >
-                  Back to sign in
-                </button>
-              </form>
-            )}
+  const twoFactor = phase === 'twofactor'
 
-            <form onSubmit={handleLogin} className="space-y-4" style={{ display: phase === 'twofactor' ? 'none' : undefined }}>
-              <div>
-                <label htmlFor="username" className="block text-sm font-medium mb-1.5 text-foreground/80">Username</label>
-                <Input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                  placeholder="e.g. john"
-                />
-              </div>
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium mb-1.5 text-foreground/80">Password</label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                />
-              </div>
-              {error && <p className="text-destructive text-sm">{error}</p>}
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Logging in...' : 'Login'}
-              </Button>
-            </form>
-            <p className="mt-4 text-center text-xs text-foreground/50">
-              Need an account?{' '}
-              <a href="/signup" className="underline underline-offset-2 text-primary/90 hover:text-primary">
-                Create a mailbox
+  return (
+    <AuthShell>
+      <h1 className="display text-[24px] leading-tight text-ink-1">
+        {twoFactor ? 'One more step' : 'Sign in'}
+      </h1>
+      <p className="mt-2 text-[12.5px] leading-relaxed text-ink-3">
+        {twoFactor
+          ? 'Enter the six-digit code from your authenticator app. A recovery code works too.'
+          : 'Your password unwraps the key that opens this mailbox. It is never sent to the server.'}
+      </p>
+
+      {twoFactor ? (
+        <form onSubmit={handleTwoFactor} className="mt-7 space-y-4" data-testid="two-factor-form">
+          <Field label="Code" id="twofactor-code">
+            <Input
+              id="twofactor-code"
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              autoFocus
+              placeholder="123456"
+              value={twoFactorCode}
+              onChange={(e) => setTwoFactorCode(e.target.value.trim())}
+            />
+          </Field>
+          <Button type="submit" className="w-full" disabled={loading || !twoFactorCode}>
+            {loading ? 'Checking…' : 'Continue'}
+          </Button>
+          <button
+            type="button"
+            onClick={() => { setPhase('login'); setTwoFactorCode(''); setChallenge(''); setError('') }}
+            className="w-full text-[12px] text-ink-3 transition-colors duration-120 hover:text-ink-1"
+          >
+            Back to sign in
+          </button>
+        </form>
+      ) : (
+        <>
+          <form onSubmit={handleLogin} className="mt-7 space-y-4">
+            <Field label="Username" id="username" hint="Just the name — uidemo@slothlee.xyz signs in as uidemo.">
+              <Input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                placeholder="yourname"
+                autoComplete="username"
+              />
+            </Field>
+            <Field label="Password" id="password">
+              <PasswordInput
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+            </Field>
+
+            {error && <p className="text-[12.5px] leading-relaxed text-destructive">{error}</p>}
+
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Signing in…' : 'Sign in'}
+            </Button>
+          </form>
+
+          <div className="mt-7 space-y-2 border-t border-line pt-5">
+            <p className="text-[12px] text-ink-2">
+              Need a mailbox?{' '}
+              <a href="/signup" className="text-primary underline underline-offset-2 hover:text-primary/85">
+                Request one
               </a>
             </p>
-            <p className="mt-2 text-center text-[11px] text-foreground/35">
-              <Link to="/recover" className="underline underline-offset-2 text-primary/80">
+            <p className="text-[12px] leading-relaxed text-ink-3">
+              <Link to="/recover" className="text-ink-2 underline underline-offset-2 hover:text-ink-1">
                 Recover with a recovery key
               </Link>{' '}
-              — keeps all your old mail. No recovery key? A password reset is the only other way,
-              and it cannot open your old encrypted mail.
+              — keeps all your old mail. Without a recovery key, a password reset is the only other
+              way in, and it cannot open your old encrypted mail.
             </p>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </>
+      )}
 
       {newPrivateKey && (
         <RecoveryKeySetup
@@ -355,7 +351,7 @@ const Login = () => {
           }}
         />
       )}
-    </div>
+    </AuthShell>
   )
 }
 

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { hashPassword, encryptPrivateKey } from '@/crypto'
 import { unwrapPrivateKeyWithRecovery, recoveryAuthProof } from '@/lib/recoveryKey'
 import { userFetchRecoveryBlob, userRestoreWithRecoveryKey } from '@/api'
+import AuthShell from '@/components/AuthShell'
 
 /**
  * Public page: regain access with a saved recovery key.
@@ -87,32 +88,35 @@ export default function RecoverAccount() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
-        <h1 className="text-xl font-semibold text-foreground">Recover your account</h1>
+    <AuthShell>
+      <h1 className="display text-[24px] leading-tight text-ink-1">Recover your account</h1>
+      <p className="mt-2 text-[12.5px] leading-relaxed text-ink-3">
+        A recovery key is the only thing that opens mail encrypted to a key you have lost. Your
+        password alone cannot.
+      </p>
 
         {step === 'username' && (
           <form onSubmit={lookup} className="mt-4 space-y-4">
-            <p className="text-sm text-foreground/60">
+            <p className="text-[12.5px] leading-relaxed text-ink-2">
               Enter your mailbox name. You will need the recovery key you saved when the account was
               created.
             </p>
             <div>
-              <label htmlFor="recover-username" className="block text-xs uppercase tracking-wide text-foreground/50">
+              <label htmlFor="recover-username" className="mb-1.5 block text-[12px] font-medium text-ink-2">
                 Username
               </label>
               <input
                 id="recover-username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
+                className="h-10 w-full rounded-lg border border-line-strong bg-field px-3 text-[13.5px] text-ink-1"
               />
             </div>
-            {error && <p id="recover-message" className="text-sm text-red-400">{error}</p>}
+            {error && <p id="recover-message" className="text-[12.5px] text-destructive">{error}</p>}
             <button
               type="submit"
               disabled={busy || !username.trim()}
-              className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
+              className="h-10 w-full rounded-lg bg-primary text-[13px] font-semibold text-primary-foreground transition-colors duration-120 hover:bg-primary/90 disabled:opacity-60"
             >
               {busy ? 'Looking…' : 'Continue'}
             </button>
@@ -121,12 +125,12 @@ export default function RecoverAccount() {
 
         {step === 'key' && (
           <form onSubmit={unlock} className="mt-4 space-y-4">
-            <p className="text-sm text-foreground/60">
+            <p className="text-[12.5px] leading-relaxed text-ink-2">
               Paste the recovery key for <span className="text-foreground/80">{username}</span>.
               Dashes and letter case do not matter.
             </p>
             <div>
-              <label htmlFor="recover-key" className="block text-xs uppercase tracking-wide text-foreground/50">
+              <label htmlFor="recover-key" className="mb-1.5 block text-[12px] font-medium text-ink-2">
                 Recovery key
               </label>
               <input
@@ -134,14 +138,14 @@ export default function RecoverAccount() {
                 value={secret}
                 onChange={(e) => setSecret(e.target.value)}
                 placeholder="XXXX-XXXX-XXXX-…"
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm"
+                className="h-10 w-full rounded-lg border border-line-strong bg-field px-3 mono text-[13px] text-ink-1"
               />
             </div>
-            {error && <p id="recover-message" className="text-sm text-red-400">{error}</p>}
+            {error && <p id="recover-message" className="text-[12.5px] text-destructive">{error}</p>}
             <button
               type="submit"
               disabled={busy || !secret.trim()}
-              className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
+              className="h-10 w-full rounded-lg bg-primary text-[13px] font-semibold text-primary-foreground transition-colors duration-120 hover:bg-primary/90 disabled:opacity-60"
             >
               {busy ? 'Unlocking…' : 'Unlock my mailbox'}
             </button>
@@ -150,11 +154,11 @@ export default function RecoverAccount() {
 
         {step === 'password' && (
           <form onSubmit={finish} className="mt-4 space-y-4">
-            <p className="text-sm text-foreground/60">
+            <p className="text-[12.5px] leading-relaxed text-ink-2">
               Your key is unlocked. Choose a new password — your existing mail stays readable.
             </p>
             <div>
-              <label htmlFor="recover-password" className="block text-xs uppercase tracking-wide text-foreground/50">
+              <label htmlFor="recover-password" className="mb-1.5 block text-[12px] font-medium text-ink-2">
                 New password
               </label>
               <input
@@ -163,11 +167,11 @@ export default function RecoverAccount() {
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
+                className="h-10 w-full rounded-lg border border-line-strong bg-field px-3 text-[13.5px] text-ink-1"
               />
             </div>
             <div>
-              <label htmlFor="recover-confirm" className="block text-xs uppercase tracking-wide text-foreground/50">
+              <label htmlFor="recover-confirm" className="mb-1.5 block text-[12px] font-medium text-ink-2">
                 Repeat password
               </label>
               <input
@@ -176,14 +180,14 @@ export default function RecoverAccount() {
                 autoComplete="new-password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
+                className="h-10 w-full rounded-lg border border-line-strong bg-field px-3 text-[13.5px] text-ink-1"
               />
             </div>
-            {error && <p id="recover-message" className="text-sm text-red-400">{error}</p>}
+            {error && <p id="recover-message" className="text-[12.5px] text-destructive">{error}</p>}
             <button
               type="submit"
               disabled={busy}
-              className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
+              className="h-10 w-full rounded-lg bg-primary text-[13px] font-semibold text-primary-foreground transition-colors duration-120 hover:bg-primary/90 disabled:opacity-60"
             >
               {busy ? 'Saving…' : 'Set new password and sign in'}
             </button>
@@ -205,11 +209,12 @@ export default function RecoverAccount() {
         )}
 
         {step !== 'done' && (
-          <p className="mt-4 text-center text-[11px] text-foreground/35">
-            No recovery key? <Link to="/login" className="underline">Forgotten password options</Link>
+          <p className="mt-6 text-[11.5px] leading-relaxed text-ink-3">
+            No recovery key? <Link to="/login" className="text-ink-2 underline underline-offset-2">Back to sign in</Link>
+            {' '}— a password reset restores access to the account, but not to mail encrypted with the
+            key you lost.
           </p>
         )}
-      </div>
-    </div>
+    </AuthShell>
   )
 }

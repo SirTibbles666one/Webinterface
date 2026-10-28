@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { hashPassword } from '@/crypto'
 import { resetWithToken } from '@/api'
+import AuthShell, { Field, PasswordInput } from '@/components/AuthShell'
+import { Button } from '@/components/ui/button'
 
 /**
  * Public page reached from the recovery email: choose a new password.
@@ -51,77 +53,60 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
-        <h1 className="text-xl font-semibold text-foreground">Choose a new password</h1>
+    <AuthShell>
+      <h1 className="display text-[24px] leading-tight text-ink-1">Choose a new password</h1>
+      <p className="mt-2 text-[12.5px] leading-relaxed text-ink-3">
+        This link works once and expires an hour after it was sent.
+      </p>
 
-        {done ? (
-          <div className="mt-4 space-y-4">
-            <p className="text-sm text-foreground/70">
-              Your password is set. Sign in with it and you will be asked to create a new
-              encryption key.
+      {done ? (
+        <div className="mt-7 space-y-4">
+          <p className="text-[12.5px] leading-relaxed text-ink-2">
+            Your password is set. Sign in with it and you will be asked to create a new encryption key.
+          </p>
+          <p className="text-[12px] leading-relaxed text-ink-3">
+            Mail that was encrypted to your old key cannot be read any more. If you exported a copy
+            of that key, import it after signing in — everything opens again.
+          </p>
+          <Link
+            to="/login"
+            className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-[13px] font-semibold text-primary-foreground transition-colors duration-120 hover:bg-primary/90"
+          >
+            Go to sign in
+          </Link>
+        </div>
+      ) : (
+        <form onSubmit={submit} className="mt-7 space-y-4">
+          <Field label="New password" id="reset-password">
+            <PasswordInput
+              id="reset-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              placeholder="At least 8 characters"
+            />
+          </Field>
+          <Field label="Repeat password" id="reset-confirm">
+            <PasswordInput
+              id="reset-confirm"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              autoComplete="new-password"
+              placeholder="Repeat it"
+            />
+          </Field>
+
+          {error && (
+            <p id="reset-message" className="text-[12.5px] leading-relaxed text-destructive">
+              {error}
             </p>
-            <p className="text-xs text-foreground/50">
-              Mail that was encrypted to your old key cannot be read any more. If you exported a
-              copy of that key, import it after signing in.
-            </p>
-            <Link
-              to="/login"
-              className="inline-block rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-            >
-              Go to sign in
-            </Link>
-          </div>
-        ) : (
-          <form onSubmit={submit} className="mt-4 space-y-4">
-            <p className="text-sm text-foreground/60">
-              This link works once and expires an hour after it was sent.
-            </p>
+          )}
 
-            <div>
-              <label htmlFor="reset-password" className="block text-xs uppercase tracking-wide text-foreground/50">
-                New password
-              </label>
-              <input
-                id="reset-password"
-                type="password"
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="reset-confirm" className="block text-xs uppercase tracking-wide text-foreground/50">
-                Repeat password
-              </label>
-              <input
-                id="reset-confirm"
-                type="password"
-                autoComplete="new-password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground"
-              />
-            </div>
-
-            {error && (
-              <p id="reset-message" className="text-sm text-red-400">
-                {error}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={busy}
-              className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
-            >
-              {busy ? 'Saving…' : 'Set new password'}
-            </button>
-          </form>
-        )}
-      </div>
-    </div>
+          <Button type="submit" className="w-full" disabled={busy}>
+            {busy ? 'Saving…' : 'Set new password'}
+          </Button>
+        </form>
+      )}
+    </AuthShell>
   )
 }

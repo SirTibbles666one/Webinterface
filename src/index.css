@@ -318,3 +318,11 @@
 .settings-scope nav::-webkit-scrollbar {
   display: none;
 }
+
+/* Auth on a phone: a field you can hit, and a Show control that is not 14px tall. */
+@media (max-width: 767px) {
+  .auth-scope input { min-height: 44px; }
+  .auth-scope form button { min-height: 44px; }
+  /* the reveal control lives inside the field, so it stays compact */
+  .auth-scope .pw-toggle { min-height: 30px; }
+}

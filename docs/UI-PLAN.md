@@ -134,6 +134,10 @@ Every screen gets all four states wired before it is called done — the concept
 
 ## 6. Build order
 
+*Status:* slice 1 (Settings page, light theme) and slice 3 (account flows) are
+built and live. Slice 2 (admin) and slice 4 (mail polish) are next.
+
+
 **Slice 1 — Settings becomes a page.** `/settings` with the sub-nav and all ten
 sections moved, no behaviour changes; the "OpenPGP" modal and the top-bar icon
 row are removed. This is the biggest structural win and it unblocks everything
