@@ -18,7 +18,7 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
     setSendState('error')
   }, [])
 
-  const handleSend = async ({ toChips, ccChips, bccChips, subject, body, attachments }) => {
+  const handleSend = async ({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral }) => {
     const allTo  = toChips.filter((a) => a.trim())
     const allCc  = ccChips.filter((a) => a.trim())
     const allBcc = bccChips.filter((a) => a.trim())
@@ -119,6 +119,10 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
             e2ee:            true,
           },
           recipients: recipientsPayload,
+          // Only applied to mailboxes on this server; the compose window says so.
+          ...(ephemeral && (ephemeral.deletes_on_read || ephemeral.expires_in_seconds)
+            ? { ephemeral }
+            : {}),
         },
         { headers },
       )

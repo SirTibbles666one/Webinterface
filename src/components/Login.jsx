@@ -151,44 +151,14 @@ const Login = () => {
 
       let activeToken = storage.getToken()
 
-      try {
-        console.log('[Setup] Calling /user/setup')
-        await api.post(
-          '/user/setup',
-          { password: passwordHash, public_key: publicKeyBase64, encrypted_private_key: encryptedKey },
-          { headers: { Authorization: `Bearer ${activeToken}` } },
-        )
-        console.log('[Setup] /user/setup succeeded')
-      } catch (setupErr) {
-        console.warn('[Setup] /user/setup failed with status', setupErr.response?.status, '— attempting re-create flow')
-        if (setupErr.response?.status !== 409) throw setupErr
-
-        await api.delete('/admin/users', {
-          data: { username: currentUsername },
-          headers: { Authorization: `Bearer ${activeToken}` },
-        })
-        await api.post('/admin/users', { username: currentUsername }, {
-          headers: { Authorization: `Bearer ${activeToken}` },
-        })
-        const loginRes = await api.post('/auth/login', {
-          username: currentUsername,
-          password: passwordHash,
-        })
-        console.log('[Setup] Re-login response:', {
-          hasToken: !!loginRes.data.token,
-          hasSalt: !!loginRes.data.salt,
-          saltValue: loginRes.data.salt,
-        })
-        activeToken = loginRes.data.token
-        if (loginRes.data.salt) keySession.setSalt(loginRes.data.salt); storage.setLoginSalt(loginRes.data.salt)
-        storage.set({ token: activeToken })
-        await api.post(
-          '/user/setup',
-          { password: passwordHash, public_key: publicKeyBase64, encrypted_private_key: encryptedKey },
-          { headers: { Authorization: `Bearer ${activeToken}` } },
-        )
-        console.log('[Setup] /user/setup succeeded on retry')
-      }
+      // No re-create fallback: a 409 here means the account is already
+      // configured (it has keys). Re-creating it needed admin rights and deleted
+      // the mailbox — for a self-signed-up account that is the account itself.
+      await api.post(
+        '/user/setup',
+        { password: passwordHash, public_key: publicKeyBase64, encrypted_private_key: encryptedKey },
+        { headers: { Authorization: `Bearer ${activeToken}` } },
+      )
 
       console.log('[Setup] Loading private key into session')
       await keySession.set(keyPair.privateKey)

@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Paperclip,
   Trash2,
+  Flame,
 } from 'lucide-react'
 import { AddressField } from '@/components/compose/AddressField'
 import { AttachmentChip } from '@/components/compose/AttachmentChip'
@@ -30,6 +31,15 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
   const [bccChips, setBccChips] = useState(() => replyData?.bcc ?? [])
   const [subject,  setSubject]  = useState(() => replyData?.subject ?? '')
   const [body,     setBody]     = useState(() => replyData?.body ?? '')
+
+  // "off", "read", or a number of seconds. Server-enforced for mailboxes on this
+  // server; another provider's copy is not ours to delete.
+  const [vanish, setVanish] = useState('off')
+  const ephemeralPayload = () => {
+    if (vanish === 'read') return { deletes_on_read: true }
+    if (vanish === 'off') return null
+    return { deletes_on_read: false, expires_in_seconds: Number(vanish) }
+  }
 
   const { sendState, sendError, sendResults, handleSend, reportError } = useSendEmail({
     myEmail, replyData, draftId, onDeleteDraft, onSent, onClose,
@@ -120,7 +130,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
 
   const sendWithPgpIfNeeded = async () => {
     if (!pgpOn) {
-      handleSend({ toChips, ccChips, bccChips, subject, body, attachments })
+      handleSend({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral: ephemeralPayload() })
       return
     }
     setPgpError('')
@@ -161,7 +171,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
         })
       }
 
-      handleSend({ toChips, ccChips, bccChips, subject, body: armored, attachments: encryptedFiles })
+      handleSend({ toChips, ccChips, bccChips, subject, body: armored, attachments: encryptedFiles, ephemeral: ephemeralPayload() })
     } catch (err) {
       setPgpError(err.message || 'Encryption failed')
     } finally {
@@ -586,6 +596,24 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
               >
                 <Paperclip className="w-4 h-4" />
               </button>
+              <label
+                className="flex items-center gap-1 text-xs text-muted-foreground"
+                title="The recipient's copy is deleted by the server. Works for mailboxes on this server; another provider keeps its own copy."
+              >
+                <Flame className={`w-3.5 h-3.5 ${vanish === 'off' ? 'opacity-50' : 'text-primary'}`} />
+                <select
+                  value={vanish}
+                  onChange={(e) => setVanish(e.target.value)}
+                  disabled={isSendBlocked}
+                  className="bg-transparent border border-border rounded px-1.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                >
+                  <option value="off">Keeps</option>
+                  <option value="read">Deletes after reading</option>
+                  <option value="3600">Deletes in 1 hour</option>
+                  <option value="86400">Deletes in 1 day</option>
+                  <option value="604800">Deletes in 7 days</option>
+                </select>
+              </label>
               <button
                 onClick={sendWithPgpIfNeeded}
                 disabled={isSendBlocked || hasLoadingFiles || pgpBusy}

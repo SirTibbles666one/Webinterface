@@ -40,8 +40,22 @@ export function useEmailFetch() {
         const privateKey = await keySession.get()
         const newPreviews = {}
         await Promise.all(
-          bulkRes.data.emails.map(async ({ uid, data, message_key, received_at }) => {
+          bulkRes.data.emails.map(async ({ uid, data, message_key, received_at, ephemeral, from }) => {
             try {
+              // A message that deletes on open is never delivered through this
+              // path (the server withholds its body), so there is nothing to
+              // decrypt here — label it from the plaintext envelope instead.
+              if (ephemeral === 'read') {
+                newPreviews[uid] = {
+                  subject: 'Disappearing message',
+                  from: from ? { name: '', email: from } : null,
+                  date: received_at ? new Date(received_at) : null,
+                  preview: 'Deletes when you open it',
+                  attachments: [],
+                  ephemeral: 'read',
+                }
+                return
+              }
               if (!privateKey) {
                 console.warn('[useEmailFetch] Private key unavailable, cannot decrypt uid=%s', uid)
                 newPreviews[uid] = { subject: '(key unavailable)', from: null, date: received_at ? new Date(received_at) : null, preview: '', attachments: [], decryptFailed: true }

@@ -491,6 +491,17 @@ const AuthorizedLayout = () => {
                 onMarkRead={markRead}
                 onMarkUnread={markUnread}
                 onDeleteEmail={(uid) => setModalState({ type: 'delete-email', uid })}
+                onMessageDeleted={(uid) => {
+                  // The server already deleted it, so drop the row without asking
+                  // the delete endpoint again. The open message stays on screen:
+                  // it is the last time it can be read.
+                  setUids((prev) => prev.filter((u) => u !== uid))
+                  setPreviews((prev) => {
+                    const next = { ...prev }
+                    delete next[uid]
+                    return next
+                  })
+                }}
                 onMoveToGroup={moveToGroup}
                 onRemoveFromGroup={handleRemoveFromGroup}
                 groups={groups}

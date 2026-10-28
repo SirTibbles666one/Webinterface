@@ -24,6 +24,7 @@ import {
   Download,
   Reply,
   Lock,
+  Flame,
 } from 'lucide-react'
 import api from '@/api'
 import { storage } from '@/storage'
@@ -51,10 +52,13 @@ const EmailView = ({
   selectedFolder,
   onReply,
   onComposeTo,
+  onMessageDeleted,
 }) => {
   const [email, setEmail] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  // A line about the message's lifespan, for both sides of a disappearing mail.
+  const [note, setNote] = useState(null)
   const isStarred = emailMeta?.starred === true
   const isUnread = emailMeta?.unread !== false
   const isInGroup = selectedFolder && selectedFolder !== 'inbox' && selectedFolder !== 'starred'
@@ -63,10 +67,12 @@ const EmailView = ({
     if (uid === null) {
       setEmail(null)
       setError(null)
+      setNote(null)
       return
     }
     setLoading(true)
     setError(null)
+    setNote(null)
     const token = storage.getToken()
     ;(async () => {
       try {
@@ -83,10 +89,40 @@ const EmailView = ({
         addressBook.addAll(parsed?.cc ?? [])
         const receivedAt = res.data.received_at
         setEmail({ ...parsed, date: parsed.date ?? (receivedAt ? new Date(receivedAt) : null) })
+
+        // The server deletes a message-that-deletes-on-read as it serves the
+        // body, so "deleted" here is a fact about this response, not a promise.
+        if (res.data.deleted) {
+          setNote('This message was deleted from the server as it opened. There is no copy left to reopen.')
+          onMessageDeleted?.(uid)
+        } else if (res.data.ephemeral === 'expire' && res.data.expires_at) {
+          setNote(`This message deletes itself on ${new Date(res.data.expires_at * 1000).toLocaleString()}.`)
+        }
+
+        // The sender's side: their copy stays, so ask what happened to the other one.
+        if (selectedFolder === 'sent') {
+          try {
+            const status = await api.post('/email/ephemeral', { uids: [uid] }, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+            const item = status.data?.items?.[0]
+            if (item?.state === 'read') {
+              setNote(`Read by ${item.recipient} on ${new Date(item.read_at * 1000).toLocaleString()} — their copy was deleted. This is your sent copy.`)
+            } else if (item?.state === 'armed') {
+              setNote(item.expires_at
+                ? `Waiting: it deletes when ${item.recipient} opens it, or on ${new Date(item.expires_at * 1000).toLocaleString()}.`
+                : `Waiting: it deletes when ${item.recipient} opens it.`)
+            }
+          } catch {
+            // Status is a nicety: if it fails, the message still opens.
+          }
+        }
       } catch (err) {
         console.error('[EmailView] Failed to load/decrypt email uid=%s:', uid, err)
         setEmail(null)
-        setError(err?.message ?? 'Unknown error')
+        setError(err?.response?.data?.code === 'email_not_found'
+          ? 'This message no longer exists. If it was a disappearing message, it was deleted after it was read.'
+          : (err?.message ?? 'Unknown error'))
       } finally {
         setLoading(false)
       }
@@ -188,6 +224,13 @@ const EmailView = ({
           </div>
         )}
       </div>
+
+      {note && (
+        <div className="flex items-start gap-2 px-4 py-2 border-b border-border bg-muted/50 text-xs text-muted-foreground shrink-0">
+          <Flame className="size-3.5 mt-0.5 shrink-0 text-primary" />
+          <span>{note}</span>
+        </div>
+      )}
 
       {uid === null ? (
         <div className="flex-1 flex flex-col items-center justify-center text-foreground/60">

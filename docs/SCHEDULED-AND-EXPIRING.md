@@ -58,12 +58,18 @@ startup and log the lateness. Never silently drop.
   because encryption happens before the payload is stored. Say so in the UI
 - Expiry is set per message: off, 1 day, 7 days, 30 days
 
-## Burn after read (second step)
+## Burn after read (implemented — see DISAPPEARING.md)
 
-- `POST /api/email/opened {uid}` from the recipient's client after the body renders
-- Server deletes the blob and notifies the sender: "read and deleted"
-- Failure mode to handle: the client reports an open but the delete fails — retry,
-  and never mark it deleted until the blob is gone
+Built differently from the sketch below, which asked the recipient's client to
+report an open (`POST /email/opened`) and trusted it. That is a request, not a rule.
+The shipped design withholds the body from the preview path and deletes inside
+`POST /email/get`, so a client cannot read a message without consuming it. Details,
+data shape and limits: `DISAPPEARING.md`.
+
+The sketch is kept for the reasoning: an "opened" report has to handle the case
+where the delete fails, and must never mark a message deleted until the blob is
+gone. That part survived — the response reports `deleted: false` in exactly that
+case.
 
 ## Honesty rules
 
