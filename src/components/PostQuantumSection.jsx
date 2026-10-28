@@ -72,11 +72,19 @@ export default function PostQuantumSection() {
         <div className="min-w-0">
           <p className="text-[12.5px] text-ink-1">
             {on ? 'On — ML-KEM-768' : 'Not enabled'}
+            {on && status?.created_at ? (
+              <span className="text-ink-3">
+                {' · '}sealing since {new Date(status.created_at * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+              </span>
+            ) : null}
           </p>
           <p className="mt-0.5 max-w-[62ch] text-[11.5px] leading-relaxed text-ink-3">
             {on
               ? 'New mail is sealed with an RSA key and a post-quantum key together: opening it needs both, so breaking one leaves the message closed. Mail stored before you switched stays sealed with RSA alone — that cannot be changed after the fact.'
               : 'Mail is sealed with RSA only. RSA is the part a quantum computer breaks, and stored mail is exactly what gets harvested today to read later. Turning this on adds a post-quantum half to every new message.'}
+            {on
+              ? ' It cannot be switched off: messages already sealed this way need the key, so removing it would make them unreadable.'
+              : ''}
           </p>
         </div>
       </div>
