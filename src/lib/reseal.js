@@ -50,7 +50,10 @@ export async function runReseal({ keys, io, onProgress = () => {}, shouldStop = 
         resealed += 1
         consecutiveFailures = 0
       } catch (err) {
-        failed.push({ uid, reason: err?.message || String(err) })
+        const reason = err?.response?.status === 401
+          ? 'your session ended — sign in again and the run picks up where it stopped'
+          : err?.message || String(err)
+        failed.push({ uid, reason })
         consecutiveFailures += 1
         // Something systemic (no key, wrong key) fails for every message. Stop
         // rather than grind through a mailbox turning nothing into failures.
