@@ -29,7 +29,6 @@ import {
 } from 'lucide-react'
 import api from '@/api'
 import { storage } from '@/storage'
-import { decryptEmail } from '@/crypto'
 import { decryptStored } from '@/lib/decryptStored'
 import { keySession } from '@/keySession'
 import { parseEmail, formatEmailDate } from '@/emailParser'

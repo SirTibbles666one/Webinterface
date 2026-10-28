@@ -2,7 +2,6 @@ import { useState, useRef, useCallback } from 'react'
 import { storage } from '@/storage'
 import { keySession } from '@/keySession'
 import api from '@/api'
-import { decryptEmail } from '@/crypto'
 import { decryptStored } from '@/lib/decryptStored'
 import { parseEmail } from '@/emailParser'
 

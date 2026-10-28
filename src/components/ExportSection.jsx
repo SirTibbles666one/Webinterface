@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Download } from 'lucide-react'
 import { keySession } from '@/keySession'
 import { emailListAll, emailGetRaw } from '@/api'
-import { decryptEmail } from '@/crypto'
+import { decryptStored } from '@/lib/decryptStored'
 import { exportMailbox, downloadText } from '@/lib/exportMailbox'
 
 // Your mail leaves with you. Assembled in the browser because only this device
@@ -25,7 +25,9 @@ export default function ExportSection() {
       const { mbox, total, failed } = await exportMailbox({
         list: emailListAll,
         get: emailGetRaw,
-        decrypt: decryptEmail,
+        // One entry point, so exported messages open under the same rules as
+        // the reader — including mail sealed with the post-quantum half.
+        decrypt: (data, key, privateKey) => decryptStored(data, key, privateKey),
         privateKey,
       })
       const stamp = new Date().toISOString().slice(0, 10)
