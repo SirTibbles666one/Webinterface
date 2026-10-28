@@ -398,15 +398,15 @@ const AuthorizedLayout = () => {
             <div className="flex items-start gap-3 px-4 py-2.5 bg-primary/10 border-b border-primary/20 text-[12px]">
               <Lock className="w-3.5 h-3.5 mt-0.5 text-primary shrink-0" />
               <p className="flex-1 text-foreground/80">
-                <span className="font-medium">You have no encryption key yet.</span> Create one so
-                people can send you end-to-end encrypted mail — without it, anything encrypted to
-                you cannot be read here.
+                <span className="font-medium">No OpenPGP key yet.</span> Mail between mailboxes on
+                this server is already encrypted with your account key. An OpenPGP key is what lets
+                you exchange encrypted mail with people on other providers.
               </p>
               <button
                 onClick={() => setShowPgp(true)}
-                className="shrink-0 rounded-md border border-primary/40 px-2 py-1 text-primary hover:bg-primary/10"
+                className="shrink-0 rounded-md border border-primary/40 px-2 py-1.5 sm:py-1 text-primary hover:bg-primary/10"
               >
-                Create key
+                Create OpenPGP key
               </button>
               <button
                 onClick={() => setKeyPromptDismissed(true)}

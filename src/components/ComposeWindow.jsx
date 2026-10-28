@@ -17,12 +17,16 @@ import { TiptapEditor } from '@/components/compose/TiptapEditor'
 import { useSendEmail } from '@/hooks/useSendEmail'
 import { useAttachments } from '@/hooks/useAttachments'
 import { useResizable } from '@/hooks/useResizable'
+import { useIsPhone } from '@/hooks/useIsPhone'
 import { Lock, LockOpen } from 'lucide-react'
-import { keyCoverage, encryptBody, encryptAttachment, hasIdentity, importPublicKey, listContacts } from '@/pgp'
+import { keyCoverage, encryptBody, encryptAttachment, hasIdentity, importPublicKey } from '@/pgp'
 import { lookupKey } from '@/lib/wkd'
+import api from '@/api'
+import { storage } from '@/storage'
 
 const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = null, onDeleteDraft }) => {
   const [minimized, setMinimized] = useState(false)
+  const isPhone = useIsPhone()
 
   const currentDraftId = useRef(draftId ?? ('draft_' + Date.now()))
 
@@ -70,28 +74,63 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
 
   const recipients = [...toChips, ...ccChips, ...bccChips]
   const coverage = keyCoverage(recipients)
+
+  // What the send path will actually do: it asks this server for a key per
+  // recipient. A saved OpenPGP contact is evidence of a *different* key system,
+  // so it must not decide this line — doing so told people "Not encrypted" for
+  // colleagues whose keys the server has held all along.
+  const recipientKey = recipients.join(',')
+  const [serverKeys, setServerKeys] = useState({})
+  useEffect(() => {
+    if (!recipients.length) {
+      setServerKeys({})
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const token = storage.getToken()
+        const res = await api.post(
+          '/email/publickeys',
+          { addresses: recipients },
+          { headers: { Authorization: `Bearer ${token}` } },
+        )
+        if (cancelled) return
+        const map = {}
+        for (const k of res.data?.keys ?? []) {
+          const address = String(k.address ?? '').toLowerCase()
+          if (address) map[address] = Boolean(k.public_key && k.public_key.length > 16)
+        }
+        setServerKeys(map)
+      } catch {
+        // No answer is not evidence of no key: stay quiet rather than warn falsely.
+        if (!cancelled) setServerKeys({})
+      }
+    })()
+    return () => { cancelled = true }
+  }, [recipientKey])
+
   // The one line that answers "what happens if I press send?" before the user
-  // has to interpret a small icon.
+  // has to interpret a small icon. It names the system it is talking about.
   const encryptionLine = (() => {
     if (!recipients.length) return null
-    const savedFor = new Map(
-      listContacts().map((c) => [String(c.email).toLowerCase(), c.fingerprint]),
-    )
-    const covered = recipients.filter((a) => savedFor.has(String(a).toLowerCase()))
-    if (coverage.missing.length) {
-      return {
-        tone: 'warn',
-        text: `Not encrypted — no key for ${coverage.missing.join(', ')}`,
+
+    if (pgpOn) {
+      if (!coverage.canEncrypt) {
+        return { tone: 'warn', text: `OpenPGP: no key for ${coverage.missing.join(', ')}` }
       }
+      return { tone: 'good', text: `OpenPGP to ${recipients.length} recipient${recipients.length === 1 ? '' : 's'}` }
     }
-    if (!covered.length) return { tone: 'warn', text: 'Not encrypted' }
-    const shown = covered
-      .map((a) => {
-        const fp = savedFor.get(String(a).toLowerCase())
-        return `${a} (${String(fp).slice(-8)})`
-      })
-      .join(', ')
-    return { tone: 'good', text: `Encrypted to ${shown}` }
+
+    if (!Object.keys(serverKeys).length) return null
+    const unknown = recipients.filter((a) => !serverKeys[String(a).toLowerCase()])
+    if (unknown.length) {
+      return { tone: 'warn', text: `Not encrypted to ${unknown.join(', ')} — no key found` }
+    }
+    return {
+      tone: 'good',
+      text: `End-to-end encrypted to ${recipients.length === 1 ? recipients[0] : `${recipients.length} recipients`}`,
+    }
   })()
   const [finding, setFinding] = useState(false)
   const [found, setFound] = useState('')
@@ -228,6 +267,10 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
   // keyservers exist: add a recipient, and the key either appears or it does
   // not. Each address is attempted once per compose window.
   useEffect(() => {
+    // Only hunt for OpenPGP keys when the sender has asked for OpenPGP. The
+    // message is encrypted to this server's keys either way, so an unsolicited
+    // "no key for …" paragraph reads as a contradiction of that.
+    if (!pgpOn) return
     const pending = coverage.missing.filter((a) => !lookedUp.current.has(a))
     if (!pending.length || finding) return
     pending.forEach((a) => lookedUp.current.add(a))
@@ -266,7 +309,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
     })()
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recipients.join(','), coverage.missing.join(',')])
+  }, [pgpOn, recipients.join(','), coverage.missing.join(',')])
 
   const buildDraft = useCallback(() => {
     const hasContent = toChips.length > 0 || subject.trim() || (body && body.replace(/<(.|\n)*?>/g, '').trim()) || attachments.length > 0
@@ -308,10 +351,14 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
   return (
     <div
       ref={windowRef}
-      className="compose-window fixed z-50 flex flex-col bg-card border border-border rounded-t-lg shadow-2xl"
-      style={{ bottom: 0, right: 24, width: minimized ? 320 : size.w, height: minimized ? 'auto' : size.h }}
+      className={`compose-window fixed z-50 flex flex-col bg-card border border-border shadow-2xl ${isPhone ? 'rounded-none border-0' : 'rounded-t-lg'}`}
+      style={
+        isPhone
+          ? { inset: 0, width: '100%', height: '100dvh' }
+          : { bottom: 0, right: 24, width: minimized ? 320 : size.w, height: minimized ? 'auto' : size.h }
+      }
     >
-      {!minimized && (
+      {!minimized && !isPhone && (
         <>
           <div className="absolute top-0 left-4 right-0 h-1.5 cursor-n-resize z-10"
                onMouseDown={(e) => handleResizeMouseDown(e, 'n')} />
@@ -323,21 +370,23 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
       )}
 
       {/* Title bar */}
-      <div className="flex items-center justify-between px-3 h-10 bg-muted/30 rounded-t-lg border-b border-border shrink-0 select-none">
+      <div className={`flex items-center justify-between px-3 h-12 sm:h-10 bg-muted/30 border-b border-border shrink-0 select-none ${isPhone ? '' : 'rounded-t-lg'}`}>
         <span className="text-sm font-medium text-card-foreground truncate">
           {subject || 'New Message'}
         </span>
         <div className="flex items-center gap-1 ml-2 shrink-0">
-          <button
-            onClick={() => setMinimized((v) => !v)}
-            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-            title={minimized ? 'Expand' : 'Minimize'}
-          >
-            {minimized ? <ChevronUp className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
-          </button>
+          {!isPhone && (
+            <button
+              onClick={() => setMinimized((v) => !v)}
+              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              title={minimized ? 'Expand' : 'Minimize'}
+            >
+              {minimized ? <ChevronUp className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
+            </button>
+          )}
           <button
             onClick={handleDiscard}
-            className="p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
+            className="p-2 sm:p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
             title="Discard draft"
           >
             <Trash2 className="w-4 h-4" />
@@ -361,8 +410,8 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
               <AddressField label="Cc:" chips={ccChips} onChipsChange={setCcChips} />
               <AddressField label="Bcc:" chips={bccChips} onChipsChange={setBccChips} />
             </div>
-            <div className="flex items-center px-6">
-              <span className="text-sm font-semibold text-muted-foreground w-14 shrink-0 py-1.5">Subject:</span>
+            <div className="flex items-center gap-2 px-3 sm:px-6">
+              <span className="text-sm font-semibold text-muted-foreground w-16 shrink-0 py-1.5">Subject:</span>
               <input
                 type="text"
                 value={subject}
@@ -511,7 +560,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
             {keyPasteNote && !keyPasteOpen && (
               <p className="px-3 py-1 text-[11px] text-primary/80 border-b border-border/60">{keyPasteNote}</p>
             )}
-            {found && (
+            {pgpOn && found && (
               <p className="px-3 py-1 text-[11px] text-foreground/60 border-b border-border/60">{found}</p>
             )}
             {pgpError && (
@@ -532,115 +581,130 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
             )}
           </div>
 
-          {/* Footer: status + send */}
-          <div className="shrink-0 px-3 py-2 border-t border-border flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
-              {hasLoadingFiles && !isSending && (
-                <span className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Reading files…
-                </span>
-              )}
-              {isSending && (
-                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> {sendStatusLabel}
-                </span>
-              )}
-              {sendState === 'done' && (
-                <span className="flex items-center gap-1.5 text-xs text-primary">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> {sendStatusLabel}
-                </span>
-              )}
-              {sendState === 'error' && (
-                <span className="flex items-center gap-1.5 text-xs text-destructive min-w-0">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate" title={sendError}>{sendError}</span>
-                </span>
-              )}
-              {sendState === 'done' && sendResults.length > 0 && (
-                <div className="flex items-center gap-1.5 text-xs ml-2 shrink-0">
-                  {sendResults.map((r, i) => (
-                    <span
-                      key={i}
-                      title={r.error ?? undefined}
-                      className={r.status === 'failed' ? 'text-destructive' : 'text-primary'}
-                    >
-                      {r.address.split('@')[0]}: {r.status}
-                    </span>
-                  ))}
-                </div>
-              )}
+          {/* Footer. The encryption line gets its own block: one long warning in a
+              row with the buttons is what pushed Send off the right edge of a
+              phone. On small screens the actions own a row and Send is pinned
+              right, so it cannot be crowded out by text. */}
+          <div className="shrink-0 border-t border-border">
+            {encryptionLine && (
+              <p
+                className={`px-3 pt-2 text-[11px] leading-snug ${
+                  encryptionLine.tone === 'good' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
+                }`}
+              >
+                {encryptionLine.text}
+              </p>
+            )}
+
+            <div className="px-3 py-2 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+              <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+                {hasLoadingFiles && !isSending && (
+                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Reading files…
+                  </span>
+                )}
+                {isSending && (
+                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> {sendStatusLabel}
+                  </span>
+                )}
+                {sendState === 'done' && (
+                  <span className="flex items-center gap-1.5 text-xs text-primary">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> {sendStatusLabel}
+                  </span>
+                )}
+                {sendState === 'error' && (
+                  <span className="flex items-center gap-1.5 text-xs text-destructive min-w-0">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate" title={sendError}>{sendError}</span>
+                  </span>
+                )}
+                {sendState === 'done' && sendResults.length > 0 && (
+                  <div className="flex items-center gap-1.5 text-xs ml-2 shrink-0">
+                    {sendResults.map((r, i) => (
+                      <span
+                        key={i}
+                        title={r.error ?? undefined}
+                        className={r.status === 'failed' ? 'text-destructive' : 'text-primary'}
+                      >
+                        {r.address.split('@')[0]}: {r.status}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto shrink-0">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? [])
+                    if (files.length > 0) addFiles(files)
+                    e.target.value = ''
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isSendBlocked}
+                  className="p-2 sm:p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40"
+                  title="Attach files (max 20 MB each)"
+                  aria-label="Attach files"
+                >
+                  <Paperclip className="w-4 h-4" />
+                </button>
+                <label
+                  className="flex items-center gap-1 text-xs text-muted-foreground"
+                  title="The recipient's copy is deleted by the server. Works for mailboxes on this server; another provider keeps its own copy."
+                >
+                  <Flame className={`w-4 h-4 sm:w-3.5 sm:h-3.5 ${vanish === 'off' ? 'opacity-50' : 'text-primary'}`} />
+                  <select
+                    value={vanish}
+                    onChange={(e) => setVanish(e.target.value)}
+                    disabled={isSendBlocked}
+                    className="bg-transparent border border-border rounded px-1.5 py-1.5 sm:py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                    aria-label="Disappearing message"
+                  >
+                    <option value="off">Keeps</option>
+                    <option value="read">Deletes after reading</option>
+                    <option value="3600">Deletes in 1 hour</option>
+                    <option value="86400">Deletes in 1 day</option>
+                    <option value="604800">Deletes in 7 days</option>
+                  </select>
+                </label>
+                {vanish !== 'off' && offServerRecipients.length > 0 && (
+                  <span
+                    className="hidden md:inline text-[10px] text-amber-600 dark:text-amber-400 max-w-[130px] leading-tight"
+                    title={offServerRecipients.join(', ')}
+                  >
+                    {offServerRecipients.length} recipient{offServerRecipients.length === 1 ? ' is' : 's are'} elsewhere — nothing to delete there
+                  </span>
+                )}
+                <button
+                  onClick={sendWithPgpIfNeeded}
+                  disabled={isSendBlocked || hasLoadingFiles || pgpBusy}
+                  title={hasLoadingFiles ? 'Waiting for files to finish loading…' : undefined}
+                  className="ml-auto sm:ml-0 flex items-center justify-center gap-2 px-5 sm:px-4 py-2 sm:py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+                >
+                  {isSending
+                    ? <Loader2 className="w-4 h-4 sm:w-3.5 sm:h-3.5 animate-spin" />
+                    : <Send className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                  }
+                  Send
+                </button>
+              </div>
             </div>
 
-            {encryptionLine && (
-            <p
-              className={`text-[11px] mb-1 ${
-                encryptionLine.tone === 'good' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
-              }`}
-            >
-              {encryptionLine.text}
-            </p>
-          )}
-          <div className="flex items-center gap-2 shrink-0">
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  const files = Array.from(e.target.files ?? [])
-                  if (files.length > 0) addFiles(files)
-                  e.target.value = ''
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isSendBlocked}
-                className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40"
-                title="Attach files (max 20 MB each)"
-              >
-                <Paperclip className="w-4 h-4" />
-              </button>
-              <label
-                className="flex items-center gap-1 text-xs text-muted-foreground"
-                title="The recipient's copy is deleted by the server. Works for mailboxes on this server; another provider keeps its own copy."
-              >
-                <Flame className={`w-3.5 h-3.5 ${vanish === 'off' ? 'opacity-50' : 'text-primary'}`} />
-                <select
-                  value={vanish}
-                  onChange={(e) => setVanish(e.target.value)}
-                  disabled={isSendBlocked}
-                  className="bg-transparent border border-border rounded px-1.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
-                >
-                  <option value="off">Keeps</option>
-                  <option value="read">Deletes after reading</option>
-                  <option value="3600">Deletes in 1 hour</option>
-                  <option value="86400">Deletes in 1 day</option>
-                  <option value="604800">Deletes in 7 days</option>
-                </select>
-              </label>
-              {vanish !== 'off' && offServerRecipients.length > 0 && (
-                <span
-                  className="text-[10px] text-amber-600 dark:text-amber-400 max-w-[130px] leading-tight"
-                  title={offServerRecipients.join(', ')}
-                >
-                  {offServerRecipients.length} recipient{offServerRecipients.length === 1 ? ' is' : 's are'} elsewhere — nothing to delete there
-                </span>
-              )}
-              <button
-                onClick={sendWithPgpIfNeeded}
-                disabled={isSendBlocked || hasLoadingFiles || pgpBusy}
-                title={hasLoadingFiles ? 'Waiting for files to finish loading…' : undefined}
-                className="flex items-center gap-2 px-4 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isSending
-                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  : <Send className="w-3.5 h-3.5" />
-                }
-                Send
-              </button>
-            </div>
+            {vanish !== 'off' && offServerRecipients.length > 0 && (
+              <p className="px-3 pb-2 text-[10px] text-amber-600 dark:text-amber-400 md:hidden">
+                Disappearing applies on this server only — {offServerRecipients.length} recipient
+                {offServerRecipients.length === 1 ? ' is' : 's are'} elsewhere and will keep their copy.
+              </p>
+            )}
           </div>
         </>
       )}
