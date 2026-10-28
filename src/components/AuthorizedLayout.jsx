@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import Sidebar from '@/components/Sidebar'
 import EmailList from '@/components/EmailList'
+import ScheduledPanel from '@/components/ScheduledPanel'
 import EmailView from '@/components/EmailView'
 import ComposeWindow from '@/components/ComposeWindow'
 import { ConfirmModal, InputModal } from '@/components/ui/Modal'
@@ -445,6 +446,7 @@ const AuthorizedLayout = () => {
                 refreshing={loading}
               />
               )}
+              {selectedFolder === 'sent' && <ScheduledPanel />}
               <EmailList
                 uids={pagedUids}
                 previews={allPreviews}

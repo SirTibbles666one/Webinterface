@@ -291,6 +291,19 @@ export const userSessions = async () => {
   return response.data
 }
 
+// Messages held for a chosen time: what is waiting, and taking one back.
+export const listScheduled = async () => {
+  const token = storage.getToken()
+  const response = await api.get('/scheduled', { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
+export const cancelScheduled = async (id) => {
+  const token = storage.getToken()
+  const response = await api.post('/scheduled/cancel', { id }, { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
 // Disposable addresses: mail to one lands in this mailbox, and switching it off
 // stops it working for the sender.
 export const listAliases = async () => {

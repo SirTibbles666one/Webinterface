@@ -55,8 +55,9 @@ function sealedNotice({ url, expiresAt, subject, from, passphrase }) {
   ].filter((line) => line !== null).join('\n')
 }
 
-export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSent, onClose }) {
+export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSent, onClose, onScheduled }) {
   const [sendState, setSendState] = useState('idle')
+  const [scheduledFor, setScheduledFor] = useState(0)
   const [sendError, setSendError] = useState('')
   const [sendResults, setSendResults] = useState([])
   // Notes created by the last send, so the window can name their links.
@@ -72,7 +73,7 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
    * sent at all. It is PGP-armoured by the compose window ("sealed" here) and
    * stored on this server; the recipient gets a link that we can delete.
    */
-  const handleSend = async ({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral, sealed, sealMode, sealedPhrase }) => {
+  const handleSend = async ({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral, sealed, sealMode, sealedPhrase, sendAt: whenToSend }) => {
     const allTo  = toChips.filter((a) => a.trim())
     const allCc  = ccChips.filter((a) => a.trim())
     const allBcc = bccChips.filter((a) => a.trim())
@@ -234,6 +235,10 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
 
       setSendState('sending')
 
+      // A time, if the sender picked one. The server holds the message — built,
+      // encrypted and addressed exactly as an immediate send — and releases it.
+      const sendAt = whenToSend ? Math.floor(whenToSend.getTime() / 1000) : 0
+
       const res = await api.post(
         '/email/sendencrypted',
         {
@@ -250,9 +255,20 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
           ...(ephemeral && (ephemeral.deletes_on_read || ephemeral.expires_in_seconds)
             ? { ephemeral }
             : {}),
+          ...(sendAt > 0 ? { send_at: sendAt, subject } : {}),
         },
         { headers },
       )
+
+      if (res.data.scheduled) {
+        // Nothing went out yet, so there is no sent copy to record. The compose
+        // window says when it will go and closes.
+        setScheduledFor(res.data.send_at)
+        onScheduled?.(res.data)
+        if (draftId) onDeleteDraft?.(draftId)
+        setSendState('scheduled')
+        return
+      }
 
       if (res.data.sent_email_uid) storage.addSentUid(res.data.sent_email_uid)
       if (draftId) onDeleteDraft?.(draftId)
@@ -291,5 +307,5 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
     }
   }
 
-  return { sendState, sendError, sendResults, sealedNotes, handleSend, reportError }
+  return { sendState, sendError, sendResults, sealedNotes, scheduledFor, handleSend, reportError }
 }

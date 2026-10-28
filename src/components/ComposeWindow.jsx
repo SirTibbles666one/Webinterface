@@ -11,6 +11,7 @@ import {
   Trash2,
   Flame,
   Link2,
+  Clock,
 } from 'lucide-react'
 import { AddressField } from '@/components/compose/AddressField'
 import { AttachmentChip } from '@/components/compose/AttachmentChip'
@@ -27,6 +28,44 @@ import { loadProfile } from '@/lib/profile'
 import api from '@/api'
 import { storage } from '@/storage'
 
+/** "Tomorrow 09:00" reads better than a full date when it is close. */
+function formatWhen(when) {
+  if (!when) return ''
+  const now = new Date()
+  const sameDay = when.toDateString() === now.toDateString()
+  const time = when.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  if (sameDay) return time
+  const tomorrow = new Date(now)
+  tomorrow.setDate(now.getDate() + 1)
+  if (when.toDateString() === tomorrow.toDateString()) return `tomorrow ${time}`
+  return `${when.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} ${time}`
+}
+
+/** The times people actually pick, in their own timezone. */
+function whenPresets() {
+  const now = new Date()
+  const out = [['In an hour', new Date(now.getTime() + 60 * 60 * 1000)]]
+
+  const evening = new Date(now)
+  evening.setHours(18, 0, 0, 0)
+  if (evening <= now) evening.setDate(evening.getDate() + 1)
+  out.push(['This evening', evening])
+
+  const tomorrow = new Date(now)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  tomorrow.setHours(9, 0, 0, 0)
+  out.push(['Tomorrow morning', tomorrow])
+
+  // Next Monday at 09:00: send on Monday morning, not "in seven days".
+  const monday = new Date(now)
+  const daysAhead = ((8 - monday.getDay()) % 7) || 7
+  monday.setDate(monday.getDate() + daysAhead)
+  monday.setHours(9, 0, 0, 0)
+  out.push(['Monday morning', monday])
+
+  return out
+}
+
 const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = null, onDeleteDraft }) => {
   const [minimized, setMinimized] = useState(false)
   const isPhone = useIsPhone()
@@ -42,6 +81,10 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
   // "off", "read", or a number of seconds. Server-enforced for mailboxes on this
   // server; another provider's copy is not ours to delete.
   const [vanish, setVanish] = useState('off')
+  // When to hand the message over. Null means now; a date means the server holds
+  // it and sends it at that time.
+  const [sendAt, setSendAt] = useState(null)
+  const [whenOpen, setWhenOpen] = useState(false)
   const ephemeralPayload = () => {
     if (vanish === 'read') return { deletes_on_read: true }
     if (vanish === 'off') return null
@@ -54,9 +97,19 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
     .filter((a) => a && a.trim())
     .filter((a) => !myDomain || !a.toLowerCase().trim().endsWith('@' + myDomain))
 
-  const { sendState, sendError, sendResults, handleSend, reportError } = useSendEmail({
+  const { sendState, sendError, sendResults, scheduledFor, handleSend, reportError } = useSendEmail({
     myEmail, replyData, draftId, onDeleteDraft, onSent, onClose,
   })
+
+  // One place that adds the chosen time, so no send path can forget it.
+  const sendNow = (args) => handleSend({ ...args, sendAt })
+
+  // A scheduled message has not gone anywhere yet: say when it will, then close.
+  useEffect(() => {
+    if (sendState !== 'scheduled') return undefined
+    const timer = setTimeout(() => onClose(null), 3500)
+    return () => clearTimeout(timer)
+  }, [sendState, onClose])
 
   const { attachments, isDragOver, setIsDragOver, fileInputRef, addFiles, removeAttachment } = useAttachments({
     onError: reportError,
@@ -229,7 +282,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
           const armor = await sealWithPassphrase({ text: noteBody, passphrase: sealPhrase })
           for (const address of offServerRecipients) sealed[address] = armor
           setPgpBusy(false)
-          handleSend({
+          sendNow({
             toChips, ccChips, bccChips, subject, body, attachments,
             ephemeral: ephemeralPayload(), sealed,
             sealMode: 'passphrase', sealedPhrase: sealPhrase,
@@ -241,7 +294,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
           sealed[address] = await sealToRecipients({ text: noteBody, recipients: [address] })
         }
         setPgpBusy(false)
-        handleSend({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral: ephemeralPayload(), sealed, sealMode: 'pgp' })
+        sendNow({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral: ephemeralPayload(), sealed, sealMode: 'pgp' })
         return
       } catch (err) {
         setPgpBusy(false)
@@ -251,7 +304,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
     }
 
     if (!pgpOn) {
-      handleSend({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral: ephemeralPayload() })
+      sendNow({ toChips, ccChips, bccChips, subject, body, attachments, ephemeral: ephemeralPayload() })
       return
     }
     setPgpError('')
@@ -292,7 +345,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
         })
       }
 
-      handleSend({ toChips, ccChips, bccChips, subject, body: armored, attachments: encryptedFiles, ephemeral: ephemeralPayload() })
+      sendNow({ toChips, ccChips, bccChips, subject, body: armored, attachments: encryptedFiles, ephemeral: ephemeralPayload() })
     } catch (err) {
       setPgpError(err.message || 'Encryption failed')
     } finally {
@@ -663,7 +716,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
             )}
             {Object.keys(keySuggestions).length > 0 && (
               <div className="px-3 py-2 border-b border-border/60 space-y-1">
-                {Object.entries(keySuggestions).map(([address, hit]) => (
+                {Object.entries(keySuggestions).map(([address]) => (
                   <div key={address} className="flex items-center gap-2 text-[11px]">
                     <span className="text-foreground/60 min-w-0 truncate">
                       {address}: published key found
@@ -776,6 +829,12 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                     <CheckCircle2 className="w-3.5 h-3.5" /> {sendStatusLabel}
                   </span>
                 )}
+                {sendState === 'scheduled' && (
+                  <span className="flex items-center gap-1.5 text-xs text-primary">
+                    <Clock className="w-3.5 h-3.5" />
+                    Held until {scheduledFor ? formatWhen(new Date(scheduledFor * 1000)) : 'then'} — nothing has gone out yet
+                  </span>
+                )}
                 {sendState === 'error' && (
                   <span className="flex items-center gap-1.5 text-xs text-destructive min-w-0">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" />
@@ -846,6 +905,52 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                     {offServerRecipients.length} recipient{offServerRecipients.length === 1 ? ' is' : 's are'} elsewhere — {sealExternal ? 'sealed link, body stays here' : 'nothing to delete there'}
                   </span>
                 )}
+                <div className="relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setWhenOpen((v) => !v)}
+                    title={sendAt ? `Goes out ${formatWhen(sendAt)}` : 'Send later'}
+                    className={`flex items-center gap-1 px-2 py-2 sm:py-1.5 rounded-md border text-xs ${
+                      sendAt ? 'border-primary/40 text-primary bg-primary/10' : 'border-border text-foreground/60'
+                    }`}
+                  >
+                    <Clock className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                    {sendAt && <span className="hidden sm:inline">{formatWhen(sendAt)}</span>}
+                  </button>
+                  {whenOpen && (
+                    <div className="absolute bottom-full right-0 mb-2 w-56 rounded-lg border border-border bg-popover p-2 shadow-lg z-20">
+                      <p className="px-1 pb-1 text-[11px] text-foreground/55">Send later</p>
+                      {whenPresets().map(([label, when]) => (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => { setSendAt(when); setWhenOpen(false) }}
+                          className="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-foreground/5"
+                        >
+                          {label} <span className="text-foreground/45">· {formatWhen(when)}</span>
+                        </button>
+                      ))}
+                      <input
+                        type="datetime-local"
+                        className="mt-1 w-full rounded border border-border bg-transparent px-2 py-1 text-xs"
+                        onChange={(e) => {
+                          const when = e.target.value ? new Date(e.target.value) : null
+                          setSendAt(when)
+                          if (when) setWhenOpen(false)
+                        }}
+                      />
+                      {sendAt && (
+                        <button
+                          type="button"
+                          onClick={() => { setSendAt(null); setWhenOpen(false) }}
+                          className="mt-1 w-full rounded px-2 py-1.5 text-left text-xs text-destructive hover:bg-foreground/5"
+                        >
+                          Send now instead
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={sendWithPgpIfNeeded}
                   disabled={isSendBlocked || hasLoadingFiles || pgpBusy}
@@ -856,7 +961,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                     ? <Loader2 className="w-4 h-4 sm:w-3.5 sm:h-3.5 animate-spin" />
                     : <Send className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                   }
-                  Send
+                  {sendAt ? 'Send later' : 'Send'}
                 </button>
               </div>
             </div>
