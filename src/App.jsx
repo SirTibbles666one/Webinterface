@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import Login from './components/Login'
 import AuthorizedLayout from './components/AuthorizedLayout'
 import Admin from '@/pages/Admin'
+import NotFound from '@/pages/NotFound'
 import Settings from '@/pages/Settings'
 import ResetPassword from './components/ResetPassword'
 import RecoverAccount from './components/RecoverAccount'
@@ -34,7 +35,8 @@ function App() {
           </ProtectedRoute>
         }
       />
-    </Routes>
+          <Route path="*" element={<NotFound />} />
+</Routes>
   )
 }
 

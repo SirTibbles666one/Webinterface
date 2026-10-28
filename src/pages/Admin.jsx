@@ -614,13 +614,22 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                   <Empty>No mail stored yet.</Empty>
                 ) : (
                   <ul>
-                    {diskTotals.biggest.map((row) => (
-                      <li key={row.username} className="flex items-center gap-3 border-b border-line/70 px-4 py-2.5 last:border-0">
-                        <span className="flex-1 text-[12.5px] text-ink-1">{row.username}</span>
-                        <span className="mono text-[11.5px] text-ink-3">{row.email_count} messages</span>
-                        <span className="mono w-16 text-right text-[11.5px] text-ink-2">{bytes(row.disk_usage_bytes)}</span>
-                      </li>
-                    ))}
+                    {diskTotals.biggest.map((row) => {
+                      const share = diskTotals.bytesUsed ? (row.disk_usage_bytes ?? 0) / diskTotals.bytesUsed : 0
+                      const width = Math.max(1.5, Math.round(share * 1000) / 10)
+                      return (
+                        <li key={row.username} className="border-b border-line/70 px-4 py-2.5 last:border-0">
+                          <div className="flex items-baseline gap-3">
+                            <span className="flex-1 truncate text-[12.5px] text-ink-1">{row.username}</span>
+                            <span className="mono text-[11.5px] text-ink-3">{row.email_count} messages</span>
+                            <span className="mono w-16 text-right text-[11.5px] text-ink-2">{bytes(row.disk_usage_bytes)}</span>
+                          </div>
+                          <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-line/70">
+                            <div className="h-full rounded-full bg-primary/70" style={{ width: `${width}%` }} />
+                          </div>
+                        </li>
+                      )
+                    })}
                   </ul>
                 )}
               </>
