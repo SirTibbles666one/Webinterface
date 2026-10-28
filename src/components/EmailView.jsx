@@ -13,6 +13,7 @@ import {
   DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu'
 import {
+  Link2,
   Paperclip,
   Star,
   Mail,
@@ -59,6 +60,45 @@ const EmailView = ({
   const [error, setError] = useState(null)
   // A line about the message's lifespan, for both sides of a disappearing mail.
   const [note, setNote] = useState(null)
+  // Sealed notes are recorded in the sender's own copy — the link and, for a
+  // passphrase note, the phrase. Reading them back here is what makes the
+  // feature checkable instead of hopeful.
+  const [sealed, setSealed] = useState([])
+  const [sealedMsg, setSealedMsg] = useState('')
+  const [sealedBusy, setSealedBusy] = useState('')
+  const noteUrl = (token) => `${window.location.origin}/api/note?t=${token}`
+  const when = (secs) => (secs ? new Date(secs * 1000).toLocaleString() : '')
+  const copyText = async (text, label) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setSealedMsg(`${label} copied`)
+    } catch {
+      setSealedMsg('Could not copy — select it from the message below')
+    }
+    setTimeout(() => setSealedMsg(''), 2500)
+  }
+  const withdraw = async (token) => {
+    setSealedBusy(token)
+    try {
+      await api.post('/note/revoke', { token }, { headers: { Authorization: `Bearer ${storage.getToken()}` } })
+      setSealed((prev) => prev.map((n) => (
+        n.token === token ? { ...n, state: 'revoked', revoked_at: Math.floor(Date.now() / 1000) } : n
+      )))
+      setSealedMsg('Withdrawn — the link no longer opens')
+    } catch (err) {
+      setSealedMsg(err.response?.data?.error ?? 'Could not withdraw that note')
+    } finally {
+      setSealedBusy('')
+    }
+    setTimeout(() => setSealedMsg(''), 3000)
+  }
+  const SEALED_LABEL = {
+    sealed: 'not opened yet',
+    opened: 'opened, body deleted',
+    expired: 'expired unread',
+    revoked: 'withdrawn',
+  }
+
   const isStarred = emailMeta?.starred === true
   const isUnread = emailMeta?.unread !== false
   const isInGroup = selectedFolder && selectedFolder !== 'inbox' && selectedFolder !== 'starred'
@@ -73,6 +113,8 @@ const EmailView = ({
     setLoading(true)
     setError(null)
     setNote(null)
+    setSealed([])
+    setSealedMsg('')
     const token = storage.getToken()
     ;(async () => {
       try {
@@ -89,6 +131,27 @@ const EmailView = ({
         addressBook.addAll(parsed?.cc ?? [])
         const receivedAt = res.data.received_at
         setEmail({ ...parsed, date: parsed.date ?? (receivedAt ? new Date(receivedAt) : null) })
+
+        // A sent copy of a sealed note carries "link: …/api/note?t=<token>" and,
+        // for a passphrase note, "passphrase: …". Ask the server what became of
+        // each one rather than trusting the text alone.
+        const body = `${parsed.textBody ?? ''}\n${parsed.htmlBody ?? ''}`
+        const tokens = [...body.matchAll(/\/api\/note\?t=([A-Za-z0-9_-]{16,})/g)].map((m) => m[1])
+        const phrases = [...body.matchAll(/passphrase:\s*(\S+)/g)].map((m) => m[1])
+        if (tokens.length > 0) {
+          try {
+            const statusRes = await api.post(
+              '/note/status',
+              { tokens: [...new Set(tokens)] },
+              { headers: { Authorization: `Bearer ${token}` } },
+            )
+            const rows = (statusRes.data.notes ?? []).map((n, i) => ({ ...n, phrase: phrases[i] ?? '' }))
+            setSealed(rows)
+          } catch {
+            // Not the sender's copy, or the endpoint is unreachable: say nothing
+            // rather than guess at a state.
+          }
+        }
 
         // The server deletes a message-that-deletes-on-read as it serves the
         // body, so "deleted" here is a fact about this response, not a promise.
@@ -305,6 +368,61 @@ const EmailView = ({
           </div>
 
           <div className="p-6">
+            {sealed.length > 0 && (
+              <div className="mb-4 space-y-2">
+                {sealed.map((n) => (
+                  <div key={n.token} className="rounded-lg border border-primary/25 bg-primary/[0.06] p-3">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                      <Link2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                      <span className="font-semibold text-foreground/85">Sealed note</span>
+                      <span className="text-foreground/55">to {n.recipient}</span>
+                      <span className={`px-1.5 py-0.5 rounded ${
+                        n.state === 'sealed' ? 'bg-primary/15 text-primary'
+                          : n.state === 'opened' ? 'bg-muted text-foreground/70'
+                            : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                      }`}>
+                        {SEALED_LABEL[n.state] ?? n.state}
+                      </span>
+                      <span className="text-foreground/45">
+                        {n.state === 'opened' && n.opened_at ? `opened ${when(n.opened_at)}`
+                          : n.state === 'revoked' && n.revoked_at ? `withdrawn ${when(n.revoked_at)}`
+                            : n.expires_at ? `closes ${when(n.expires_at)}` : ''}
+                      </span>
+                      {n.mode === 'passphrase' && <span className="text-foreground/40">· passphrase</span>}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => copyText(noteUrl(n.token), 'Link')}
+                        className="text-primary underline underline-offset-2"
+                      >
+                        copy link
+                      </button>
+                      {n.phrase && (
+                        <button
+                          type="button"
+                          onClick={() => copyText(n.phrase, 'Passphrase')}
+                          className="text-primary underline underline-offset-2"
+                        >
+                          copy passphrase
+                        </button>
+                      )}
+                      {n.state === 'sealed' && (
+                        <button
+                          type="button"
+                          onClick={() => withdraw(n.token)}
+                          disabled={sealedBusy === n.token}
+                          className="text-destructive underline underline-offset-2 disabled:opacity-50"
+                        >
+                          {sealedBusy === n.token ? 'withdrawing…' : 'withdraw'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {sealedMsg && <p className="text-[11px] text-foreground/60">{sealedMsg}</p>}
+              </div>
+            )}
             <EmailBody textBody={email.textBody} htmlBody={email.htmlBody} senderHint={email.from} />
           </div>
 

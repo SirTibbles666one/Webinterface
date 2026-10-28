@@ -188,6 +188,7 @@ const Login = () => {
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <div className="w-full max-w-md">
           {renderLogo()}
+          {!newPrivateKey && (
           <Card>
             <CardHeader>
               <CardTitle>Create your encryption keys</CardTitle>
@@ -240,6 +241,7 @@ const Login = () => {
               </form>
             </CardContent>
           </Card>
+          )}
         </div>
 
         {newPrivateKey && (
@@ -248,7 +250,10 @@ const Login = () => {
             username={storage.getUsername()}
             onDone={() => {
               setNewPrivateKey(null)
-              navigate('/')
+              // A full load, not a route change: the recovery panel is mounted
+              // in both the setup and the login branch of this page, so a
+              // client-side navigation can land straight back on it.
+              window.location.assign(storage.getToken() ? '/' : '/login')
             }}
           />
         )}
@@ -346,7 +351,7 @@ const Login = () => {
           username={storage.getUsername()}
           onDone={() => {
             setNewPrivateKey(null)
-            navigate('/')
+            window.location.assign(storage.getToken() ? '/' : '/login')
           }}
         />
       )}

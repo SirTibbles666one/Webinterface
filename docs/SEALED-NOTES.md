@@ -51,6 +51,18 @@ fetches.
 The sender's own copy in Sent carries the link, the phrase and the deadline —
 that is the only place they are written down.
 
+## Sender's side: state, and a way out
+
+The sender's own copy in Sent carries `link:` and `passphrase:` lines. Opening
+that copy turns them into a panel: whether the note is sealed, opened, expired
+or withdrawn; when it closes; **copy link**, **copy passphrase**, and
+**withdraw** while it is still unread.
+
+Withdraw clears the armour server-side. The link then reports "withdrawn" and
+`/note/open` answers 404. It is refused once the note has been read — there is
+nothing left to withdraw by then — and for anyone but the account that created
+it, with the same answer either way so the call cannot be used to probe tokens.
+
 ## What is enforced, and what is not
 
 Enforced by us, because the only copy is on our disk:
