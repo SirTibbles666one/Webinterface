@@ -383,7 +383,9 @@ const EmailView = ({
             <div className="my-5 h-px bg-line max-sm:my-3" />
           </div>
 
-          <div className="mx-auto w-full max-w-[720px] px-6 pb-10 max-sm:px-4">
+          {/* The phone bar is fixed over the page, so the message needs room to end
+              above it instead of underneath it. */}
+          <div className="mx-auto w-full max-w-[720px] px-6 pb-10 max-sm:px-4 max-sm:pb-24">
             {sealed.length > 0 && (
               <div className="mb-4 space-y-2">
                 {sealed.map((n) => (
@@ -488,7 +490,7 @@ const EmailView = ({
           and it lifts above the iPhone home indicator. "Reply" carries the word as well
           as the arrow: an arrow alone next to a back arrow is a guess. */}
       {email && (
-        <div className="shrink-0 border-t border-line px-3 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
+        <div className="shrink-0 border-t border-line bg-background/95 px-3 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-30 max-sm:backdrop-blur-sm">
           <div className="mx-auto flex w-full max-w-[720px] items-center gap-2">
             <Button
               onClick={() => onReply?.({ ...email, alias: arrivedAt })}
