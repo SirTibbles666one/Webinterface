@@ -232,8 +232,10 @@ function MailFrame({ html }) {
     if (override === 'whole') {
       scale = wholeScale
       mode = 'whole'
-    } else if (wholeScale >= 0.92) {
-      // Barely over the fold: finishing the job beats a scrollbar.
+    } else if (wholeScale >= 0.75) {
+      // "The whole email on one screen" is the point of this reader, so a message that
+      // fits at three-quarters size and up is shown whole rather than scrolled. Below
+      // that the type stops being text and the message keeps its width instead.
       scale = wholeScale
       mode = 'whole'
     }
@@ -299,7 +301,6 @@ function MailFrame({ html }) {
     }
   }, [src])
 
-  const isScaled = view.scale < 0.985
 
   return (
     <>
@@ -316,14 +317,15 @@ function MailFrame({ html }) {
           style={{ height: 10 }}
         />
       </div>
-      {(isScaled || view.canFitWhole) && (
+      {(view.scale < 0.72 || view.canFitWhole) && (
         <div className="mt-2 space-y-1.5">
-          {isScaled && (
-            // Say so rather than let a reader wonder why the type is small: this is a
-            // message with a fixed layout, shown complete instead of cut in half.
+          {view.scale < 0.72 && (
+            // Only when the shrink is big enough to notice. A message fitted to 91% so
+            // the whole thing lands on the screen needs no explaining; a fixed 620px
+            // newsletter shown at 55% does, or the small type looks like a bug.
             <p className="text-[11.5px] text-ink-3">
-              This message is laid out at {view.layout} px and shown
-              at {Math.round(view.scale * 100)}% so none of it is cut off.
+              This message is laid out at {view.layout} px and shown at{' '}
+              {Math.round(view.scale * 100)}% so none of it is cut off.
             </p>
           )}
           {view.canFitWhole && (
