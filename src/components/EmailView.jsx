@@ -327,7 +327,10 @@ const EmailView = ({
           </div>
         </div>
       ) : email ? (
-        <ScrollArea className="flex-1">
+        {/* min-h-0: a flex child's default min-height is its content, so without this
+            the message pushes the viewport to its full height and the reader's
+            overflow-hidden cuts it off — a long mail could not be scrolled at all. */}
+        <ScrollArea className="flex-1 min-h-0">
           {/* One measure for the whole message: a line of text that runs the
               width of a wide window is unreadable, and the header has to sit in
               the same column as the body it introduces. */}
