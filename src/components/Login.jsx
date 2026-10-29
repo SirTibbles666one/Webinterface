@@ -138,9 +138,9 @@ const Login = () => {
         // uploaded. It must never block or fail the sign-in itself.
         try {
           const sync = await syncIdentityWithAccount(passwordUsed)
-          if (sync?.action === 'restored') console.log('[Login] OpenPGP identity restored from the account')
-          if (sync?.action === 'uploaded') console.log('[Login] OpenPGP identity saved to the account')
-          if (sync?.action === 'restore_failed') console.warn('[Login] Stored OpenPGP key did not unwrap:', sync.error)
+          // Always say what happened: a silent 'in-step' is indistinguishable from a
+          // sync that never ran, which is exactly how this hid the first time.
+          console.log('[Login] OpenPGP sync:', sync?.action, sync?.error || '')
         } catch (pgpErr) {
           console.warn('[Login] OpenPGP sync skipped:', pgpErr.message)
         }
