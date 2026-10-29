@@ -166,7 +166,28 @@ after the fact.
 6. **On-device acceptance** — the user reads the same Instagram mail on his phone and
    sends one screenshot; the build stamp says which build produced it.
 
-## 8. What this plan will not do
+## 8. Result after slices 1–2
+
+The renderer is an iframe; every width in the mark-up is dropped and the message reflows
+inside its own document, where it cannot drag the reader's column about. Measured on the
+same twelve real messages, after:
+
+| width | messages | clip | smallest rendered text | page overflow |
+| --- | --- | --- | --- | --- |
+| 320 | 12 | 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 | 9.1–24 px | none |
+| 390 | 12 | 0 × 12 | 10–24 px | none |
+| 430 | 12 | 0 × 12 | 10–24 px | none |
+
+All twelve now render at **scale 1.0** — nothing is shrunk, so nothing is a thumbnail.
+The framing/scaling path still exists for mail that cannot reflow at all, but no message
+in the corpus needed it once it had its own viewport.
+
+The acceptance case — a 600 px Instagram verification mail, the message the user
+photographed — measures at 390×844: message spans y=392 to **y=809** of 844, scale 1.0,
+`insideClip 0`, the six-digit code present and legible, no page overflow. The whole email
+is on one screen, not a reflowed slice of one.
+
+## 9. What this plan will not do
 
 - It will not make an 8,000 px newsletter fit one screen at readable size. Nothing can;
   the choice is scroll or thumbnail, and the reader will offer the second explicitly.

@@ -192,88 +192,18 @@
     background: #ffffff;
     border-radius: 2px;
   }
+  /* The message is its own document now: it brings its own stylesheet, its own
+     layout width and its own paper. The app only decides where it sits and holds it
+     to the column — see EmailBody.jsx for why it stopped being inline HTML. */
   .email-html-fit .email-html-body {
+    display: block;
+    width: 100%;
+    min-width: 0;
     max-width: none;
+    border: 0;
+    background: #ffffff;
     transform-origin: top left;
   }
-  .email-html-body {
-    font-size: 0.9375rem; line-height: 1.62;
-    /* Default ink for paper. Anything the sender styles wins by inline precedence. */
-    color: #14150f;
-    overflow-wrap: anywhere;
-    /* The column is the constraint, not the message: never let a sender's fixed
-       width push this block wider than the reader it sits in. `100%` is not enough
-       — the reader sits in a scroll-area content wrapper that sizes to its widest
-       child, so a percentage here resolves against the message's own width. The
-       viewport cap is what actually holds, and 3rem is the reader's own padding. */
-    max-width: calc(100vw - 3rem);
-    min-width: 0;
-    overflow-x: auto;
-  }
-  .email-html-body img {
-    max-width: 100% !important;
-    height: auto !important;
-  }
-  /* Plain-text bodies are the same constraint with no table to blame: one
-     unbroken 300-character line widened the column to 672px and was cut off. */
-  .email-text-body {
-    max-width: calc(100vw - 3rem);
-    min-width: 0;
-    overflow-wrap: anywhere;
-  }
-  .email-html-body h1, .email-html-body h2, .email-html-body h3 {
-    font-family: var(--font-serif); font-weight: 500; letter-spacing: -0.01em;
-    line-height: 1.3; margin: 1.1em 0 0.4em; color: inherit;
-  }
-  /* On a white sheet the app's lime accent is unreadable; mail links get a dark
-     green that passes on paper, unless the sender set their own. */
-  .email-html-body a { color: #0a5f42; }
-  .email-html-body h1 { font-size: 1.35em; }
-  .email-html-body h2 { font-size: 1.2em; }
-  .email-html-body h3 { font-size: 1.05em; }
-  /* A table is the commonest way a message breaks the column, and the two obvious
-     fixes each fail: `display: block` turns the table into a block whose rows still
-     lay out at content width (the row-group keeps its own 400px box and scrolls
-     inside the column), and `max-width` alone cannot shrink below a cell's min-content.
-     Keeping the table a table and letting its cells break words is what actually fits. */
-  .email-html-body table {
-    width: 100% !important;
-    max-width: 100% !important;
-    border-collapse: collapse;
-    margin: 0.75em 0;
-  }
-  .email-html-body td, .email-html-body th {
-    padding: 4px 8px; vertical-align: top;
-    overflow-wrap: anywhere;
-  }
-  /* Mail from a decade ago is full of 8px text; a floor keeps it legible
-     without restyling what the sender meant to emphasise. */
-  .email-html-body p, .email-html-body li {
-    /* Prose only: senders put font-size in inline styles, so the floor needs
-       !important to beat them. Layout text (cells, spans) keeps its own size —
-       flattening those would redraw the sender's table. */
-    font-size: max(12px, 1em) !important;
-  }
-  .email-html-body img, .email-html-body video {
-    max-width: 100% !important; height: auto !important; border-radius: 6px;
-  }
-  .email-html-body pre, .email-html-body code {
-    font-family: var(--font-mono); font-size: 0.85em;
-    background: var(--color-field); border-radius: 6px;
-  }
-  .email-html-body pre { padding: 10px 12px; overflow-x: auto; }
-  .email-html-body hr { border: 0; border-top: 1px solid var(--color-line); margin: 1.25em 0; }
-  /* Quotes are dimmed, so a reply chain reads as context rather than as text. */
-  .email-html-body p { margin: 0.25em 0; }
-  .email-html-body ul, .email-html-body ol { margin: 0.5em 0; padding-left: 1.5em; }
-  .email-html-body li { margin: 0.15em 0; }
-  .email-html-body a { color: var(--color-primary); text-decoration: underline; }
-  .email-html-body strong, .email-html-body b { font-weight: 600; }
-  .email-html-body em, .email-html-body i { font-style: italic; }
-  .email-html-body u { text-decoration: underline; }
-  .email-html-body s, .email-html-body del { text-decoration: line-through; }
-  .email-html-body blockquote { border-left: 2px solid var(--color-line-strong); padding-left: 0.75em; margin: 0.5em 0; color: var(--color-ink-3); }
-  .email-html-body img { max-width: 100%; height: auto; }
 }
 
 /* Phones: the compose window carries inline pixel geometry for desktop resizing,
@@ -292,14 +222,6 @@
     border-left: 0 !important;
     border-right: 0 !important;
   }
-  /* Message bodies must never force a horizontal scrollbar on a phone. */
-  .email-html-body img { max-width: 100% !important; height: auto !important; }
-  /* Tables stay tables on phones. This rule used to set display:block + overflow-x,
-     which turned every fixed-width message into a block whose row-group still laid
-     out at the sender's width — it painted past the column edge, and the clip was
-     inside the reader where no page-level overflow check could see it. */
-  .email-html-body table { max-width: 100% !important; table-layout: auto; }
-  .email-html-body td, .email-html-body th { overflow-wrap: anywhere; word-break: break-word; }
 }
 
 /* Installed app: keep the chrome clear of the notch and the home indicator. */

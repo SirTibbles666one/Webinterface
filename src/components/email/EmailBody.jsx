@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import DOMPurify from 'dompurify'
 import { ExternalLink } from 'lucide-react'
 import { segmentLinks } from '@/emailParser'
 import { PgpBody } from '@/components/email/PgpBody'
 import { looksEncrypted } from '@/pgp'
 
-// Configure DOMPurify: strip scripts/styles/event-handlers, force all links to open in new tab
+// Configure DOMPurify: strip scripts/event-handlers, force all links to open in new tab
 const DOMPURIFY_CONFIG = {
   FORBID_TAGS: ['script', 'style', 'link', 'meta', 'iframe', 'object', 'embed', 'form', 'input', 'button'],
   FORBID_ATTR: ['action', 'formaction'],
@@ -19,7 +19,6 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   }
 })
 
-
 // Pull the armour out of whichever part carries it: in an HTML part it arrives
 // wrapped in tags, and decryptBody needs the bare block.
 function extractArmor(value) {
@@ -32,30 +31,36 @@ function sanitizeHtml(html) {
   return DOMPurify.sanitize(html, DOMPURIFY_CONFIG)
 }
 
-// Mail is written for a 600px column and says so: `width="600"` attributes and
-// `width:600px` inline styles on tables and cells. On a phone that width does not
-// exist, and because the reader sits inside a scroll area whose content wrapper is
-// `display: table` (it sizes to its widest child), the message did not overflow the
-// page — it widened the column past the viewport and had its right edge cut off.
+// A message is written against a pixel canvas: 600px tables, 480px columns, 8px text.
+// Every width is dropped and the message is allowed to reflow — inside its own frame it
+// cannot drag the reader's column about, so the widths have nothing left to protect.
+// What survives is the sender's structure, colours and type sizes; what goes is the
+// fixed canvas, which is the thing that made a phone show half a sentence.
 //
-// So the fixed widths are removed rather than fought with: drop width/height
-// attributes, drop width and nowrap from inline styles, and let the message reflow
-// to the column it is actually in. Images keep their aspect through `height: auto`
-// in the stylesheet.
-function fitToColumn(html) {
+// `nowrap` is an attribute, not a style, and old mail puts it on cells so a single
+// line of text holds a column open at any screen width. It always goes.
+const CANVAS_WIDTH = 0
+
+function prepareMail(html) {
   const doc = new DOMParser().parseFromString(html, 'text/html')
   for (const el of doc.body.querySelectorAll('*')) {
-    el.removeAttribute('width')
-    el.removeAttribute('height')
-    // `nowrap` is an attribute, not a style: old mail puts it on cells so one line
-    // of text holds the column open no matter how narrow the screen is.
     el.removeAttribute('nowrap')
+
+    const attr = el.getAttribute('width')
+    if (attr && parseInt(attr, 10) >= CANVAS_WIDTH) el.removeAttribute('width')
+
     const style = el.getAttribute('style')
     if (!style) continue
     const kept = style
       .split(';')
       .map((decl) => decl.trim())
-      .filter((decl) => decl && !/^(min-)?width\s*:/i.test(decl) && !/^white-space\s*:\s*nowrap/i.test(decl))
+      .filter((decl) => {
+        if (!decl) return false
+        if (/^white-space\s*:\s*nowrap/i.test(decl)) return false
+        const w = decl.match(/^width\s*:\s*(\d+)px/i)
+        if (w && Number(w[1]) >= CANVAS_WIDTH) return false
+        return true
+      })
     if (kept.length) el.setAttribute('style', kept.join('; '))
     else el.removeAttribute('style')
   }
@@ -120,129 +125,212 @@ function TextWithLinks({ text }) {
   )
 }
 
-// The whole message, on the screen, on a phone.
+// Mail gets its own viewport.
 //
-// Mail is written against a fixed pixel canvas (600px tables, 640px centred bodies).
-// Reflow squeezes most of it into a phone column, but a phone is also short: a message
-// that reflows still runs off the bottom, so "the whole email" was never on screen.
+// The reader used to render mail straight into the page, which meant the message and
+// the app fought over the same layout: a 600px table inside a scroll-area wrapper that
+// sizes to its widest child widened the *column*, so the right edge was cut off while
+// the page itself showed no overflow at all — invisible to every overflow check.
 //
-// On a phone the message is therefore scaled to fit the space it has — width first,
-// then height — and a button switches to full size for reading. Desktop keeps the
-// reflowed, unscaled view. The floor is 0.55: below that the type stops being text and
-// the message is long enough that the reader is scrolling anyway, so only the width is
-// fitted and the height is left to scroll.
-function FitToScreen({ html }) {
-  const wrap = useRef(null)
-  const inner = useRef(null)
-  const [scaled, setScaled] = useState(false)
-  const [expanded, setExpanded] = useState(false)
+// So the message is rendered in a sandboxed frame at its own width, and the frame is
+// then fitted to the column with one transform. Two passes:
+//
+//   1. Frame at the column width. Canvas widths (>=480px) were dropped by
+//      prepareMail, so most mail reflows and is shown at 100%.
+//   2. If the message still cannot fit — a 40-column table, an image grid — the frame
+//      is widened to what it actually needs (capped at 900px) and scaled down to the
+//      column, the way a PDF page fits a screen. Complete and uncut, never reflowed
+//      into nonsense.
+//
+// Scripts cannot run here: the frame is sandboxed without `allow-scripts`, and
+// `allow-same-origin` exists only so we can measure the document's height.
+const FRAME_MAX_WIDTH = 900
+const PAPER_CSS = `
+  :root { color-scheme: light; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; padding: 0; background: #fff; color: #14150f;
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  table { max-width: 100% !important; }
+  td, th { overflow-wrap: anywhere; }
+  img, video { max-width: 100% !important; height: auto !important; }
+  /* Mail from a decade ago is set in 8px type. A floor on prose only: table cells keep
+     the sender's sizes, because flattening those redraws their layout. */
+  p, li, blockquote { font-size: max(13px, 1em) !important; }
+  td p, th p { font-size: inherit !important; }
+  a { color: #0a5f42; }
+  pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  blockquote { margin: .5em 0; padding-left: .75em; border-left: 2px solid #d6d3c8; color: #5b5b52; }
+  h1, h2, h3 { line-height: 1.3; }
+`
 
-  // A new message opens fitted, never inheriting the previous one's zoom.
+function buildDocument(html) {
+  return `<!doctype html><html><head><meta charset="utf-8">` +
+    `<meta name="viewport" content="width=device-width, initial-scale=1">` +
+    `<style>${PAPER_CSS}</style></head><body>${html}</body></html>`
+}
+
+function MailFrame({ html }) {
+  const wrapRef = useRef(null)
+  const frameRef = useRef(null)
+  const measureRef = useRef(null)
+  const lastWidth = useRef(0)
+  const [src, setSrc] = useState('')
+  const [view, setView] = useState({ scale: 1, mode: 'fit', canFitWhole: false })
+  const [override, setOverride] = useState(null)
+
   useEffect(() => {
-    setExpanded(false)
-    setScaled(false)
+    const url = URL.createObjectURL(new Blob([buildDocument(html)], { type: 'text/html' }))
+    setSrc(url)
+    setOverride(null)
+    return () => URL.revokeObjectURL(url)
   }, [html])
 
-  useEffect(() => {
-    const box = wrap.current
-    const body = inner.current
-    if (!box || !body) return
+  const measure = useCallback(() => {
+    const wrap = wrapRef.current
+    const frame = frameRef.current
+    if (!wrap || !frame) return
+    const doc = frame.contentDocument
+    if (!doc || !doc.body) return
 
-    const apply = () => {
-      body.style.width = ''
-      body.style.transform = ''
-      body.style.transformOrigin = ''
-      box.style.height = ''
-      box.style.overflowX = ''
+    const availW = Math.floor(wrap.clientWidth)
+    if (!availW) return
 
-      const availW = box.clientWidth
-      if (!availW) return
+    // Pass 1: the message at the column's width.
+    frame.style.transform = 'none'
+    frame.style.width = `${availW}px`
+    frame.style.height = '10px'
+    void frame.offsetHeight
 
-      if (!(window.innerWidth < 640) || expanded) {
-        setScaled(false)
-        return
+    let contentW = Math.max(doc.documentElement.scrollWidth, doc.body.scrollWidth)
+    let framed = availW
+    if (contentW > availW + 2) {
+      // Pass 2: it cannot reflow to the column, so give it the width it asks for and
+      // scale the whole thing down. Widening a table can unblock a wrap that was
+      // holding another column open, so this repeats until the width stops growing —
+      // one pass left a frame 104px narrower than the content it was meant to hold.
+      for (let i = 0; i < 4; i++) {
+        const wanted = Math.min(contentW, FRAME_MAX_WIDTH)
+        if (wanted <= framed + 2) break
+        framed = wanted
+        frame.style.width = `${framed}px`
+        void frame.offsetHeight
+        const next = Math.max(doc.documentElement.scrollWidth, doc.body.scrollWidth)
+        if (next <= contentW + 2) { contentW = next; break }
+        contentW = next
       }
+    }
+    const fitScale = framed === availW ? 1 : Math.min(1, availW / framed)
 
-      const naturalW = body.scrollWidth
-      const widthOverflows = naturalW > availW + 1
-      const widthScale = widthOverflows ? availW / naturalW : 1
+    const contentH = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight)
+    const top = wrap.getBoundingClientRect().top
+    const availH = Math.max(window.innerHeight - top - 20, 200)
+    const wholeScale = Math.min(fitScale, availH / contentH)
 
-      // Measure the height at the width the scale will be applied to, not at the
-      // squeezed width, or the aspect ratio is wrong and the fit is not a fit.
-      if (widthOverflows) body.style.width = `${naturalW}px`
-      const naturalH = body.scrollHeight
-      const top = box.getBoundingClientRect().top
-      const availH = Math.max(window.innerHeight - top - 16, 200)
-      let heightScale = naturalH > availH ? availH / naturalH : 1
-
-      // A message can overflow on height alone: it reflows into the column and then
-      // runs off the bottom, which is the case a width-only fit never touched.
-      if (widthScale >= 0.995 && heightScale >= 0.995) {
-        setScaled(false)
-        return
-      }
-
-      // The switch back to full size sits under the message, so the fit has to leave
-      // room for it — otherwise the button itself is the thing cut off at the bottom.
-      const availHWithToggle = Math.max(availH - 58, 180)
-      heightScale = naturalH > availHWithToggle ? availHWithToggle / naturalH : 1
-
-      let scale = Math.min(widthScale, heightScale)
-      // A long message cannot be shown whole and be read: below this the type is a
-      // thumbnail. Those keep the reflowed width and scroll, and offer no toggle,
-      // because there is no bigger version to switch back to.
-      if (scale < 0.4) {
-        body.style.width = ''
-        setScaled(false)
-        return
-      }
-
-      body.style.transform = `scale(${scale})`
-      body.style.transformOrigin = 'top left'
-      box.style.height = `${Math.ceil(naturalH * scale)}px`
-      box.style.overflowX = naturalW * scale <= availW + 1 ? 'hidden' : 'auto'
-      setScaled(true)
+    let scale = fitScale
+    let mode = fitScale < 0.985 ? 'fit' : 'full'
+    if (override === 'full') {
+      scale = 1
+      mode = 'full'
+    } else if (override === 'whole') {
+      scale = wholeScale
+      mode = 'whole'
+    } else if (wholeScale >= 0.92) {
+      // Barely over the fold: finishing the job beats a scrollbar.
+      scale = wholeScale
+      mode = 'whole'
     }
 
-    apply()
-    // A message's size is not known at any single moment: the column resizes, an image
-    // arrives, a webfont reflows, the document is mutated, or it simply settles late.
-    const ro = new ResizeObserver(apply)
-    ro.observe(box)
-    const mo = new MutationObserver(apply)
-    mo.observe(body, { childList: true, subtree: true })
-    const imgs = [...body.querySelectorAll('img')]
-    imgs.forEach((img) => img.addEventListener('load', apply))
-    const onResize = () => apply()
-    window.addEventListener('resize', onResize)
-    const timers = [120, 500, 1500].map((ms) => setTimeout(apply, ms))
+    frame.style.height = `${contentH}px`
+    frame.style.transformOrigin = 'top left'
+    frame.style.transform = scale === 1 ? 'none' : `scale(${scale})`
+    wrap.style.height = `${Math.ceil(contentH * scale)}px`
+    wrap.style.overflowX = framed > availW ? 'auto' : 'hidden'
+    wrap.dataset.scale = scale.toFixed(3)
+    wrap.dataset.mode = mode
+    wrap.dataset.framed = String(framed)
+    wrap.dataset.content = `${contentW}x${contentH}`
+
+    lastWidth.current = availW
+    setView({
+      scale,
+      mode,
+      canFitWhole: wholeScale >= 0.75 && wholeScale < fitScale - 0.02,
+    })
+  }, [override])
+
+  measureRef.current = measure
+
+  useEffect(() => {
+    const wrap = wrapRef.current
+    const frame = frameRef.current
+    if (!wrap || !frame) return
+
+    const run = () => measureRef.current?.()
+    run()
+
+    const ro = new ResizeObserver(() => {
+      const w = Math.floor(wrap.clientWidth)
+      if (w && w !== lastWidth.current) run()
+    })
+    ro.observe(wrap)
+    window.addEventListener('resize', run)
+    window.addEventListener('orientationchange', run)
+
+    const doc = frame.contentDocument
+    const imgs = doc ? [...doc.querySelectorAll('img')] : []
+    imgs.forEach((img) => img.addEventListener('load', run))
+
+    const timers = [150, 600, 1500, 3000].map((ms) => setTimeout(run, ms))
     return () => {
       ro.disconnect()
-      mo.disconnect()
-      imgs.forEach((img) => img.removeEventListener('load', apply))
-      window.removeEventListener('resize', onResize)
+      window.removeEventListener('resize', run)
+      window.removeEventListener('orientationchange', run)
+      imgs.forEach((img) => img.removeEventListener('load', run))
       timers.forEach(clearTimeout)
     }
-  }, [html, expanded])
+  }, [src])
+
+  const showingFull = override === 'full'
+  const isScaled = view.scale < 0.985
 
   return (
     <>
-      <div ref={wrap} className="email-html-fit">
-        <div
-          ref={inner}
-          className="email-html-body"
-          // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: html }}
+      <div ref={wrapRef} className="email-html-fit" style={{ overflowY: 'hidden' }}>
+        <iframe
+          ref={frameRef}
+          src={src}
+          title="Message body"
+          onLoad={() => measureRef.current?.()}
+          sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+          referrerPolicy="no-referrer"
+          scrolling="no"
+          className="email-html-body block w-full border-0 bg-white"
+          style={{ height: 10 }}
         />
       </div>
-      {(scaled || expanded) && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="mt-2 min-h-11 w-full rounded-md border border-line px-3 text-[12.5px] text-ink-2 transition-colors duration-120 hover:bg-accent hover:text-ink-1"
-        >
-          {expanded ? 'Fit the message to the screen' : 'Show it at full size'}
-        </button>
+      {(isScaled || showingFull || view.canFitWhole) && (
+        <div className="mt-2 space-y-1.5">
+          {(isScaled || showingFull) && (
+            <button
+              type="button"
+              onClick={() => setOverride(showingFull ? null : 'full')}
+              className="min-h-11 w-full rounded-md border border-line px-3 text-[12.5px] text-ink-2 transition-colors duration-120 hover:bg-accent hover:text-ink-1"
+            >
+              {showingFull ? 'Fit the message to the screen' : 'Show it at full size'}
+            </button>
+          )}
+          {view.canFitWhole && !showingFull && (
+            <button
+              type="button"
+              onClick={() => setOverride(override === 'whole' ? null : 'whole')}
+              className="min-h-11 w-full rounded-md border border-line px-3 text-[12.5px] text-ink-2 transition-colors duration-120 hover:bg-accent hover:text-ink-1"
+            >
+              {override === 'whole' ? 'Fit the width' : 'Fit the whole message on the screen'}
+            </button>
+          )}
+        </div>
       )}
     </>
   )
@@ -264,7 +352,7 @@ export function EmailBody({ textBody, htmlBody, senderHint }) {
   const resolvedHtml = htmlBody || (textBody && looksLikeHtml(textBody) ? textBody : null)
 
   if (resolvedHtml) {
-    return <FitToScreen html={fitToColumn(sanitizeHtml(resolvedHtml))} />
+    return <MailFrame html={prepareMail(sanitizeHtml(resolvedHtml))} />
   }
 
   const text = textBody || ''
