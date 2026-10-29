@@ -160,7 +160,10 @@ export function EmailListItem({
           )}
         </div>
 
-        <span className="col-start-2 row-start-1 justify-self-end mono shrink-0 text-[12px] text-ink-3 @[520px]:col-start-3">
+        {/* One width for the column, not three: "14:34" is 36px, "Oct 17" 43, and
+            "Sep 24, 25" 72, so an auto column moved the sender's truncation point row
+            to row and left the dates ragged on the left edge. */}
+        <span className="col-start-2 row-start-1 w-[72px] shrink-0 justify-self-end text-right mono tabular-nums text-[12px] text-ink-3 @[520px]:col-start-3">
           {rowTime(preview?.date)}
         </span>
 
