@@ -151,18 +151,20 @@ done
 
 # ── Python proofs on the server: they exercise delivery, not just the API ─────
 run_remote() {
-  local name="$1" args="${2:-}" start elapsed out
+  local name="$1" args="${2:-}" start elapsed out status passed
   start=$(date +%s)
+  # The verdict comes from the proof's EXIT STATUS, carried back explicitly. Judging
+  # it by matching "N/N checks passed" in the output was worse than useless: 29/30
+  # matched the pattern and reported ok, so the suite could not fail.
   out=$(ssh -i "$SSH_KEY" -o BatchMode=yes "$HOST" \
-    "python3 /root/proof-${name}.py ${args} 2>&1 | tail -3")
-  status=$?
+    "python3 /root/proof-${name}.py ${args} > /tmp/proof-${name}.log 2>&1; echo EXIT:\$?; tail -4 /tmp/proof-${name}.log")
+  status=$(printf '%s' "$out" | sed -n 's/^EXIT://p' | tail -1)
   elapsed=$(( $(date +%s) - start ))
-  local passed total
-  if printf '%s' "$out" | grep -qE '([0-9]+/[0-9]+ checks passed|[0-9]+ passed, 0 failed)'; then
-    passed=$(printf '%s' "$out" | grep -oE '([0-9]+/[0-9]+|[0-9]+) (checks )?passed' | head -1)
-    record "$name" 0 "${passed} (${elapsed}s)"
+  passed=$(printf '%s' "$out" | grep -oE '([0-9]+/[0-9]+|[0-9]+) (checks )?passed' | head -1)
+  if [ "${status:-1}" = "0" ]; then
+    record "$name" 0 "${passed:-passed} (${elapsed}s)"
   else
-    record "$name" 1 "$(printf '%s' "$out" | tr '\n' ' ' | cut -c1-160)"
+    record "$name" 1 "exit ${status:-?}: $(printf '%s' "$out" | tr '\n' ' ' | cut -c1-160)"
   fi
 }
 
