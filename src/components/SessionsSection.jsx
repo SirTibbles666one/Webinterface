@@ -25,6 +25,27 @@ export function describeAgent(ua = '') {
   return os ? `${browser} on ${os}` : browser
 }
 
+// A country code is only useful if it can be read and seen. The flag is drawn from the
+// code itself, so no dataset is needed; the name comes from the browser's own locale
+// data, so it is in the reader's language rather than ours.
+const regionNames = (() => {
+  try {
+    return new Intl.DisplayNames(undefined, { type: 'region' })
+  } catch {
+    return null
+  }
+})()
+
+export function describeCountry(code) {
+  if (!code || !/^[A-Za-z]{2}$/.test(code)) return null
+  const upper = code.toUpperCase()
+  const flag = String.fromCodePoint(
+    ...[...upper].map((ch) => 0x1f1e6 + ch.charCodeAt(0) - 65),
+  )
+  const name = regionNames?.of(upper) || upper
+  return { flag, name }
+}
+
 export function describeWhen(seconds, now = Date.now()) {
   if (!seconds) return 'unknown'
   const diff = Math.max(0, Math.floor(now / 1000) - seconds)
@@ -106,6 +127,17 @@ export default function SessionsSection() {
                 {row.current && <span className="ml-1.5 rounded bg-primary/20 px-1 text-[10px] text-primary">this device</span>}
               </p>
               <p className="truncate text-[10px] text-ink-3">
+                {(() => {
+                  const where = describeCountry(row.country)
+                  if (!where) return <span>Location unknown</span>
+                  return (
+                    <span title={row.country}>
+                      <span aria-hidden="true" className="mr-1">{where.flag}</span>
+                      {where.name}
+                    </span>
+                  )
+                })()}
+                {' · '}
                 {row.ip || 'unknown address'} · seen {describeWhen(row.last_seen_at)}
               </p>
             </div>
