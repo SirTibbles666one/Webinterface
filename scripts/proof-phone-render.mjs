@@ -100,6 +100,11 @@ A newsletter written for a six hundred pixel canvas, with a paragraph long enoug
 A layout that declares nine hundred pixels and cannot reflow into a phone column at all.
 </div>`,
 
+  // Never opened by this proof: the reference row for "unread still looks unread".
+  keepUnread: `<p style="font-family:Arial;font-size:15px">
+A message nothing opens, so the inbox always has one row that is definitely unread.
+</p>`,
+
   verifyMail: `<table width="600" cellpadding="0" cellspacing="0" style="width:600px;font-family:-apple-system,Helvetica,Arial,sans-serif">
 <tr><td align="center" style="padding:28px 0 12px"><div style="font-family:cursive;font-size:26px">Instagram</div>
 <hr style="border:0;border-top:1px solid #dbdbdb;margin:18px 24px 0"></td></tr>
@@ -308,7 +313,7 @@ async function main() {
       await cdp.send('Page.navigate', { url: `${WEB}/?v=${Date.now()}` }, sessionId)
       await sleep(6000)
 
-      for (const key of Object.keys(FI)) {
+      for (const key of Object.keys(FI).filter((k) => k !== 'keepUnread')) {
         const subject = subjects[key]
         const opened = await evaluate(cdp, sessionId, `(() => {
           const rows = [...document.querySelectorAll('.mail-row')];
@@ -367,7 +372,43 @@ async function main() {
             .find((e) => /back to inbox|^← Inbox/i.test(e.innerText || ''));
           if (b) b.click();
         })()`)
-        await sleep(1200)
+        await sleep(1600)
+
+        // Unread has to survive a grayscale screen: weight and a dot, not a hue.
+        // Opening a message marks it read, so the row just visited must now be lighter
+        // than the ones still waiting.
+        if (key === 'verifyMail') {
+          const unread = JSON.parse(await evaluate(cdp, sessionId, `(() => {
+            const rows = [...document.querySelectorAll('.mail-row')];
+            const weight = (r) => {
+              const s = r.querySelector('span.truncate');
+              return s ? getComputedStyle(s).fontWeight : null;
+            };
+            const dot = (r) => {
+              const d = [...r.querySelectorAll('span')]
+                .find((s) => (s.className || '').includes('size-1.5 rounded-full'));
+              return d ? getComputedStyle(d).opacity : null;
+            };
+            const opened = rows.find((r) => (r.innerText || '').includes(${JSON.stringify(subject)}));
+            // Compare against the fixture this proof never opens, not "some other row":
+            // by the third viewport every row it has visited is read.
+            const other = rows.find((r) => (r.innerText || '').includes(${JSON.stringify(subjects.keepUnread)}));
+            return JSON.stringify({
+              readWeight: opened ? weight(opened) : null,
+              unreadWeight: other ? weight(other) : null,
+              unreadDot: other ? dot(other) : null,
+              hasLabel: other ? /Unread/.test(other.innerText || '') : false,
+            });
+          })()`))
+          check(`${key} @ ${vp.label}: the opened message turns read`, unread.readWeight === '400',
+            `row weight is ${unread.readWeight} after opening`)
+          check(`${key} @ ${vp.label}: unread keeps its weight`, unread.unreadWeight === '600',
+            `unread row weight is ${unread.unreadWeight}`)
+          check(`${key} @ ${vp.label}: unread keeps its dot`, Number(unread.unreadDot) > 0.9,
+            `dot opacity ${unread.unreadDot}`)
+          check(`${key} @ ${vp.label}: unread is named, not just coloured`, unread.hasLabel === true,
+            'no Unread text for screen readers')
+        }
       }
       await cdp.send('Target.closeTarget', { targetId })
     }

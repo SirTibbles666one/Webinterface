@@ -166,10 +166,19 @@ compose with subject `Re: …` and exactly the three other recipients (not me); 
 opens `Fwd: …` with no recipients and the quoted original in the body. The proof suite
 now asserts bar position, height and on-screen-ness per viewport.
 
-**Slice 4 — Unread state.**
-Weight plus a dot aligned to the sender line, and an accessible name so colour is not
-the only carrier. Keep the row's selected tint separate from the unread tint.
-*Done when:* screenshots in grayscale still distinguish unread rows.
+**Slice 4 — Unread state. DONE** (`71f3e16`).
+The dot and the semibold sender already existed, but the dot was centred in a
+three-line row — floating between lines rather than marking the sender — and a checked
+row was tinted the same hue as the open one, so two different states read as one. The
+dot now sits in the sender's line; checked is `sand/10` while open stays
+`primary/9%`; each unread row carries sr-only "Unread" so the state has a name.
+*Measured at 390×700:* opened row weight **400**, untouched row **600**, dot opacity
+**1**, "Unread" in the row's text. A colour screenshot converted to luminance
+(`unread-gray-390.png`) still separates read from unread by dot and weight alone.
+*In the suite:* the phone proof now keeps one fixture it never opens as the unread
+reference — comparing against "some other row" passed on the first viewport and failed on
+the third, when every row it had visited was read. It asserts weight, dot and the
+accessible name per viewport.
 
 **Slice 5 — List rhythm.**
 Dates are three widths ("Oct 21", "Aug 14, 24", a time); fix the column so the sender
