@@ -340,6 +340,28 @@ async function main() {
             `message ends at ${m.vh}+ (mode ${m.mode}, scale ${m.scale})`)
         }
 
+        // The verbs have to be reachable with a thumb at the end of a long message.
+        // They were once rendered above it — inside the column, before the scroll area —
+        // so this checks position, not merely existence.
+        const bar = JSON.parse(await evaluate(cdp, sessionId, `(() => {
+          const want = ['Reply', 'All', 'Fwd', 'Reply all', 'Forward'];
+          const btns = [...document.querySelectorAll('button')]
+            .filter((b) => want.includes((b.innerText || '').trim()))
+            .filter((b) => b.getBoundingClientRect().top > innerHeight * 0.6);
+          return JSON.stringify({
+            count: btns.length,
+            short: btns.filter((b) => b.getBoundingClientRect().height < 44).length,
+            vh: innerHeight,
+            lowest: btns.length ? Math.max(...btns.map((b) => Math.round(b.getBoundingClientRect().bottom))) : 0,
+          });
+        })()`))
+        check(`${key} @ ${vp.label}: reply bar sits at the bottom`, bar.count >= 2,
+          `${bar.count} action(s) in the bottom third of ${bar.vh}px`)
+        check(`${key} @ ${vp.label}: reply bar is thumb-sized`, bar.short === 0,
+          `${bar.short} action(s) under 44px`)
+        check(`${key} @ ${vp.label}: reply bar is on screen`, bar.lowest > 0 && bar.lowest <= bar.vh + 1,
+          `bar ends at ${bar.lowest} of ${bar.vh}`)
+
         await evaluate(cdp, sessionId, `(() => {
           const b = [...document.querySelectorAll('button')]
             .find((e) => /back to inbox|^← Inbox/i.test(e.innerText || ''));

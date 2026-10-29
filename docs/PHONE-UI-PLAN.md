@@ -141,12 +141,30 @@ carries it, so the `h2` is suppressed there and the note stays.
 (inputs, buttons and links excluded from the count), **0** `h2` on a phone, page
 `scrollWidth` equals the viewport. Dark and light both resolve a visible panel surface.
 
-**Slice 3 — Reader action bar.**
-A sticky bottom bar on phones — Reply, Reply all, Forward — above the safe-area
-inset. The top-right icon cluster stays for star/delete/more, but the primary verb
-must be reachable with a thumb without scrolling, and the reply arrow must stop
-looking like the back arrow.
-*Done when:* with a long message scrolled to the bottom, Reply is on screen at 390.
+**Slice 3 — Reader action bar. DONE** (`42af792`…`c2a28db`).
+Three things were wrong, and only the first was in the plan:
+
+1. **Reply-all and Forward did not exist.** The reader had one Reply button. Reply-all
+   keeps the sender, the other To's and the Cc list minus yourself; Forward is the same
+   quoted body with no threading, because it starts a conversation rather than continuing
+   one.
+2. **The bar rendered above the message.** It sat before the scroll area in the column,
+   so "Reply sits where the message ends" was true of the comment and false of the screen:
+   the verbs were pinned under the top bar and pushed the message further down. It now
+   follows the scroll area, and on a phone it is `fixed` to the bottom above the safe-area
+   inset, with the message padded so its last line clears the bar.
+3. **A long message could not be scrolled at all.** The `ScrollArea` is a flex child, and
+   a flex child's default `min-height` is its content: the viewport grew to the message's
+   7,985 px, the reader's `overflow-hidden` cut it at the fold, and nothing scrolled —
+   the message simply stopped. `min-h-0` on the root fixes it. This was found while
+   measuring the bar, and it is the more serious of the three.
+
+*Measured at 390×700:* viewport `scrollHeight` 7,985 / `clientHeight` 652, `scrollTop`
+reaches 7,333 and the message ends with its own last line visible; the bar stays at
+**646–690 of 700** at every scroll position; all three buttons **44 px**. Reply-all opens
+compose with subject `Re: …` and exactly the three other recipients (not me); Forward
+opens `Fwd: …` with no recipients and the quoted original in the body. The proof suite
+now asserts bar position, height and on-screen-ness per viewport.
 
 **Slice 4 — Unread state.**
 Weight plus a dot aligned to the sender line, and an accessible name so colour is not
