@@ -7,6 +7,7 @@ import ProfileSection from '@/components/ProfileSection'
 import PasswordSection from '@/components/PasswordSection'
 import TwoFactorSection from '@/components/TwoFactorSection'
 import SecurityKeysSection from '@/components/SecurityKeysSection'
+import DmarcSection from '@/components/DmarcSection'
 import SessionsSection from '@/components/SessionsSection'
 import { AliasesSection } from '@/components/AliasesSection'
 import NotificationsSection from '@/components/NotificationsSection'
@@ -51,6 +52,7 @@ const GROUPS = [
     id: 'security',
     label: 'Security',
     items: [
+      { id: 'dmarc', label: 'DMARC reports', title: 'DMARC reports', note: 'What receivers say about your domain — who passed, and who else tried to send as you.', Component: DmarcSection },
       { id: 'keys', label: 'Encryption keys', title: 'Encryption keys', note: 'The OpenPGP key that lets you exchange encrypted mail with other providers.', Component: KeysSection, takesEmail: true },
       // Sits directly under the keys it extends, because it is not a separate
       // feature: it is a stronger half of the same seal.
