@@ -77,11 +77,38 @@ const Sidebar = ({
 
   return (
     <div className="flex h-full flex-col border-r border-line bg-background">
-      <div className="flex h-14 shrink-0 items-center gap-2 px-4">
-        <SlothMark className="size-6 shrink-0" />
-        <span className="display text-[17px] text-ink-1">
-          Sloth <span className="text-sand">Lee</span>
+      <div className="flex h-14 shrink-0 items-center px-4">
+        <a
+          href="https://slothlee.xyz"
+          className="flex items-center gap-2 rounded-md transition-opacity duration-120 hover:opacity-80"
+          title="Sloth Lee — all products"
+        >
+          <SlothMark className="size-6 shrink-0" />
+          <span className="display text-[17px] text-ink-1">
+            Sloth <span className="text-sand">Lee</span>
+          </span>
+        </a>
+      </div>
+
+      {/* One house, two rooms. Mail is this app; the bot lives in its own dashboard,
+          and both are the same account. The row is the whole of the cross-product
+          navigation — a switcher, not a menu. */}
+      <div className="flex gap-1 px-2.5 pb-2.5" role="tablist" aria-label="Products">
+        <span
+          role="tab"
+          aria-selected="true"
+          className="flex h-6 items-center rounded-md bg-secondary px-2.5 text-[11px] font-medium text-ink-1"
+        >
+          Mail
         </span>
+        <a
+          role="tab"
+          aria-selected="false"
+          href="https://app.slothlee.xyz/"
+          className="flex h-6 items-center rounded-md px-2.5 text-[11px] text-ink-3 transition-colors duration-120 hover:bg-secondary/60 hover:text-ink-1"
+        >
+          Bot
+        </a>
       </div>
 
       <div className="px-2.5 pb-2">
