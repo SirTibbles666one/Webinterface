@@ -258,7 +258,7 @@ export default function Settings() {
                         window.scrollTo({ top: 0, behavior: 'auto' })
                       }}
                       className={`flex min-h-[56px] items-center rounded-lg border border-line bg-card px-3 py-2.5 text-left transition-colors duration-120 active:bg-accent ${
-                        item.destructive ? 'border-destructive/30' : ''
+                        item.destructive ? 'col-span-2 mt-1 border-destructive/30' : ''
                       }`}
                     >
                       {/* No description here: two columns truncate every one of them to an

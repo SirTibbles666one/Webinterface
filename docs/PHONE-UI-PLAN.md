@@ -115,14 +115,18 @@ sentence breaks the paragraph. It keeps hover underline and is not a primary pat
 Each slice below is independently shippable and ends with the same proof: measured
 at 320/390/430, screenshotted at 390 and 1440, no overflow, targets at 44.
 
-**Slice 1 — Settings navigation (highest value).**
-Replace the 14-item strip with a phone-shaped index: a two-column grid of section
-names under the page title, groups labelled (Account · Security · Data · Danger),
-and the sections themselves reachable one tap away. Keep the desktop rail as it is.
-The strip exists because anchors were cheaper than a screen; on a phone it costs the
-reader the ability to find "Export" at all.
-*Done when:* every section is visible without horizontal scrolling, and the last
-group (Delete account) is reachable in one tap.
+**Slice 1 — Settings navigation. DONE** (`3e45726`, `60446af`).
+The strip is gone on phones. A grouped two-column index replaces it — Account / Mail /
+Security / Data — and tapping a tile opens that one section with an "All settings"
+control back to the index. A `#hash` deep link opens the section directly on a phone
+instead of scrolling a page that is not there. Tiles are labels only: two columns
+truncated every description to an ellipsis, which reads as broken, and the opened
+section carries the full note above its controls. "Delete account" spans both columns
+and sits on its own row.
+*Measured:* 14 tiles at 390×700 and 320×640, **0 below 44 px**, page `scrollWidth`
+equals the viewport at both, rail `offsetParent` null (hidden), tapping Delete account
+mounts **1** section with the back control present. Desktop unchanged (rail, all
+sections stacked).
 
 **Slice 2 — Flatten the settings cards.**
 One card per section, fields inside it, no inner card. Suppress the duplicated
@@ -154,7 +158,7 @@ drawer; a keyboard-avoiding compose body (`100dvh` minus the visual viewport, so
 Send button is not under the iOS keyboard); swipe-to-archive only if it gets an
 undo — otherwise leave it out.
 
-**Slice 7 — The proof, in CI.**
+**Slice 7 — The proof, in CI. PARTLY DONE.**
 Today's measurements were run by hand. Add a `phone` leg to the proof runner: a
 headless Chromium at 390×844 with `isMobile: true, hasTouch: true` that loads
 inbox / reader / compose / settings / drawer, asserts `scrollWidth <= innerWidth`,
@@ -162,6 +166,11 @@ asserts every interactive element's rect is ≥44 in both dimensions (with an ex
 allow-list for inline prose links), and asserts the compose Send button's own rect is
 inside the viewport. Ten minutes of automation to make every future slice answerable
 by one command — the audit above cost an hour precisely because this did not exist.
+
+*Status:* the reader half exists as `scripts/proof-phone-render.mjs` (headless Chromium
+over CDP, 390×700 / 360×640 / 412×760, painted-rect measurement, 55 checks, judged by
+exit status). Still to add: inbox, compose, settings index and drawer — this slice's own
+screens — and the 44 px sweep with an allow-list for inline prose links.
 
 ---
 
