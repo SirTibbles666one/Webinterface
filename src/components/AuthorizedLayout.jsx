@@ -549,15 +549,18 @@ const AuthorizedLayout = () => {
             </div>
             {selectedUid && (
             <div className="fixed inset-0 z-40 flex min-w-0 flex-1 flex-col bg-background md:static md:z-auto md:block">
+              {/* On a phone the back control lives in the reader's own action bar: two
+                  stacked bars cost 100px of a 700px screen, and the message is the point. */}
               <button
                 onClick={() => setSelectedUid(null)}
-                  className="md:hidden flex min-h-11 items-center gap-1.5 px-3 py-2 border-b border-border text-sm text-foreground/70"
+                  className="hidden min-h-11 items-center gap-1.5 px-3 py-2 border-b border-border text-sm text-foreground/70"
                 >
                 <span aria-hidden="true">←</span> Back to inbox
               </button>
               <EmailView
                 key={selectedUid}
                 uid={selectedUid}
+                onBack={() => setSelectedUid(null)}
                 myEmail={userEmail}
                 emailMeta={selectedUid ? (emailMeta[selectedUid] ?? {}) : null}
                 arrivedAt={selectedUid ? (previews[selectedUid]?.alias ?? null) : null}

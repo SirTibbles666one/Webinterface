@@ -63,6 +63,7 @@ const EmailView = ({
   arrivedAt = null,
   onComposeTo,
   onMessageDeleted,
+  onBack,
 }) => {
   const [email, setEmail] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -204,7 +205,17 @@ const EmailView = ({
     <div className="flex flex-col h-full bg-background overflow-hidden">
       {/* The bar carries actions only. What the message is, and who sent it,
           belongs in the reading column below, where the eye already is. */}
-      <div className="flex h-14 shrink-0 items-center gap-1 border-b border-line px-3">
+      <div className="flex h-14 shrink-0 items-center gap-1 border-b border-line px-3 max-sm:h-12 max-sm:px-2">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="md:hidden flex min-h-11 items-center gap-1 pr-1.5 text-[13px] text-ink-2"
+            aria-label="Back to inbox"
+          >
+            <span aria-hidden="true" className="text-[15px]">←</span> Inbox
+          </button>
+        )}
         <div className="ml-auto flex items-center gap-0.5">
           <Button
             onClick={() => (isUnread ? onMarkRead(uid) : onMarkUnread(uid))}
@@ -333,14 +344,14 @@ const EmailView = ({
               width of a wide window is unreadable, and the header has to sit in
               the same column as the body it introduces. */}
           <div className="mx-auto w-full max-w-[720px] px-6 pb-12 max-sm:px-4 max-sm:pb-8">
-            <h1 className="display mt-7 flex items-start gap-2 text-[22px] leading-snug text-ink-1 max-sm:mt-3 max-sm:text-[19px]">
-              <span className="min-w-0">{email.subject || '(no subject)'}</span>
+            <h1 className="display mt-7 flex items-start gap-2 text-[22px] leading-snug text-ink-1 max-sm:mt-2 max-sm:text-[17.5px] max-sm:leading-[1.28]">
+              <span className="min-w-0 line-clamp-2 max-sm:line-clamp-2">{email.subject || '(no subject)'}</span>
               {email.e2ee && (
                 <Lock className="mt-1.5 size-3.5 shrink-0 text-primary" aria-label="End-to-end encrypted" />
               )}
             </h1>
 
-            <div className="mt-5 flex items-start gap-3 max-sm:mt-2.5">
+            <div className="mt-5 flex items-start gap-3 max-sm:mt-2">
               <SenderAvatar from={email.from} variant="view" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-3">
@@ -368,7 +379,7 @@ const EmailView = ({
                     {email.from.email}
                   </p>
                 )}
-                <p className="mt-1 text-[12px] text-ink-2">
+                <p className="mt-1 text-[12px] text-ink-2 max-sm:hidden">
                   to {toSummary(email.to, myEmail)}
                 </p>
               </div>

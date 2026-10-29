@@ -232,10 +232,12 @@ function MailFrame({ html }) {
     if (override === 'whole') {
       scale = wholeScale
       mode = 'whole'
-    } else if (wholeScale >= 0.75) {
+    } else if (wholeScale >= 0.65) {
       // "The whole email on one screen" is the point of this reader, so a message that
-      // fits at three-quarters size and up is shown whole rather than scrolled. Below
-      // that the type stops being text and the message keeps its width instead.
+      // fits at 70% or better is shown whole rather than scrolled. Below that the type
+      // stops being text and the message keeps its width instead. The floor is 65%
+      // because a 360x640 phone leaves 368px after the reader header: a 547px message
+      // needs 67%, and refusing that means refusing on every small screen.
       scale = wholeScale
       mode = 'whole'
     }

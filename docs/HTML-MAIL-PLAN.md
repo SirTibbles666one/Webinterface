@@ -201,7 +201,38 @@ Verified on a deliberately unreflowable 620px message at 390px: frame 342 = colu
 `frameOutsideColumn 0`, page `scrollWidth 390`, header timestamp fully visible, message
 shown at 55% with a one-line note underneath saying so.
 
-## 9. What this plan will not do
+## 9. Why "nothing is changing" — the viewport was the bug
+
+The user reported no change after a deploy that provably served the new bundle (access
+log: his Android client fetched `index-B3u-ANEm.js` at 04:08, right after logging in at
+04:07:54). The failure was in my own test setup, not in delivery:
+
+- I measured at **390x844**, the device's *screen* height.
+- Chrome on Android reports about **700px** of usable viewport at that size, because the
+  URL bar and the system navigation bar are subtracted.
+- The reader spent **330px** before the message and left **370px** for it. The message
+  was 527px tall, so it needed scale **0.70**; the auto-fit floor was 0.75, so it never
+  fired and the message simply scrolled. At 844px of height the same message needed 0.91
+  and did fit — which is why the emulator said "whole on screen" and the phone did not.
+
+Fixes, all measured at 390x700 / 360x640 / 412x760:
+
+| change | effect |
+| --- | --- |
+| merged the phone back bar into the reader's action bar | two stacked bars (100px) became one (48px) |
+| compact header on phones: one-line subject cap, tighter gaps, the `to …` line dropped | header 330px → **252px** |
+| auto-fit floor 0.75 → **0.65** | a 547px message on a 360x640 phone (needs 0.67) now fits |
+
+Result: whole message on screen at **0.81** on 390x700, **0.67** on 360x640, **0.93** on
+412x760 — all with no page overflow.
+
+**The lesson, and the rule from now on:** a phone viewport is not the phone's screen
+size. Every measurement in this repo is taken at 390x700, 360x640 and 412x760, not at the
+nominal 844/932 heights, because those numbers include browser chrome the page never
+gets. Also bump the service-worker cache name on every deploy: a shell cached under an
+old name is how a phone runs last week's reader while the server serves this week's.
+
+## 10. What this plan will not do
 
 - It will not make an 8,000 px newsletter fit one screen at readable size. Nothing can;
   the choice is scroll or thumbnail, and the reader will offer the second explicitly.
