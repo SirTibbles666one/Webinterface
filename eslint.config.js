@@ -15,7 +15,8 @@ export default defineConfig([
     ],
     languageOptions: {
       ecmaVersion: 2020,
-      globals: globals.browser,
+      // __BUILD_ID__ is injected by vite's define; vite.config.js runs in node.
+      globals: { ...globals.browser, __BUILD_ID__: 'readonly' },
       parserOptions: {
         ecmaVersion: 'latest',
         ecmaFeatures: { jsx: true },
@@ -25,5 +26,9 @@ export default defineConfig([
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
+  },
+  {
+    files: ['vite.config.js', 'scripts/**/*.mjs', 'eslint.config.js'],
+    languageOptions: { globals: globals.node },
   },
 ])
