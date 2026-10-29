@@ -111,7 +111,7 @@ export default function OpenPgpGuide() {
   }
 
   return (
-    <section className="mb-4 rounded-xl bg-background/50 p-4">
+    <section className="mb-4 rounded-xl bg-secondary/60 p-4">
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-2 text-left"

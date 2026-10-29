@@ -95,7 +95,7 @@ export function AliasesSection() {
   const active = rows.filter((r) => !r.disabled_at).length
 
   return (
-    <section className="mt-4 rounded-xl bg-background/50 p-3">
+    <section className="mt-4 rounded-xl bg-secondary/60 p-3">
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="text-sm font-semibold">Addresses</h3>
         <span className="text-[11px] text-ink-3">
