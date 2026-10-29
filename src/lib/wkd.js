@@ -69,7 +69,14 @@ function keyBelongsTo(key, email) {
 
 async function fetchWkd(address) {
   const url = await wkdUrl(address)
-  const res = await fetch(url, { redirect: 'follow' })
+  // A missing or unreachable WKD host is "no key published here", not an error: this is
+  // the normal state for most domains, and a bare "NetworkError" tells the reader nothing.
+  let res
+  try {
+    res = await fetch(url, { redirect: 'follow' })
+  } catch {
+    return null
+  }
   if (!res.ok) return null
   const buffer = new Uint8Array(await res.arrayBuffer())
   if (buffer.length < 64) return null
@@ -80,7 +87,12 @@ async function fetchWkd(address) {
 
 async function fetchKeyserver(address) {
   const url = `https://keys.openpgp.org/vks/v1/by-email/${encodeURIComponent(address)}`
-  const res = await fetch(url)
+  let res
+  try {
+    res = await fetch(url)
+  } catch {
+    return null
+  }
   if (!res.ok) return null
   const text = await res.text()
   if (!text.includes('BEGIN PGP PUBLIC KEY BLOCK')) return null
@@ -126,11 +138,18 @@ export async function lookupMany(addresses) {
  * Their rate limit is one email lookup per minute and uploads cap at 1 MiB.
  */
 export async function publishToKeyserver(armored, addresses) {
-  const upload = await fetch('https://keys.openpgp.org/vks/v1/upload', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ keytext: armored }),
-  })
+  let upload
+  try {
+    upload = await fetch('https://keys.openpgp.org/vks/v1/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keytext: armored }),
+    })
+  } catch {
+    // Firefox's raw "NetworkError when attempting to fetch resource" reads like a bug in
+    // this app. It means the browser could not reach the keyserver at all.
+    throw new Error('Could not reach keys.openpgp.org from this browser. Check the connection and try again.')
+  }
   const uploadText = (await upload.text()).trim()
   if (!upload.ok) throw new Error(explainKeyserverError(uploadText, upload.status))
 
@@ -147,11 +166,16 @@ export async function publishToKeyserver(armored, addresses) {
     return { fingerprint: payload.key_fpr ?? null, status: payload.status ?? {}, verificationSent: false }
   }
 
-  const verify = await fetch('https://keys.openpgp.org/vks/v1/request-verify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token: payload.token, addresses: list }),
-  })
+  let verify
+  try {
+    verify = await fetch('https://keys.openpgp.org/vks/v1/request-verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: payload.token, addresses: list }),
+    })
+  } catch {
+    throw new Error('The key was uploaded, but the browser could not reach the keyserver to send the verification mail. Try again in a minute.')
+  }
   const verifyText = (await verify.text()).trim()
   if (!verify.ok) throw new Error(explainKeyserverError(verifyText, verify.status))
 
