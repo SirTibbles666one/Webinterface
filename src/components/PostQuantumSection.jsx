@@ -127,7 +127,7 @@ export default function PostQuantumSection() {
       </div>
 
       {on && migration && (
-        <div className="rounded-md border border-line px-3 py-2.5">
+        <div className="rounded-md bg-background/50 px-3 py-2.5">
           {resealing ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">

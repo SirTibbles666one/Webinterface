@@ -87,7 +87,7 @@ export default function SessionsSection() {
   if (!rows && !error) return null
 
   return (
-    <div data-testid="sessions-section" className="rounded-lg border border-line p-3">
+    <div data-testid="sessions-section" className="rounded-lg bg-background/50 p-3">
       <div className="flex items-center gap-2">
         <Monitor className="w-4 h-4 text-ink-2" />
         <h4 className="text-sm font-medium flex-1">Signed-in devices</h4>

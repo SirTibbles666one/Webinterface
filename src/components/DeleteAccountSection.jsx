@@ -47,7 +47,7 @@ export default function DeleteAccountSection({ onDeleted }) {
   }
 
   return (
-    <section className="mb-4 rounded-xl border border-red-900/50 bg-red-950/20 p-4">
+    <section className="mb-4 rounded-xl bg-red-950/25 p-4">
       <div className="mb-2 flex items-center gap-2">
         <Trash2 size={16} className="text-red-400" />
         <h3 className="text-sm font-medium text-red-200">Delete this account</h3>

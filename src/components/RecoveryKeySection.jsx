@@ -44,7 +44,7 @@ export default function RecoveryKeySection() {
   }
 
   return (
-    <section className="rounded-xl border border-line p-3">
+    <section className="rounded-xl bg-background/50 p-3">
       <div className="flex items-center gap-2">
         <KeyRound className="w-3.5 h-3.5 text-primary" />
         <h3 className="text-xs font-medium uppercase tracking-wide text-ink-2">Recovery key</h3>

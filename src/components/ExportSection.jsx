@@ -103,7 +103,7 @@ export default function ExportSection() {
   }
 
   return (
-    <section className="mb-4 rounded-xl border border-line bg-card/50 p-4">
+    <section className="mb-4 rounded-xl bg-background/50 p-4">
       <div className="mb-2 flex items-center gap-2">
         <Download size={16} className="text-ink-2" />
         <h3 className="text-sm font-medium text-ink-1">Download your mail</h3>

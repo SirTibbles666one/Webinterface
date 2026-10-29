@@ -73,7 +73,7 @@ export default function NotificationsSection() {
   }
 
   return (
-    <section className="mb-4 rounded-xl border border-line/70 bg-card/50 p-4">
+    <section className="mb-4 rounded-xl bg-background/50 p-4">
       <div className="mb-2 flex items-center gap-2">
         <Bell size={16} className="text-muted-foreground" />
         <h3 className="text-sm font-medium text-foreground/90">New mail notifications</h3>

@@ -22,7 +22,7 @@ export default function ProfileSection() {
   }
 
   return (
-    <section className="mb-4 rounded-xl border border-line bg-card/50 p-4">
+    <section className="mb-4 rounded-xl bg-background/50 p-4">
       <div className="mb-3 flex items-center gap-2">
         <User size={16} className="text-ink-2" />
         <h3 className="text-sm font-medium text-ink-1">Your name and signature</h3>
