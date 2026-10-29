@@ -7,7 +7,7 @@ import { parseEmail } from '@/emailParser'
 import { decryptStored } from '@/lib/decryptStored'
 import { looksLikeDmarcReport, looksLikeDmarcAttachment, maybeGunzip, parseDmarcReport, summarise } from '@/lib/dmarc'
 
-const SCAN_LIMIT = 400      // recent messages looked at
+const SCAN_LIMIT = 60      // recent messages looked at
 const REPORT_LIMIT = 40     // reports actually parsed, to keep a phone happy
 
 const day = (unix) => (unix ? new Date(unix * 1000).toLocaleDateString() : '—')
@@ -47,38 +47,34 @@ export default function DmarcSection() {
         return
       }
 
-      // Subjects are the cheap filter; decrypting all 400 to find reports would be slow
-      // on a phone, so only the ones that look like reports get opened.
-      step = 'read the subjects'
-      const bulkBody = `{"uids":[${uids.join(',')}]}`
-      console.info('[dmarc] bulk body', bulkBody.slice(0, 120), 'len', uids.length)
-      const bulk = await api.post('/email/bulk', bulkBody, auth)
-      const candidates = (bulk.data?.emails || [])
-        .filter((e) => looksLikeDmarcReport(e.subject || ''))
-        .slice(0, REPORT_LIMIT)
-
-      if (candidates.length === 0) {
-        setSummary(summarise([]))
-        setNote(`Looked at your ${uids.length} most recent messages and found no DMARC reports. Reporters usually send one a day, and only if your DMARC record has a rua= address — yours does.`)
-        setPhase('done')
-        return
-      }
-
+      // There is no cheap subject filter: the list endpoint returns uids and ciphertext
+      // only, so a report is not identifiable until it is decrypted. Walk the recent
+      // messages newest-first and stop once enough reports are in hand.
       const reports = []
       const problems = []
-      for (const message of candidates) {
+      for (let i = 0; i < uids.length && reports.length < REPORT_LIMIT; i += 1) {
+        const uid = uids[i]
+        step = `open message ${i + 1} of ${uids.length}`
+        if (i % 10 === 0) setNote(`Reading your messages — ${i + 1} of ${uids.length}…`)
         try {
-          step = `open message ${message.uid}`
-          const got = await api.post('/email/get', JSON.stringify({ uid: message.uid }), auth)
+          const got = await api.post('/email/get', JSON.stringify({ uid }), auth)
           const raw = await decryptStored(got.data.data, got.data.message_key, privateKey)
           const parsed = parseEmail(raw)
+          if (!looksLikeDmarcReport(parsed.subject || '')) continue
           const attachment = (parsed.attachments || []).find((a) => looksLikeDmarcAttachment(a.name, a.contentType))
-          if (!attachment) { problems.push(`${message.uid}: no XML attachment`); continue }
+          if (!attachment) { problems.push(`${uid}: no XML attachment`); continue }
           const xml = new TextDecoder().decode(await maybeGunzip(attachment.data))
           reports.push(parseDmarcReport(xml))
         } catch (err) {
-          problems.push(`${message.uid}: ${err.message}`)
+          problems.push(`${uid}: ${err.message}`)
         }
+      }
+
+      if (reports.length === 0) {
+        setSummary(summarise([]))
+        setNote(`Read your ${uids.length} most recent messages and found no DMARC reports. Reporters send one a day at most, and only because your DMARC record has a rua= address.`)
+        setPhase('done')
+        return
       }
 
       setSummary(summarise(reports))
