@@ -171,10 +171,16 @@ export default function Settings() {
   // eslint-disable-next-line no-unused-vars
   const renderSection = ({ id, title, note, Component, takesEmail, destructive }) => (
     <section key={id} id={id} className="scroll-mt-24">
-      <h2 className={`display text-[18px] ${destructive ? 'text-destructive' : 'text-ink-1'}`}>
-        {title}
-      </h2>
-      <p className="mt-1 max-w-[62ch] text-[12.5px] leading-relaxed text-ink-3">{note}</p>
+      {/* The phone's app bar already names this section; a second heading 40 px below it
+          is the same word twice. The note stays, because it is the only explanation. */}
+      {!phone && (
+        <h2 className={`display text-[18px] ${destructive ? 'text-destructive' : 'text-ink-1'}`}>
+          {title}
+        </h2>
+      )}
+      <p className={`max-w-[62ch] text-[12.5px] leading-relaxed text-ink-3 ${phone ? 'mb-3' : 'mt-1'}`}>
+        {note}
+      </p>
       <div
         className={`mt-4 rounded-xl border bg-card p-4 max-sm:p-3 ${
           destructive ? 'border-destructive/30' : 'border-line'
