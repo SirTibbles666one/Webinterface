@@ -177,10 +177,29 @@
   }
 
   /* HTML email body rendering */
+  /* The fit wrapper is the column. The message inside is allowed to be its natural
+     width so it can be measured and scaled; without that the cap below would clamp it
+     to the column and there would be nothing left to measure. */
+  .email-html-fit {
+    max-width: calc(100vw - 3rem);
+    min-width: 0;
+    overflow-x: auto;
+    /* Mail is a document on paper. Transactional mail paints its own white card and
+       leaves the text colour unset, so inheriting the app's light ink put black-on-
+       white copy at 1:1 — an Instagram code rendered invisible. The sheet is white
+       and the default ink is dark; a sender's own colours still win, which is why
+       dark newsletters keep their dark background and light type. */
+    background: #ffffff;
+    border-radius: 2px;
+  }
+  .email-html-fit .email-html-body {
+    max-width: none;
+    transform-origin: top left;
+  }
   .email-html-body {
     font-size: 0.9375rem; line-height: 1.62;
-    /* Their markup decides colour; ours decides it stays readable. */
-    color: var(--color-ink-1);
+    /* Default ink for paper. Anything the sender styles wins by inline precedence. */
+    color: #14150f;
     overflow-wrap: anywhere;
     /* The column is the constraint, not the message: never let a sender's fixed
        width push this block wider than the reader it sits in. `100%` is not enough
@@ -204,8 +223,11 @@
   }
   .email-html-body h1, .email-html-body h2, .email-html-body h3 {
     font-family: var(--font-serif); font-weight: 500; letter-spacing: -0.01em;
-    line-height: 1.3; margin: 1.1em 0 0.4em; color: var(--color-ink-1);
+    line-height: 1.3; margin: 1.1em 0 0.4em; color: inherit;
   }
+  /* On a white sheet the app's lime accent is unreadable; mail links get a dark
+     green that passes on paper, unless the sender set their own. */
+  .email-html-body a { color: #0a5f42; }
   .email-html-body h1 { font-size: 1.35em; }
   .email-html-body h2 { font-size: 1.2em; }
   .email-html-body h3 { font-size: 1.05em; }

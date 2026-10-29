@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import DOMPurify from 'dompurify'
 import { ExternalLink } from 'lucide-react'
 import { segmentLinks } from '@/emailParser'
@@ -116,6 +117,129 @@ function TextWithLinks({ text }) {
   )
 }
 
+// The whole message, on the screen, on a phone.
+//
+// Mail is written against a fixed pixel canvas (600px tables, 640px centred bodies).
+// Reflow squeezes most of it into a phone column, but a phone is also short: a message
+// that reflows still runs off the bottom, so "the whole email" was never on screen.
+//
+// On a phone the message is therefore scaled to fit the space it has — width first,
+// then height — and a button switches to full size for reading. Desktop keeps the
+// reflowed, unscaled view. The floor is 0.55: below that the type stops being text and
+// the message is long enough that the reader is scrolling anyway, so only the width is
+// fitted and the height is left to scroll.
+function FitToScreen({ html }) {
+  const wrap = useRef(null)
+  const inner = useRef(null)
+  const [scaled, setScaled] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+
+  // A new message opens fitted, never inheriting the previous one's zoom.
+  useEffect(() => {
+    setExpanded(false)
+    setScaled(false)
+  }, [html])
+
+  useEffect(() => {
+    const box = wrap.current
+    const body = inner.current
+    if (!box || !body) return
+
+    const apply = () => {
+      body.style.width = ''
+      body.style.transform = ''
+      body.style.transformOrigin = ''
+      box.style.height = ''
+      box.style.overflowX = ''
+
+      const availW = box.clientWidth
+      if (!availW) return
+
+      if (!(window.innerWidth < 640) || expanded) {
+        setScaled(false)
+        return
+      }
+
+      const naturalW = body.scrollWidth
+      const widthOverflows = naturalW > availW + 1
+      const widthScale = widthOverflows ? availW / naturalW : 1
+
+      // Measure the height at the width the scale will be applied to, not at the
+      // squeezed width, or the aspect ratio is wrong and the fit is not a fit.
+      if (widthOverflows) body.style.width = `${naturalW}px`
+      const naturalH = body.scrollHeight
+      const top = box.getBoundingClientRect().top
+      const availH = Math.max(window.innerHeight - top - 16, 200)
+      const heightScale = naturalH > availH ? availH / naturalH : 1
+
+      // A message can overflow on height alone: it reflows into the column and then
+      // runs off the bottom, which is the case a width-only fit never touched.
+      if (widthScale >= 0.995 && heightScale >= 0.995) {
+        setScaled(false)
+        return
+      }
+
+      let scale = Math.min(widthScale, heightScale)
+      // A long message cannot be shown whole and be read: below this the type is a
+      // thumbnail. Those keep the reflowed width and scroll, and offer no toggle,
+      // because there is no bigger version to switch back to.
+      if (scale < 0.4) {
+        body.style.width = ''
+        setScaled(false)
+        return
+      }
+
+      body.style.transform = `scale(${scale})`
+      body.style.transformOrigin = 'top left'
+      box.style.height = `${Math.ceil(naturalH * scale)}px`
+      box.style.overflowX = naturalW * scale <= availW + 1 ? 'hidden' : 'auto'
+      setScaled(true)
+    }
+
+    apply()
+    // A message's size is not known at any single moment: the column resizes, an image
+    // arrives, a webfont reflows, the document is mutated, or it simply settles late.
+    const ro = new ResizeObserver(apply)
+    ro.observe(box)
+    const mo = new MutationObserver(apply)
+    mo.observe(body, { childList: true, subtree: true })
+    const imgs = [...body.querySelectorAll('img')]
+    imgs.forEach((img) => img.addEventListener('load', apply))
+    const onResize = () => apply()
+    window.addEventListener('resize', onResize)
+    const timers = [120, 500, 1500].map((ms) => setTimeout(apply, ms))
+    return () => {
+      ro.disconnect()
+      mo.disconnect()
+      imgs.forEach((img) => img.removeEventListener('load', apply))
+      window.removeEventListener('resize', onResize)
+      timers.forEach(clearTimeout)
+    }
+  }, [html, expanded])
+
+  return (
+    <>
+      <div ref={wrap} className="email-html-fit">
+        <div
+          ref={inner}
+          className="email-html-body"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      </div>
+      {(scaled || expanded) && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-2 min-h-11 w-full rounded-md border border-line px-3 text-[12.5px] text-ink-2 transition-colors duration-120 hover:bg-accent hover:text-ink-1"
+        >
+          {expanded ? 'Fit the message to the screen' : 'Show it at full size'}
+        </button>
+      )}
+    </>
+  )
+}
+
 export function EmailBody({ textBody, htmlBody, senderHint }) {
   // An OpenPGP message is ciphertext and needs its own reader.
   //
@@ -132,13 +256,7 @@ export function EmailBody({ textBody, htmlBody, senderHint }) {
   const resolvedHtml = htmlBody || (textBody && looksLikeHtml(textBody) ? textBody : null)
 
   if (resolvedHtml) {
-    return (
-      <div
-        className="email-html-body"
-        // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: fitToColumn(sanitizeHtml(resolvedHtml)) }}
-      />
-    )
+    return <FitToScreen html={fitToColumn(sanitizeHtml(resolvedHtml))} />
   }
 
   const text = textBody || ''
