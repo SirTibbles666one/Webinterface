@@ -37,7 +37,7 @@ export default function DmarcSection() {
       const privateKey = await keySession.get()
       if (!privateKey) throw new Error('Your key is locked. Sign out and back in, then try again.')
 
-      const recent = await api.post('/email/recent', { offset: 0, limit: SCAN_LIMIT }, auth)
+      const recent = await api.post('/email/recent', JSON.stringify({ offset: 0, limit: SCAN_LIMIT }), auth)
       const uids = recent.data?.uids || []
       if (uids.length === 0) {
         setSummary(summarise([]))
