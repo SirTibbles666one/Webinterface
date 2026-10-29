@@ -41,7 +41,27 @@ function sanitizeHtml(html) {
 // line of text holds a column open at any screen width. It always goes.
 const CANVAS_WIDTH = 0
 
-function prepareMail(html) {
+// Does the message dress itself? A newsletter declares a background and its own ink;
+// our own compose does not, and rendering that on white paper made a dark app show a
+// white slab with pale orange text on it — near-invisible, and the loudest thing on the
+// screen. So: if the sender declares a background, their design wins; if not, the
+// message is rendered on the app's paper, in the app's ink.
+function declaresBackground(doc) {
+  const hasBg = (el) => {
+    if (!el) return false
+    if (el.getAttribute && el.getAttribute('bgcolor')) return true
+    const style = el.getAttribute && el.getAttribute('style')
+    if (!style) return false
+    return /(background|background-color)\s*:\s*(?!transparent|inherit|none)/i.test(style)
+  }
+  if (hasBg(doc.documentElement) || hasBg(doc.body)) return true
+  for (const el of doc.body.querySelectorAll('[style],[bgcolor],table,td,div')) {
+    if (hasBg(el)) return true
+  }
+  return false
+}
+
+function prepareMail(html, { senderThemed }) {
   const doc = new DOMParser().parseFromString(html, 'text/html')
   for (const el of doc.body.querySelectorAll('*')) {
     el.removeAttribute('nowrap')
@@ -57,6 +77,10 @@ function prepareMail(html) {
       .filter((decl) => {
         if (!decl) return false
         if (/^white-space\s*:\s*nowrap/i.test(decl)) return false
+        // A colour written for a dark compose editor is illegible on the paper a
+        // message without a background gets. The sender declared no look of their own,
+        // so the app's ink applies.
+        if (!senderThemed && /^(color|background|background-color)\s*:/i.test(decl)) return false
         const w = decl.match(/^width\s*:\s*(\d+)px/i)
         if (w && Number(w[1]) >= CANVAS_WIDTH) return false
         return true
@@ -145,11 +169,12 @@ function TextWithLinks({ text }) {
 // Scripts cannot run here: the frame is sandboxed without `allow-scripts`, and
 // `allow-same-origin` exists only so we can measure the document's height.
 const FRAME_MAX_WIDTH = 900
-const PAPER_CSS = `
-  :root { color-scheme: light; }
+const SENDER_PAPER = { bg: '#fff', ink: '#14150f', link: '#0a5f42', quote: '#5b5b52', rule: '#d6d3c8', scheme: 'light' }
+const paperCss = (paper) => `
+  :root { color-scheme: ${paper.scheme}; }
   html { -webkit-text-size-adjust: 100%; }
   body {
-    margin: 0; padding: 0; background: #fff; color: #14150f;
+    margin: 0; padding: 0; background: ${paper.bg}; color: ${paper.ink};
     font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   table { max-width: 100% !important; }
@@ -159,19 +184,35 @@ const PAPER_CSS = `
      the sender's sizes, because flattening those redraws their layout. */
   p, li, blockquote { font-size: max(13px, 1em) !important; }
   td p, th p { font-size: inherit !important; }
-  a { color: #0a5f42; }
+  a { color: ${paper.link}; }
   pre { white-space: pre-wrap; overflow-wrap: anywhere; }
-  blockquote { margin: .5em 0; padding-left: .75em; border-left: 2px solid #d6d3c8; color: #5b5b52; }
+  blockquote { margin: .5em 0; padding-left: .75em; border-left: 2px solid ${paper.rule}; color: ${paper.quote}; }
   h1, h2, h3 { line-height: 1.3; }
 `
 
-function buildDocument(html) {
+function buildDocument(html, paper) {
   return `<!doctype html><html><head><meta charset="utf-8">` +
     `<meta name="viewport" content="width=device-width, initial-scale=1">` +
-    `<style>${PAPER_CSS}</style></head><body>${html}</body></html>`
+    `<style>${paperCss(paper)}</style></head><body>${html}</body></html>`
 }
 
-function MailFrame({ html }) {
+// The app's own tokens, resolved once per render: inside the frame there are no
+// variables to inherit, so the paper is passed in as literal colours.
+function appPaper() {
+  const cs = getComputedStyle(document.documentElement)
+  const read = (name, fallback) => (cs.getPropertyValue(name) || '').trim() || fallback
+  const dark = document.documentElement.dataset.theme !== 'light'
+  return {
+    bg: read('--color-background', dark ? '#10150f' : '#f6f6f0'),
+    ink: read('--color-ink-1', dark ? '#e8ece2' : '#1a1c16'),
+    link: read('--color-primary', '#8fd694'),
+    quote: read('--color-ink-3', dark ? '#98a68e' : '#55604e'),
+    rule: read('--color-line', dark ? '#27301f' : '#dcded4'),
+    scheme: dark ? 'dark' : 'light',
+  }
+}
+
+function MailFrame({ html, senderThemed }) {
   const wrapRef = useRef(null)
   const frameRef = useRef(null)
   const measureRef = useRef(null)
@@ -180,12 +221,21 @@ function MailFrame({ html }) {
   const [view, setView] = useState({ scale: 1, mode: 'fit', canFitWhole: false })
   const [override, setOverride] = useState(null)
 
+  // A theme change has to rebuild the document: the paper colours are baked into it.
+  const [paperKey, setPaperKey] = useState(0)
   useEffect(() => {
-    const url = URL.createObjectURL(new Blob([buildDocument(html)], { type: 'text/html' }))
+    const onAppearance = () => setPaperKey((k) => k + 1)
+    window.addEventListener('sloth:appearance', onAppearance)
+    return () => window.removeEventListener('sloth:appearance', onAppearance)
+  }, [])
+
+  useEffect(() => {
+    const paper = senderThemed ? SENDER_PAPER : appPaper()
+    const url = URL.createObjectURL(new Blob([buildDocument(html, paper)], { type: 'text/html' }))
     setSrc(url)
     setOverride(null)
     return () => URL.revokeObjectURL(url)
-  }, [html])
+  }, [html, senderThemed, paperKey])
 
   const measure = useCallback(() => {
     const wrap = wrapRef.current
@@ -315,7 +365,7 @@ function MailFrame({ html }) {
           sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
           referrerPolicy="no-referrer"
           scrolling="no"
-          className="email-html-body block w-full border-0 bg-white"
+          className={`email-html-body block w-full border-0 ${senderThemed ? 'bg-white' : 'bg-background'}`}
           style={{ height: 10 }}
         />
       </div>
@@ -361,7 +411,9 @@ export function EmailBody({ textBody, htmlBody, senderHint }) {
   const resolvedHtml = htmlBody || (textBody && looksLikeHtml(textBody) ? textBody : null)
 
   if (resolvedHtml) {
-    return <MailFrame html={prepareMail(sanitizeHtml(resolvedHtml))} />
+    const clean = sanitizeHtml(resolvedHtml)
+    const senderThemed = declaresBackground(new DOMParser().parseFromString(clean, 'text/html'))
+    return <MailFrame html={prepareMail(clean, { senderThemed })} senderThemed={senderThemed} />
   }
 
   const text = textBody || ''
