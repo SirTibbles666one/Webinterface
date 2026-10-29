@@ -146,7 +146,7 @@ run_node() {
   fi
 }
 
-for name in slotharc reseal pq-interop deletion-log phone-render security-key pgp-account; do
+for name in slotharc reseal pq-interop deletion-log phone-render security-key pgp-account pgp-ui; do
   should_run "$name" && run_node "$name"
 done
 
