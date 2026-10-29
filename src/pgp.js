@@ -122,6 +122,29 @@ export function exportPublicKey() {
   return loadRing().identity?.publicKey ?? null
 }
 
+/** Put an identity back after it was recovered from the account (new device). */
+export function restoreIdentity(identity) {
+  if (!identity?.privateKey || !identity?.publicKey) throw new Error('That key is incomplete')
+  const ring = loadRing()
+  ring.identity = {
+    name: identity.name || '',
+    email: (identity.email || '').toLowerCase(),
+    publicKey: identity.publicKey,
+    privateKey: identity.privateKey,
+    fingerprint: (identity.fingerprint || '').toUpperCase(),
+    createdAt: identity.createdAt || Date.now(),
+    restoredFromAccount: true,
+  }
+  if (ring.identity.email) {
+    ring.contacts[ring.identity.email] = {
+      armored: identity.publicKey,
+      fingerprint: ring.identity.fingerprint,
+    }
+  }
+  saveRing(ring)
+  return ring.identity
+}
+
 export function forgetIdentity() {
   const ring = loadRing()
   if (ring.identity) {

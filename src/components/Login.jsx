@@ -9,6 +9,7 @@ import { loginSecondFactor, loginSecurityKeyBegin, loginSecurityKeyFinish } from
 import { getAssertion, describeKeyError, securityKeyProblem } from '@/lib/webauthn'
 import { enablePostQuantum, loadPostQuantumKey } from '@/lib/pqSetup'
 import { hashPassword, generateKeyPair, exportPublicKeyBase64, encryptPrivateKey, decryptPrivateKey, hasSubtleCrypto } from '@/crypto'
+import { syncIdentityWithAccount } from '@/lib/pgpAccount'
 import RecoveryKeySetup from '@/components/RecoveryKeySetup'
 import { keySession } from '@/keySession'
 import { Mail } from 'lucide-react'
@@ -130,6 +131,18 @@ const Login = () => {
             hasEncryptedPrivateKey: !!encrypted_private_key,
             hasSalt: !!salt,
           })
+        }
+        // The OpenPGP identity is kept on the account, wrapped with this password.
+        // Sign-in is the one moment the password is in hand, so this is where a new
+        // device recovers its key and where a key created before this shipped is first
+        // uploaded. It must never block or fail the sign-in itself.
+        try {
+          const sync = await syncIdentityWithAccount(passwordUsed)
+          if (sync?.action === 'restored') console.log('[Login] OpenPGP identity restored from the account')
+          if (sync?.action === 'uploaded') console.log('[Login] OpenPGP identity saved to the account')
+          if (sync?.action === 'restore_failed') console.warn('[Login] Stored OpenPGP key did not unwrap:', sync.error)
+        } catch (pgpErr) {
+          console.warn('[Login] OpenPGP sync skipped:', pgpErr.message)
         }
         navigate('/')
       }
