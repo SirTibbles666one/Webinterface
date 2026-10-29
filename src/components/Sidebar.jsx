@@ -5,6 +5,7 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu'
 import SlothMark from '@/components/SlothMark'
+import { useEffect, useState } from 'react'
 import {
   Inbox,
   Star,
@@ -49,6 +50,20 @@ const Sidebar = ({
   onCompose,
   onOpenSettings,
 }) => {
+  // The viewport, live: a screenshot then carries both halves of every argument we have
+  // had about "nothing is changing" — the build, and the space the page was given.
+  const [viewport, setViewport] = useState('')
+  useEffect(() => {
+    const read = () => setViewport(`${window.innerWidth}×${window.innerHeight}`)
+    read()
+    window.addEventListener('resize', read)
+    window.addEventListener('orientationchange', read)
+    return () => {
+      window.removeEventListener('resize', read)
+      window.removeEventListener('orientationchange', read)
+    }
+  }, [])
+
   const inboxUnread = uids.filter((uid) => emailMeta[uid]?.unread !== false).length
   const starredCount = uids.filter((uid) => emailMeta[uid]?.starred).length
 
@@ -189,9 +204,16 @@ const Sidebar = ({
           <Settings className="size-4 shrink-0 text-ink-3" />
           <span>Settings</span>
         </button>
+        {/* The build this screen is running, and the viewport the browser gave it.
+            Both questions cost a round of "nothing has changed" to answer. */}
+        <p className="mono mt-1.5 px-1.5 text-[10px] leading-tight text-ink-3/70">
+          {__BUILD_ID__} · {viewport}
+        </p>
       </div>
     </div>
   )
 }
+
+// __BUILD_ID__ is declared by the build (see vite.config.js): a string, never a runtime import.
 
 export default Sidebar
