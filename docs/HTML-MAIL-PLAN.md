@@ -152,9 +152,15 @@ after the fact.
 
 ## 7. Slices, in build order
 
-1. **The lab is the gate.** The 12 corpus messages, the measurement above, thresholds
-   (`clipRight == 0`, `minFont ≥ 11`, `docOverflow false`) recorded in the repo with
-   before/after tables. Nothing ships without it.
+1. **The lab is the gate — now automated.** `scripts/proof-phone-render.mjs` drives a
+   real headless Chromium over CDP at **390x700, 360x640 and 412x760**, imports four
+   shapes that break (600px newsletter, 2002-era four-column table with `nowrap`, a
+   900px layout, and a verification mail with a logo header), and asserts on painted
+   rectangles: nothing past the frame's right edge, frame inside the column, no page
+   sideways scroll, smallest rendered text ≥ 8px, and the verification mail whole on
+   one screen. 55 checks, part of `./scripts/run-all-proofs.sh` (15 proofs).
+   `PHONE_PROOF_VIEWPORTS=390x300` makes it fail on demand — a proof that cannot fail
+   is a decoration.
 2. **Iframe renderer** beside the current one, behind the same `EmailBody` interface:
    blob URL, width = declared layout width clamped to 320–700, scale = column / width,
    height measured after load, `ResizeObserver` on the column to re-fit on rotation.

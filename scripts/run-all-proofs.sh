@@ -130,22 +130,23 @@ fi
 
 # ── Node proofs: run against the live service ─────────────────────────────────
 run_node() {
-  local name="$1" start elapsed out
+  local name="$1" start elapsed out status count
   start=$(date +%s)
-  out=$(cd "$WEB_ROOT" && node "scripts/proof-${name}.mjs" 2>&1 | tail -3)
-  status=$?
+  # The verdict is the exit status, carried back explicitly. Matching "N passed,
+  # 0 failed" in the text let a proof that crashed after printing a partial line read
+  # as a pass, and the same mistake was already fixed once for the remote proofs.
+  out=$(cd "$WEB_ROOT" && node "scripts/proof-${name}.mjs" 2>&1; echo "EXIT:$?")
+  status=$(printf '%s' "$out" | sed -n 's/^EXIT://p' | tail -1)
   elapsed=$(( $(date +%s) - start ))
-  # "<n> passed, 0 failed"
-  if printf '%s' "$out" | grep -qE '[0-9]+ passed, 0 failed'; then
-    local count
-    count=$(printf '%s' "$out" | grep -oE '[0-9]+ passed' | grep -oE '[0-9]+' | tail -1)
-    record "$name" 0 "${count} checks (${elapsed}s)"
+  count=$(printf '%s' "$out" | grep -oE '[0-9]+ passed' | grep -oE '[0-9]+' | tail -1)
+  if [ "${status:-1}" = "0" ]; then
+    record "$name" 0 "${count:-?} checks (${elapsed}s)"
   else
-    record "$name" 1 "$(printf '%s' "$out" | tr '\n' ' ' | cut -c1-160)"
+    record "$name" 1 "exit ${status:-?}: $(printf '%s' "$out" | grep -v '^EXIT:' | tail -3 | tr '\n' ' ' | cut -c1-200)"
   fi
 }
 
-for name in slotharc reseal pq-interop deletion-log; do
+for name in slotharc reseal pq-interop deletion-log phone-render; do
   should_run "$name" && run_node "$name"
 done
 
