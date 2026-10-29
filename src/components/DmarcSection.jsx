@@ -50,7 +50,9 @@ export default function DmarcSection() {
       // Subjects are the cheap filter; decrypting all 400 to find reports would be slow
       // on a phone, so only the ones that look like reports get opened.
       step = 'read the subjects'
-      const bulk = await api.post('/email/bulk', JSON.stringify({ uids }), auth)
+      const bulkBody = `{"uids":[${uids.join(',')}]}`
+      console.info('[dmarc] bulk body', bulkBody.slice(0, 120), 'len', uids.length)
+      const bulk = await api.post('/email/bulk', bulkBody, auth)
       const candidates = (bulk.data?.emails || [])
         .filter((e) => looksLikeDmarcReport(e.subject || ''))
         .slice(0, REPORT_LIMIT)
