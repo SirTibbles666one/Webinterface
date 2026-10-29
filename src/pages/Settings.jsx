@@ -257,18 +257,20 @@ export default function Settings() {
                         setActive(item.id)
                         window.scrollTo({ top: 0, behavior: 'auto' })
                       }}
-                      className={`min-h-[64px] rounded-lg border border-line bg-card px-3 py-2.5 text-left transition-colors duration-120 active:bg-accent ${
+                      className={`flex min-h-[56px] items-center rounded-lg border border-line bg-card px-3 py-2.5 text-left transition-colors duration-120 active:bg-accent ${
                         item.destructive ? 'border-destructive/30' : ''
                       }`}
                     >
+                      {/* No description here: two columns truncate every one of them to an
+                          ellipsis, which reads as broken. The opened section carries the
+                          full note, above its controls. */}
                       <span
-                        className={`block text-[13.5px] leading-snug ${
+                        className={`text-[13.5px] leading-snug ${
                           item.destructive ? 'text-destructive' : 'text-ink-1'
                         }`}
                       >
                         {item.label}
                       </span>
-                      <span className="mt-0.5 block truncate text-[11px] text-ink-3">{item.note}</span>
                     </button>
                   ))}
                 </div>
