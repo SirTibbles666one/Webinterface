@@ -264,14 +264,19 @@ async function main() {
 
   // ── fixtures in, through the real import path ───────────────────────────
   const subjects = {}
+  let dayOffset = 0
   for (const [key, html] of Object.entries(FI)) {
     const subject = `PHONE ${key}`
     subjects[key] = subject
+    // Different dates: today, this year, and two older years, so the date column has to
+    // hold "14:34", "Oct 17" and "Aug 20, 24" at once instead of one repeated width.
+    const when = new Date(Date.now() - dayOffset * 24 * 60 * 60 * 1000)
+    dayOffset = dayOffset === 0 ? 12 : dayOffset === 12 ? 400 : 800
     const raw = [
       'From: Proof <proof@example.com>',
       `To: ${USER}@slothlee.xyz`,
       `Subject: ${subject}`,
-      'Date: Thu, 29 Oct 2026 12:00:00 +0000',
+      `Date: ${when.toUTCString()}`,
       'MIME-Version: 1.0',
       'Content-Type: text/html; charset=utf-8',
       '',
@@ -312,6 +317,21 @@ async function main() {
       }, sessionId)
       await cdp.send('Page.navigate', { url: `${WEB}/?v=${Date.now()}` }, sessionId)
       await sleep(6000)
+
+      // The date column must be one column, not three widths and a wrap.
+      const dates = JSON.parse(await evaluate(cdp, sessionId, `(() => {
+        const rows = [...document.querySelectorAll('.mail-row')];
+        const cells = rows.map((r) => [...r.querySelectorAll('span.mono')].pop()).filter(Boolean);
+        return JSON.stringify({
+          count: cells.length,
+          widths: [...new Set(cells.map((c) => Math.round(c.getBoundingClientRect().width)))],
+          wrapped: cells.filter((c) => c.getClientRects().length > 1).length,
+        });
+      })()`))
+      check(`dates @ ${vp.label}: one column width`, dates.widths.length === 1,
+        `date widths ${JSON.stringify(dates.widths)}`)
+      check(`dates @ ${vp.label}: never wrap`, dates.wrapped === 0,
+        `${dates.wrapped} date(s) wrapped to a second line`)
 
       for (const key of Object.keys(FI).filter((k) => k !== 'keepUnread')) {
         const subject = subjects[key]

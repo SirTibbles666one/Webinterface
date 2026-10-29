@@ -180,11 +180,19 @@ reference — comparing against "some other row" passed on the first viewport an
 the third, when every row it had visited was read. It asserts weight, dot and the
 accessible name per viewport.
 
-**Slice 5 — List rhythm.**
-Dates are three widths ("Oct 21", "Aug 14, 24", a time); fix the column so the sender
-column stops re-flowing row to row. Then a consistent row rhythm (single padding
-scale, avatar size, gap).
-*Done when:* the date column is one width across a mixed inbox.
+**Slice 5 — List rhythm. DONE** (`50f3355`, `fa569c7`).
+Measured on a mixed inbox at 390, the date cell was **36 px** for `14:34`, **43** for
+`Oct 17` and **72** for `Sep 24, 25`, in an auto-sized column — so the sender's
+truncation point moved row to row and the dates started at three different x positions.
+The cell is now a fixed **72 px**, right-aligned, `tabular-nums`.
+Then the fix produced its own bug: at exactly the column width, `Sep 24, 25` broke after
+the comma and dropped the year to a second line, which the screenshot caught and the
+number did not. `whitespace-nowrap` is part of the fix, not a detail.
+*Measured:* 390 and 320 → date widths `[72]`, heights `[18]`, left edges `[292]` /
+`[222]`, **zero** wrapped dates, no page overflow; desktop grid columns identical on every
+row (`180px 634px 72px`). Row height uniform at 81 px on a phone.
+*In the suite:* each fixture now carries a different date (today, −12 d, −400 d, −800 d),
+and the proof asserts one width and no wrap per viewport.
 
 **Slice 6 — Phone-specific affordances that do not exist yet.**
 Pull-to-refresh on the list; safe-area insets on the compose sheet footer and the
