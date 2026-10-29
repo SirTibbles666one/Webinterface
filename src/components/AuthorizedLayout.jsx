@@ -392,7 +392,7 @@ const AuthorizedLayout = () => {
   // and the Cc list. Reply-all without them is a reply that quietly drops people.
   const handleReplyAll = useCallback((email) => {
     const addr = (a) => (a?.email ?? '').toLowerCase()
-    const me = String(myEmail ?? '').toLowerCase()
+    const me = String(userEmail ?? '').toLowerCase()
     const seen = new Set([me])
     const out = []
     for (const a of [...(email.replyTo ?? []), email.from, ...(email.to ?? []), ...(email.cc ?? [])]) {
@@ -411,7 +411,7 @@ const AuthorizedLayout = () => {
       fromAlias: email.alias ?? '',
     })
     setComposeOpen(true)
-  }, [myEmail])
+  }, [userEmail])
 
   // Forward is the same quoted body with no threading: it is a new conversation, and
   // pretending otherwise would file the reply under the original.

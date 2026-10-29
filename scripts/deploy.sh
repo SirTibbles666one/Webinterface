@@ -19,6 +19,17 @@ if [ -n "$(git status --porcelain)" ] && [ "${1:-}" != "--allow-dirty" ]; then
   exit 1
 fi
 
+# A bundle with an undefined identifier builds fine and crashes on the click that
+# reaches it. The codebase is not lint-clean, so this gate is narrow on purpose: it
+# fails only on `no-undef`, which is always a real bug.
+echo "== lint (undefined identifiers)"
+undef=$(npx eslint src --rule '{"no-undef":"error"}' --quiet 2>&1 | grep -c "no-undef" || true)
+if [ "${undef:-0}" -gt 0 ]; then
+  echo "FAIL  $undef undefined identifier(s):" >&2
+  npx eslint src --rule '{"no-undef":"error"}' --quiet 2>&1 | grep "no-undef" >&2
+  exit 1
+fi
+
 echo "== build"
 npm run build
 
