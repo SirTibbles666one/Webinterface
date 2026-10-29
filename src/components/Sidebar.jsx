@@ -97,7 +97,7 @@ const Sidebar = ({
         <span
           role="tab"
           aria-selected="true"
-          className="flex h-6 items-center rounded-md bg-secondary px-2.5 text-[11px] font-medium text-ink-1"
+          className="flex h-6 items-center rounded-md bg-secondary px-2.5 text-[11px] font-medium text-ink-1 max-md:h-11 max-md:px-3"
         >
           Mail
         </span>
@@ -105,7 +105,7 @@ const Sidebar = ({
           role="tab"
           aria-selected="false"
           href="https://app.slothlee.xyz/"
-          className="flex h-6 items-center rounded-md px-2.5 text-[11px] text-ink-3 transition-colors duration-120 hover:bg-secondary/60 hover:text-ink-1"
+          className="flex h-6 items-center rounded-md px-2.5 text-[11px] text-ink-3 transition-colors duration-120 hover:bg-secondary/60 hover:text-ink-1 max-md:h-11 max-md:px-3"
         >
           Bot
         </a>
