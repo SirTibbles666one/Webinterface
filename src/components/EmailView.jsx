@@ -332,15 +332,15 @@ const EmailView = ({
           {/* One measure for the whole message: a line of text that runs the
               width of a wide window is unreadable, and the header has to sit in
               the same column as the body it introduces. */}
-          <div className="mx-auto w-full max-w-[720px] px-6 pb-12">
-            <h1 className="display mt-7 flex items-start gap-2 text-[22px] leading-snug text-ink-1">
+          <div className="mx-auto w-full max-w-[720px] px-6 pb-12 max-sm:px-4 max-sm:pb-8">
+            <h1 className="display mt-7 flex items-start gap-2 text-[22px] leading-snug text-ink-1 max-sm:mt-3 max-sm:text-[19px]">
               <span className="min-w-0">{email.subject || '(no subject)'}</span>
               {email.e2ee && (
                 <Lock className="mt-1.5 size-3.5 shrink-0 text-primary" aria-label="End-to-end encrypted" />
               )}
             </h1>
 
-            <div className="mt-5 flex items-start gap-3">
+            <div className="mt-5 flex items-start gap-3 max-sm:mt-2.5">
               <SenderAvatar from={email.from} variant="view" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-3">
@@ -381,10 +381,10 @@ const EmailView = ({
               </div>
             )}
 
-            <div className="my-5 h-px bg-line" />
+            <div className="my-5 h-px bg-line max-sm:my-3" />
           </div>
 
-          <div className="mx-auto w-full max-w-[720px] px-6 pb-10">
+          <div className="mx-auto w-full max-w-[720px] px-6 pb-10 max-sm:px-4">
             {sealed.length > 0 && (
               <div className="mb-4 space-y-2">
                 {sealed.map((n) => (
