@@ -26,6 +26,28 @@ SMTP, and the encrypted request the app uses, which is replayed through the same
 the sent copy and the disappearing rule are all the endpoint's work, so a
 scheduled message cannot drift from an immediate one.
 
+## Editing one that is still waiting
+
+A held message can be reopened and changed instead of cancelled and retyped — but
+only on the device that composed it.
+
+The server stores the message as the client built it, sealed. It has no plaintext to
+give back, so the composer keeps a tagged copy in the local draft store, and the
+pencil appears in the Sent strip only where that copy exists. On another device you
+get Cancel, because an Edit button that opened an empty composer would be a lie.
+
+An edit is the same request shape as a first scheduling, plus `replace_id`. The
+server replaces the pending item **in place and keeps its id**, so nothing else has
+to be re-pointed. Refusals:
+
+- `409 not_editable` — already sent, already cancelled, or not yours. One answer for
+  all three, so message ids cannot be probed.
+- `400 replace_needs_time` — an edit with no time. Without this the request would
+  fall through to the ordinary send path and deliver a *second* copy while the first
+  stayed queued, which is the worst outcome available: the sender believes they
+  corrected it once.
+- A time in the past or more than a year out is refused exactly as on a first send.
+
 ## If a release fails
 
 The message is marked failed, the reason is kept, and the strip in Sent shows it
