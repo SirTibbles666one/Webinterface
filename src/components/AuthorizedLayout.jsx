@@ -388,6 +388,46 @@ const AuthorizedLayout = () => {
     setComposeOpen(true)
   }, [])
 
+  // Everyone the message already went to who is not me: the sender, the other To's,
+  // and the Cc list. Reply-all without them is a reply that quietly drops people.
+  const handleReplyAll = useCallback((email) => {
+    const addr = (a) => (a?.email ?? '').toLowerCase()
+    const me = String(myEmail ?? '').toLowerCase()
+    const seen = new Set([me])
+    const out = []
+    for (const a of [...(email.replyTo ?? []), email.from, ...(email.to ?? []), ...(email.cc ?? [])]) {
+      const e = addr(a)
+      if (!e || seen.has(e)) continue
+      seen.add(e)
+      out.push(a.email)
+    }
+    const subj = /^Re:/i.test(email.subject ?? '') ? email.subject : `Re: ${email.subject ?? ''}`
+    setReplyData({
+      to: out,
+      subject: subj,
+      body: `\n\n${buildQuotedBody(email)}`,
+      inReplyTo: email.messageId ?? '',
+      references: email.messageId ?? '',
+      fromAlias: email.alias ?? '',
+    })
+    setComposeOpen(true)
+  }, [myEmail])
+
+  // Forward is the same quoted body with no threading: it is a new conversation, and
+  // pretending otherwise would file the reply under the original.
+  const handleForward = useCallback((email) => {
+    const subj = /^Fwd:/i.test(email.subject ?? '') ? email.subject : `Fwd: ${email.subject ?? ''}`
+    setReplyData({
+      to: [],
+      subject: subj,
+      body: `\n\n${buildQuotedBody(email)}`,
+      inReplyTo: '',
+      references: '',
+      fromAlias: email.alias ?? '',
+    })
+    setComposeOpen(true)
+  }, [])
+
   const handleReply = useCallback((email) => {
     const sender = email.replyTo?.[0] ?? email.from
     const replyAddr = sender?.email ?? ''
@@ -584,6 +624,8 @@ const AuthorizedLayout = () => {
                 groups={groups}
                 selectedFolder={selectedFolder}
                 onReply={handleReply}
+                onReplyAll={handleReplyAll}
+                onForward={handleForward}
                 onComposeTo={handleComposeTo}
               />
             </div>
