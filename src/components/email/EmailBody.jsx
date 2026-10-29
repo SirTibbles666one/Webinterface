@@ -47,6 +47,9 @@ function fitToColumn(html) {
   for (const el of doc.body.querySelectorAll('*')) {
     el.removeAttribute('width')
     el.removeAttribute('height')
+    // `nowrap` is an attribute, not a style: old mail puts it on cells so one line
+    // of text holds the column open no matter how narrow the screen is.
+    el.removeAttribute('nowrap')
     const style = el.getAttribute('style')
     if (!style) continue
     const kept = style

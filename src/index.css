@@ -294,7 +294,12 @@
   }
   /* Message bodies must never force a horizontal scrollbar on a phone. */
   .email-html-body img { max-width: 100% !important; height: auto !important; }
-  .email-html-body table { max-width: 100% !important; display: block; overflow-x: auto; }
+  /* Tables stay tables on phones. This rule used to set display:block + overflow-x,
+     which turned every fixed-width message into a block whose row-group still laid
+     out at the sender's width — it painted past the column edge, and the clip was
+     inside the reader where no page-level overflow check could see it. */
+  .email-html-body table { max-width: 100% !important; table-layout: auto; }
+  .email-html-body td, .email-html-body th { overflow-wrap: anywhere; word-break: break-word; }
 }
 
 /* Installed app: keep the chrome clear of the notch and the home indicator. */
