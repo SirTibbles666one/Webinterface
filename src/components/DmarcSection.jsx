@@ -32,6 +32,7 @@ export default function DmarcSection() {
     setNote('')
     setSummary(null)
     try {
+      let step = 'read your message list'
       const token = storage.getToken()
       const auth = { headers: { Authorization: `Bearer ${token}` } }
       const privateKey = await keySession.get()
@@ -47,6 +48,7 @@ export default function DmarcSection() {
 
       // Subjects are the cheap filter; decrypting all 400 to find reports would be slow
       // on a phone, so only the ones that look like reports get opened.
+      step = 'read the subjects'
       const bulk = await api.post('/email/bulk', JSON.stringify({ uids }), auth)
       const candidates = (bulk.data?.emails || [])
         .filter((e) => looksLikeDmarcReport(e.subject || ''))
@@ -63,6 +65,7 @@ export default function DmarcSection() {
       const problems = []
       for (const message of candidates) {
         try {
+          step = `open message ${message.uid}`
           const got = await api.post('/email/get', JSON.stringify({ uid: message.uid }), auth)
           const raw = await decryptStored(got.data.data, got.data.message_key, privateKey)
           const parsed = parseEmail(raw)
@@ -79,7 +82,9 @@ export default function DmarcSection() {
       setNote(problems.length ? `${problems.length} report(s) could not be read: ${problems.slice(0, 3).join('; ')}` : '')
       setPhase('done')
     } catch (err) {
-      setError(err?.response?.data?.error || err.message || 'Could not scan the mailbox')
+      // Name the step: "Invalid JSON" with no context is a dead end for whoever reads it.
+      console.error('[dmarc] failed at', step, err?.response?.status, err?.message)
+      setError(`Could not ${step}: ${err?.response?.data?.error || err.message || 'unknown error'}`)
       setPhase('idle')
     }
   }
