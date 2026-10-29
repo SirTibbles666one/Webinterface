@@ -393,11 +393,16 @@ const AuthorizedLayout = () => {
   const handleReplyAll = useCallback((email) => {
     const addr = (a) => (a?.email ?? '').toLowerCase()
     const me = String(userEmail ?? '').toLowerCase()
-    const seen = new Set([me])
+    // The account identity in this app can be a bare username while the header carries
+    // name@domain, so compare local parts too — otherwise you reply-all to yourself.
+    const meLocal = me.split('@')[0]
+    const isMe = (e) => e === me || (meLocal && e.split('@')[0] === meLocal)
+    const seen = new Set()
+    if (me) seen.add(me)
     const out = []
     for (const a of [...(email.replyTo ?? []), email.from, ...(email.to ?? []), ...(email.cc ?? [])]) {
       const e = addr(a)
-      if (!e || seen.has(e)) continue
+      if (!e || isMe(e) || seen.has(e)) continue
       seen.add(e)
       out.push(a.email)
     }
