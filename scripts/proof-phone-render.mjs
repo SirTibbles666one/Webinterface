@@ -100,6 +100,10 @@ A newsletter written for a six hundred pixel canvas, with a paragraph long enoug
 A layout that declares nine hundred pixels and cannot reflow into a phone column at all.
 </div>`,
 
+  // Declares its own background: the sender's design must survive untouched.
+  themedMail: `<div style="background:#ffffff;color:#111111;padding:16px">
+<p style="font-family:Arial;font-size:15px">A message that dresses itself.</p></div>`,
+
   // Never opened by this proof: the reference row for "unread still looks unread".
   keepUnread: `<p style="font-family:Arial;font-size:15px">
 A message nothing opens, so the inbox always has one row that is definitely unread.
@@ -363,6 +367,29 @@ async function main() {
         if (key === 'verifyMail') {
           check(`${key} @ ${vp.label}: whole message on one screen`, m.wholeOnScreen === true,
             `message ends at ${m.vh}+ (mode ${m.mode}, scale ${m.scale})`)
+        }
+
+        // Paper: a message that declares no background is drawn on the app's paper, so a
+        // dark theme does not show a white slab with pale ink on it; a message that does
+        // declare one keeps it.
+        const paper = JSON.parse(await evaluate(cdp, sessionId, `(() => {
+          const f = document.querySelector('iframe.email-html-body');
+          const b = f && f.contentDocument && f.contentDocument.body;
+          const app = getComputedStyle(document.documentElement).getPropertyValue('--color-background').trim();
+          return JSON.stringify({
+            body: b ? getComputedStyle(b).backgroundColor : null,
+            app, dark: document.documentElement.dataset.theme !== 'light',
+          });
+        })()`))
+        if (key === 'themedMail') {
+          check(`${key} @ ${vp.label}: the sender's background is kept`,
+            paper.body === 'rgb(255, 255, 255)', `body background is ${paper.body}`)
+        } else if (paper.dark && ['verifyMail', 'wide900'].includes(key)) {
+          // These two declare no background of their own, so the app's paper applies.
+          // newsletter600 declares one on a table cell, and keeps it — that is the
+          // distinction being tested, not an exception to it.
+          check(`${key} @ ${vp.label}: drawn on the app's paper, not a white slab`,
+            paper.body !== 'rgb(255, 255, 255)', `body background is ${paper.body}`)
         }
 
         // The verbs have to be reachable with a thumb at the end of a long message.
