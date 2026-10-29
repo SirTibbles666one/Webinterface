@@ -166,8 +166,9 @@ export default function Settings() {
     navigate('/login', { replace: true })
   }
 
-  // eslint-disable-next-line no-unused-vars -- the rule cannot see JSX usage here
-  // (eslint-plugin-react is not installed, so `<Component />` reads as an unused var)
+  // The rule cannot see JSX usage here: eslint-plugin-react is not installed, so
+  // `<Component />` reads as an unused variable.
+  // eslint-disable-next-line no-unused-vars
   const renderSection = ({ id, title, note, Component, takesEmail, destructive }) => (
     <section key={id} id={id} className="scroll-mt-24">
       <h2 className={`display text-[18px] ${destructive ? 'text-destructive' : 'text-ink-1'}`}>
