@@ -167,8 +167,13 @@ after the fact.
 3. **Fit policy** — width-fit default, whole-fit control with the 11 px floor, and the
    scale shown to the user when a message cannot be shown at full size.
 4. **Reader chrome** — compact header, so the message occupies the screen.
-5. **Instrumentation** — build + renderer + last fit in Settings → About, plus one line
-   in the reader for a message that had to be scaled.
+5. **Instrumentation — done.** The sidebar footer carries `<sha>[+] · <innerWidth>x<innerHeight>`
+   (dirty trees are marked `+`), so any screenshot says which build and which viewport
+   produced it. Deploys go through `scripts/deploy.sh`, which refuses to ship when the
+   build has no entry point or no build stamp, and verifies the served asset is
+   byte-identical to the build afterwards. It exists because a failed build once shipped
+   the previous bundle: `npm run build | tail -2 && ...` takes its exit status from
+   `tail`, and the symptom looked exactly like a client cache problem.
 6. **On-device acceptance** — the user reads the same Instagram mail on his phone and
    sends one screenshot; the build stamp says which build produced it.
 
