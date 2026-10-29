@@ -340,10 +340,11 @@ export default function KeysSection({ accountEmail }) {
 
         {mode === 'overview' && backupDue && (
           <div className="mb-3 rounded-lg border border-destructive/40 bg-destructive/5 p-2 space-y-1">
-            <p className="text-[11px] font-medium text-destructive">No key backup yet</p>
+            <p className="text-[11px] font-medium text-destructive">No backup file yet</p>
             <p className="text-[11px] text-ink-2">
-              These keys exist only in this browser. If it is cleared, replaced, or lost, every encrypted message you
-              have received becomes permanently unreadable — there is no recovery.
+              Your key is stored on your account, wrapped with your password, so signing in on another device brings
+              it back. A backup file is still worth keeping: if you forget the password, the account copy cannot be
+              opened — by you or by this service.
             </p>
             <button
               type="button"

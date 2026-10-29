@@ -46,11 +46,12 @@ const STEPS = [
       like any other mail.`,
   },
   {
-    title: '6. This key lives in this browser',
-    body: `Unless you export it, the key exists only in this browser's storage.
-      Clearing site data, or signing in on another device, means no key there.
-      Use "Copy private key" to store it somewhere safe if you want to move
-      machines — and treat that text like a password.`,
+    title: '6. Where your key is kept',
+    body: `Your key lives on your account, wrapped with your password, so signing in
+      on another device brings the same key back — not a new one. It also lives in
+      this browser so mail can be decrypted without asking for the password again.
+      Keep a key backup file as well: if you forget the password, the account copy
+      cannot be opened by anyone, including this service.`,
   },
   {
     title: '7. If you lose your password',
