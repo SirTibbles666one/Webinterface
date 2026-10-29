@@ -6,6 +6,7 @@ import api from '@/api'
 import ProfileSection from '@/components/ProfileSection'
 import PasswordSection from '@/components/PasswordSection'
 import TwoFactorSection from '@/components/TwoFactorSection'
+import SecurityKeysSection from '@/components/SecurityKeysSection'
 import SessionsSection from '@/components/SessionsSection'
 import { AliasesSection } from '@/components/AliasesSection'
 import NotificationsSection from '@/components/NotificationsSection'
@@ -33,6 +34,7 @@ const GROUPS = [
       { id: 'profile', label: 'Profile', title: 'Profile', note: 'The name people see when your mail arrives, and the signature added below it.', Component: ProfileSection },
       { id: 'password', label: 'Password', title: 'Password', note: 'What unlocks this account and the key behind it.', Component: PasswordSection },
       { id: 'two-factor', label: 'Two-factor', title: 'Two-factor authentication', note: 'A second proof at sign-in, so a stolen password is not enough on its own.', Component: TwoFactorSection },
+      { id: 'security-keys', label: 'Security keys', title: 'Security keys', note: 'A YubiKey or another hardware key that proves it is you at sign-in, so a stolen password is not enough.', Component: SecurityKeysSection },
       { id: 'sessions', label: 'Signed-in devices', title: 'Signed-in devices', note: 'Every browser holding a session right now. You can end any of them.', Component: SessionsSection },
     ],
   },

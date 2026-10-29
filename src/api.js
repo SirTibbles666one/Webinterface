@@ -307,6 +307,49 @@ export const loginSecondFactor = async (challenge, code) => {
   return response.data
 }
 
+/* ------------------------------------------------- security keys --- */
+
+// Public: the challenge the key will sign, for a login already past the password.
+export const loginSecurityKeyBegin = async (challenge) => {
+  const response = await api.post('/auth/login/webauthn/begin', { challenge })
+  return response.data
+}
+
+// Public: an assertion, verified server-side before any token is minted.
+export const loginSecurityKeyFinish = async (challenge, challengeId, assertion) => {
+  const response = await api.post('/auth/login/webauthn/finish', {
+    challenge,
+    challenge_id: challengeId,
+    ...assertion,
+  })
+  return response.data
+}
+
+export const userSecurityKeys = async () => {
+  const token = storage.getToken()
+  const response = await api.get('/user/webauthn', { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
+// Adding a key needs a fresh code, so a stolen session cannot enrol its own.
+export const userSecurityKeyRegisterBegin = async (code) => {
+  const token = storage.getToken()
+  const response = await api.post('/user/webauthn/register/begin', { code }, { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
+export const userSecurityKeyRegisterFinish = async (payload) => {
+  const token = storage.getToken()
+  const response = await api.post('/user/webauthn/register/finish', payload, { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
+export const userSecurityKeyRemove = async (id, code) => {
+  const token = storage.getToken()
+  const response = await api.post('/user/webauthn/remove', { id, code }, { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
 /* --------------------------------------------------- active sessions --- */
 
 export const userSessions = async () => {

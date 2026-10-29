@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input'
 import AuthShell, { Field, PasswordInput } from '@/components/AuthShell'
 import api from '@/api'
 import { storage } from '@/storage'
-import { loginSecondFactor } from '@/api'
+import { loginSecondFactor, loginSecurityKeyBegin, loginSecurityKeyFinish } from '@/api'
+import { getAssertion, describeKeyError, securityKeyProblem } from '@/lib/webauthn'
 import { enablePostQuantum, loadPostQuantumKey } from '@/lib/pqSetup'
 import { hashPassword, generateKeyPair, exportPublicKeyBase64, encryptPrivateKey, decryptPrivateKey, hasSubtleCrypto } from '@/crypto'
 import RecoveryKeySetup from '@/components/RecoveryKeySetup'
@@ -29,6 +30,9 @@ const Login = () => {
   // Set when the server answers the password step with a second-factor demand.
   const [challenge, setChallenge] = useState('')
   const [twoFactorCode, setTwoFactorCode] = useState('')
+  // Which second factors this account can actually satisfy, as the server reports
+  // them. Offering a button the account cannot use is how a working key looks broken.
+  const [methods, setMethods] = useState([])
 
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -64,6 +68,7 @@ const Login = () => {
       if (response.data?.two_factor_required) {
         console.log('[Login] Second factor required')
         setChallenge(response.data.challenge || '')
+        setMethods(response.data.two_factor_methods || [])
         setTwoFactorCode('')
         setPhase('twofactor')
         setLoading(false)
@@ -146,6 +151,30 @@ const Login = () => {
   }
 
 
+  /**
+   * Sign in with a security key instead of typing a code.
+   *
+   * The password is still typed, and still needed: it unwraps the mailbox key in
+   * this browser. The key replaces the second factor, not the password.
+   */
+  const handleSecurityKey = async () => {
+    setError('')
+    const problem = securityKeyProblem()
+    if (problem) { setError(problem); return }
+    setLoading(true)
+    try {
+      const begun = await loginSecurityKeyBegin(challenge)
+      const assertion = await getAssertion(begun.options)
+      const data = await loginSecurityKeyFinish(challenge, begun.challenge_id, assertion)
+      await finishLogin(data, password)
+    } catch (err) {
+      console.error('[Login] Security key failed:', err?.response?.data ?? err?.message ?? err)
+      setError(err?.response?.data?.error || describeKeyError(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleSetup = async (e) => {
     e.preventDefault()
     if (setupPassword !== setupConfirm) {
@@ -199,16 +228,6 @@ const Login = () => {
       setLoading(false)
     }
   }
-
-  const renderLogo = () => (
-    <div className="flex justify-center items-center gap-2.5 mb-6">
-      <SlothMark className="w-11 h-11" />
-      <span className="text-[26px] font-bold tracking-wide">
-        <span className="text-foreground">Sloth</span>
-        <span className="text-[#c8a17a] font-normal"> Lee</span>
-      </span>
-    </div>
-  )
 
   if (phase === 'setup') {
     return (
@@ -291,7 +310,9 @@ const Login = () => {
       </h1>
       <p className="mt-2 text-[12.5px] leading-relaxed text-ink-3">
         {twoFactor
-          ? 'Enter the six-digit code from your authenticator app. A recovery code works too.'
+          ? (methods.includes('webauthn')
+              ? 'Touch your security key, or enter the six-digit code from your authenticator app. A recovery code works too.'
+              : 'Enter the six-digit code from your authenticator app. A recovery code works too.')
           : 'Your password unwraps the key that opens this mailbox. It is never sent to the server.'}
       </p>
 
@@ -311,6 +332,17 @@ const Login = () => {
           <Button type="submit" className="w-full" disabled={loading || !twoFactorCode}>
             {loading ? 'Checking…' : 'Continue'}
           </Button>
+          {methods.includes('webauthn') && (
+            <button
+              type="button"
+              onClick={handleSecurityKey}
+              disabled={loading}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-secondary/60 text-[13px] font-medium text-ink-1 transition-colors duration-120 hover:bg-secondary disabled:opacity-50"
+              data-testid="use-security-key"
+            >
+              Use a security key instead
+            </button>
+          )}
           <button
             type="button"
             onClick={() => { setPhase('login'); setTwoFactorCode(''); setChallenge(''); setError('') }}
