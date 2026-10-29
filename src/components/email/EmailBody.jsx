@@ -170,7 +170,7 @@ function FitToScreen({ html }) {
       const naturalH = body.scrollHeight
       const top = box.getBoundingClientRect().top
       const availH = Math.max(window.innerHeight - top - 16, 200)
-      const heightScale = naturalH > availH ? availH / naturalH : 1
+      let heightScale = naturalH > availH ? availH / naturalH : 1
 
       // A message can overflow on height alone: it reflows into the column and then
       // runs off the bottom, which is the case a width-only fit never touched.
@@ -178,6 +178,11 @@ function FitToScreen({ html }) {
         setScaled(false)
         return
       }
+
+      // The switch back to full size sits under the message, so the fit has to leave
+      // room for it — otherwise the button itself is the thing cut off at the bottom.
+      const availHWithToggle = Math.max(availH - 58, 180)
+      heightScale = naturalH > availHWithToggle ? availHWithToggle / naturalH : 1
 
       let scale = Math.min(widthScale, heightScale)
       // A long message cannot be shown whole and be read: below this the type is a
