@@ -74,6 +74,27 @@ export default function Settings() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [active, setActive] = useState('profile')
+  // On a phone the section list is an index, not a strip: one tap opens a section,
+  // and "All settings" comes back. The strip scrolled horizontally and highlighted
+  // like tabs while still showing every section stacked underneath, so "Export" and
+  // "Delete account" were simply not findable.
+  const [phone, setPhone] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches,
+  )
+  const [openSection, setOpenSection] = useState(null)
+
+  const items = GROUPS.flatMap((g) => g.items)
+  const opened = items.find((i) => i.id === openSection) ?? null
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const onChange = (e) => {
+      setPhone(e.matches)
+      if (!e.matches) setOpenSection(null)
+    }
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
 
   useEffect(() => {
     if (!storage.getToken()) {
@@ -86,13 +107,17 @@ export default function Settings() {
       .catch(() => { /* the page still works; the address is only shown in two places */ })
   }, [navigate])
 
-  // A link to a section has to land on it. The sections mount after the first
-  // reads, so the browser's own jump happens before there is anything to jump
-  // to — /settings#import used to open at the top of the page.
+  // A link to a section has to land on it. On a phone that means opening the section
+  // itself, because nothing else is on screen.
   useEffect(() => {
     const jump = () => {
       const id = decodeURIComponent(window.location.hash.replace('#', ''))
       if (!id) return
+      if (window.matchMedia('(max-width: 767px)').matches) {
+        setOpenSection(id)
+        window.scrollTo({ top: 0, behavior: 'auto' })
+        return
+      }
       const el = document.getElementById(id)
       if (!el) return
       const top = el.getBoundingClientRect().top + window.scrollY - 72
@@ -111,7 +136,7 @@ export default function Settings() {
 
   // Mark the section being read. Cheap scroll spy: the last heading above the fold.
   useEffect(() => {
-    const ids = GROUPS.flatMap((g) => g.items.map((i) => i.id))
+    const ids = items.map((i) => i.id)
     const onScroll = () => {
       let current = ids[0]
       for (const id of ids) {
@@ -125,8 +150,7 @@ export default function Settings() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // Keep the strip's active section visible. Without this the spy marks a tab
-  // that sits off the right edge, so the nav looks stuck on the first item.
+  // Keep the desktop rail's active row visible; a phone has no rail to scroll.
   useEffect(() => {
     const nav = document.getElementById('settings-nav')
     if (!nav || nav.scrollWidth <= nav.clientWidth) return
@@ -142,6 +166,24 @@ export default function Settings() {
     navigate('/login', { replace: true })
   }
 
+  // eslint-disable-next-line no-unused-vars -- the rule cannot see JSX usage here
+  // (eslint-plugin-react is not installed, so `<Component />` reads as an unused var)
+  const renderSection = ({ id, title, note, Component, takesEmail, destructive }) => (
+    <section key={id} id={id} className="scroll-mt-24">
+      <h2 className={`display text-[18px] ${destructive ? 'text-destructive' : 'text-ink-1'}`}>
+        {title}
+      </h2>
+      <p className="mt-1 max-w-[62ch] text-[12.5px] leading-relaxed text-ink-3">{note}</p>
+      <div
+        className={`mt-4 rounded-xl border bg-card p-4 max-sm:p-3 ${
+          destructive ? 'border-destructive/30' : 'border-line'
+        }`}
+      >
+        <Component {...(takesEmail ? { accountEmail: email } : {})} />
+      </div>
+    </section>
+  )
+
   return (
     <div className="settings-scope min-h-screen">
       <header className="sticky top-0 z-20 border-b border-line bg-background/90 backdrop-blur-sm">
@@ -152,7 +194,9 @@ export default function Settings() {
           >
             <ArrowLeft className="size-3.5" /> Mail
           </Link>
-          <span className="display text-[16px] text-ink-1">Settings</span>
+          <span className="display text-[16px] text-ink-1">
+            {phone && opened ? opened.label : 'Settings'}
+          </span>
           <span className="mono ml-auto hidden truncate text-[11.5px] text-ink-3 sm:inline">{email}</span>
           <button
             onClick={signOut}
@@ -166,63 +210,97 @@ export default function Settings() {
       </header>
 
       <div className="mx-auto w-full max-w-[1080px] px-4 pb-24 pt-6 md:flex md:gap-12">
-        {/* Phones get a scrolling strip; wider windows get a column that stays put. */}
-        <div className="relative md:contents">
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent md:hidden"
-        />
-        <nav
-          id="settings-nav"
-          aria-label="Settings sections"
-          className="custom-scrollbar -mx-4 mb-6 flex gap-1 overflow-x-auto px-4 pb-2 max-md:pr-10 md:sticky md:top-20 md:mx-0 md:mb-0 md:h-fit md:w-[188px] md:shrink-0 md:flex-col md:overflow-visible md:px-0"
-        >
-          {GROUPS.map((group) => (
-            <div key={group.id} className="contents md:block md:pb-4">
-              <p className="label hidden px-2 pb-1 md:block">{group.label}</p>
-              {group.items.map((item) => (
-                <a
-                  key={item.id}
-                  href={`#${item.id}`}
-                  onClick={() => setActive(item.id)}
-                  aria-current={active === item.id ? 'true' : undefined}
-                  className={`block shrink-0 whitespace-nowrap rounded-md border-l-2 px-2.5 py-1.5 text-[12.5px] transition-colors duration-120 max-md:inline-flex max-md:min-h-11 max-md:items-center ${
-                    active === item.id
-                      ? 'border-primary bg-secondary font-medium text-ink-1'
-                      : 'border-transparent text-ink-2 hover:bg-accent hover:text-ink-1'
-                  }`}
-                >
-                  {item.label}
-                </a>
-              ))}
-            </div>
-          ))}
-        </nav>
-        </div>
-
-        <main className="min-w-0 flex-1 space-y-10">
-          {GROUPS.map((group) => (
-            <div key={group.id} className="space-y-10">
-              {group.items.map(({ id, title, note, Component, takesEmail, destructive }) => (
-                <section key={id} id={id} className="scroll-mt-24">
-                  <h2
-                    className={`display text-[18px] ${destructive ? 'text-destructive' : 'text-ink-1'}`}
-                  >
-                    {title}
-                  </h2>
-                  <p className="mt-1 max-w-[62ch] text-[12.5px] leading-relaxed text-ink-3">{note}</p>
-                  <div
-                    className={`mt-4 rounded-xl border bg-card p-4 ${
-                      destructive ? 'border-destructive/30' : 'border-line'
+        {/* Wider windows keep the rail: it is a good map when there is room for one. */}
+        <div className="relative hidden md:contents">
+          <nav
+            id="settings-nav"
+            aria-label="Settings sections"
+            className="custom-scrollbar md:sticky md:top-20 md:h-fit md:w-[188px] md:shrink-0 md:flex-col md:overflow-visible md:px-0"
+          >
+            {GROUPS.map((group) => (
+              <div key={group.id} className="contents md:block md:pb-4">
+                <p className="label hidden px-2 pb-1 md:block">{group.label}</p>
+                {group.items.map((item) => (
+                  <a
+                    key={item.id}
+                    href={`#${item.id}`}
+                    onClick={() => setActive(item.id)}
+                    aria-current={active === item.id ? 'true' : undefined}
+                    className={`block shrink-0 whitespace-nowrap rounded-md border-l-2 px-2.5 py-1.5 text-[12.5px] transition-colors duration-120 ${
+                      active === item.id
+                        ? 'border-primary bg-secondary font-medium text-ink-1'
+                        : 'border-transparent text-ink-2 hover:bg-accent hover:text-ink-1'
                     }`}
                   >
-                    <Component {...(takesEmail ? { accountEmail: email } : {})} />
-                  </div>
-                </section>
-              ))}
-            </div>
-          ))}
-        </main>
+                    {item.label}
+                  </a>
+                ))}
+              </div>
+            ))}
+          </nav>
+        </div>
+
+        {/* Phone: an index of sections, each one tap away, then the section alone. */}
+        {phone && !opened && (
+          <div className="w-full space-y-5">
+            {GROUPS.map((group) => (
+              <div key={group.id}>
+                <p className="label px-1 pb-2">{group.label}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {group.items.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setOpenSection(item.id)
+                        setActive(item.id)
+                        window.scrollTo({ top: 0, behavior: 'auto' })
+                      }}
+                      className={`min-h-[64px] rounded-lg border border-line bg-card px-3 py-2.5 text-left transition-colors duration-120 active:bg-accent ${
+                        item.destructive ? 'border-destructive/30' : ''
+                      }`}
+                    >
+                      <span
+                        className={`block text-[13.5px] leading-snug ${
+                          item.destructive ? 'text-destructive' : 'text-ink-1'
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                      <span className="mt-0.5 block truncate text-[11px] text-ink-3">{item.note}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {phone && opened && (
+          <div className="w-full">
+            <button
+              type="button"
+              onClick={() => {
+                setOpenSection(null)
+                window.scrollTo({ top: 0, behavior: 'auto' })
+              }}
+              className="mb-4 inline-flex min-h-11 items-center gap-1.5 rounded-md px-1 text-[13px] text-ink-2 transition-colors duration-120 active:text-ink-1"
+            >
+              <span aria-hidden="true">←</span> All settings
+            </button>
+            <main className="min-w-0">{renderSection(opened)}</main>
+          </div>
+        )}
+
+        {!phone && (
+          <main className="min-w-0 flex-1 space-y-10">
+            {GROUPS.map((group) => (
+              <div key={group.id} className="space-y-10">
+                {group.items.map(renderSection)}
+              </div>
+            ))}
+          </main>
+        )}
       </div>
     </div>
   )

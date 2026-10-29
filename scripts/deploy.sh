@@ -13,6 +13,12 @@ KEY=/opt/data/home/.ssh/mail_ed25519
 HOST=root@46.62.155.175
 STATIC=/opt/on/data/static
 
+if [ -n "$(git status --porcelain)" ] && [ "${1:-}" != "--allow-dirty" ]; then
+  echo "FAIL  working tree is dirty; the bundle would be stamped with a commit it does not match" >&2
+  echo "      commit first, or pass --allow-dirty for a throwaway build" >&2
+  exit 1
+fi
+
 echo "== build"
 npm run build
 
