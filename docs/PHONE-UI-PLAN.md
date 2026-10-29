@@ -29,6 +29,7 @@ behind the button and opens a message instead.
 | Compose | At 320 px the formatting toolbar pushed "Add Link" **fully off-screen** (left 320, right 364) |
 | Compose | The self-delete control was labelled **"Keeps"** — a word that names nothing, on the control that decides whether the message survives |
 | Settings | The signature textarea showed a desktop resize grip on a phone |
+| Reader (HTML mail) | **Mail cut off at the right edge.** A 600 px-wide email widened the reader column to 648 px inside a 390 px viewport and had its right side clipped — and no `scrollWidth` check on the document could see it, because the overflow was hidden inside the reader's scroll area |
 
 ### Structural findings (not fixable by padding)
 
@@ -44,6 +45,29 @@ behind the button and opens a message instead.
    rather than the sender line, so it reads as a bullet.
 
 ---
+
+### The HTML-mail cut, in detail
+
+The reader sits inside a Radix scroll area, whose content wrapper is
+`<div style="min-width:100%; display:table">` — a table box sizes to its widest child,
+so a 600 px message made the *column* 648 px wide. The page never overflowed, so every
+"no horizontal overflow" check passed while the message was cut off.
+
+Three fixes were needed, in this order, and the first two were wrong on their own:
+
+1. **Strip the fixed widths** — `width`/`height` attributes and `width:`/`nowrap` in
+   inline styles are removed after sanitising, so the mail reflows to its column.
+2. **Cap the body block** — `max-width: calc(100vw - 3rem)` (the reader's own padding).
+   `100%` is useless here: inside the scroll area's content wrapper a percentage
+   resolves against the message's own width.
+3. **Stop blocking tables** — `display: block` on a table left its row-group laying out
+   at content width (400 px) and scrolling *inside* the column. Tables stay tables,
+   get `width: 100%`, and their cells break words instead.
+
+Verified with four shapes at 320/390/430 — fixed-width marketing mail, a 700 px table
+with numbers, a 300-character unbroken string, and a 160-character URL — all now sit
+exactly at the column width (272/342/382) with nothing overflowing inside and the right
+edge inside the viewport. Desktop unchanged: 672 px column, cells split 236/236/200.
 
 ## 2. What changed in this pass
 

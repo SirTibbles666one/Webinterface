@@ -31,6 +31,33 @@ function sanitizeHtml(html) {
   return DOMPurify.sanitize(html, DOMPURIFY_CONFIG)
 }
 
+// Mail is written for a 600px column and says so: `width="600"` attributes and
+// `width:600px` inline styles on tables and cells. On a phone that width does not
+// exist, and because the reader sits inside a scroll area whose content wrapper is
+// `display: table` (it sizes to its widest child), the message did not overflow the
+// page — it widened the column past the viewport and had its right edge cut off.
+//
+// So the fixed widths are removed rather than fought with: drop width/height
+// attributes, drop width and nowrap from inline styles, and let the message reflow
+// to the column it is actually in. Images keep their aspect through `height: auto`
+// in the stylesheet.
+function fitToColumn(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  for (const el of doc.body.querySelectorAll('*')) {
+    el.removeAttribute('width')
+    el.removeAttribute('height')
+    const style = el.getAttribute('style')
+    if (!style) continue
+    const kept = style
+      .split(';')
+      .map((decl) => decl.trim())
+      .filter((decl) => decl && !/^(min-)?width\s*:/i.test(decl) && !/^white-space\s*:\s*nowrap/i.test(decl))
+    if (kept.length) el.setAttribute('style', kept.join('; '))
+    else el.removeAttribute('style')
+  }
+  return doc.body.innerHTML
+}
+
 // Heuristic: treat textBody as HTML if it starts with an HTML tag
 function looksLikeHtml(text) {
   return /^\s*<[a-zA-Z]/.test(text)
@@ -109,7 +136,7 @@ export function EmailBody({ textBody, htmlBody, senderHint }) {
       <div
         className="email-html-body"
         // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: sanitizeHtml(resolvedHtml) }}
+        dangerouslySetInnerHTML={{ __html: fitToColumn(sanitizeHtml(resolvedHtml)) }}
       />
     )
   }
@@ -118,7 +145,7 @@ export function EmailBody({ textBody, htmlBody, senderHint }) {
   const blocks = parseBlocks(text)
 
   return (
-    <div className="font-sans text-foreground/90 space-y-1">
+    <div className="email-text-body font-sans text-foreground/90 space-y-1">
       {blocks.map((block, i) => {
         if (block.type === 'attribution') {
           return (
