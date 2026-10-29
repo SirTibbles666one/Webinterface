@@ -296,44 +296,6 @@ const EmailView = ({
         </div>
       </div>
 
-      {/* The three verbs a reader wants, on a bar that cannot scroll away. It sits
-          outside the message's scroll area, so it is on screen when the message is long,
-          and it lifts above the iPhone home indicator. "Reply" carries the word as well
-          as the arrow: an arrow alone next to a back arrow is a guess. */}
-      {email && (
-        <div className="shrink-0 border-t border-line px-3 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
-          <div className="mx-auto flex w-full max-w-[720px] items-center gap-2">
-            <Button
-              onClick={() => onReply?.({ ...email, alias: arrivedAt })}
-              variant="outline"
-              className="flex-1 gap-1.5 px-3 text-[13px] max-sm:min-h-11 sm:flex-none"
-            >
-              <Reply className="size-3.5" /> Reply
-            </Button>
-            {onReplyAll && (
-              <Button
-                onClick={() => onReplyAll({ ...email, alias: arrivedAt })}
-                variant="ghost"
-                className="gap-1.5 px-3 text-[13px] max-sm:min-h-11 text-ink-2"
-              >
-                <Users className="size-3.5" /> <span className="max-sm:hidden">Reply all</span>
-                <span className="sm:hidden">All</span>
-              </Button>
-            )}
-            {onForward && (
-              <Button
-                onClick={() => onForward({ ...email, alias: arrivedAt })}
-                variant="ghost"
-                className="gap-1.5 px-3 text-[13px] max-sm:min-h-11 text-ink-2"
-              >
-                <Forward className="size-3.5" /> <span className="max-sm:hidden">Forward</span>
-                <span className="sm:hidden">Fwd</span>
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
-
       {note && (
         <div className="flex items-start gap-2 px-4 py-2 border-b border-border bg-muted/50 text-xs text-muted-foreground shrink-0">
           <Flame className="size-3.5 mt-0.5 shrink-0 text-primary" />
@@ -520,6 +482,44 @@ const EmailView = ({
           )}
         </ScrollArea>
       ) : null}
+
+      {/* The three verbs a reader wants, on a bar that cannot scroll away. It sits
+          outside the message's scroll area, so it is on screen when the message is long,
+          and it lifts above the iPhone home indicator. "Reply" carries the word as well
+          as the arrow: an arrow alone next to a back arrow is a guess. */}
+      {email && (
+        <div className="shrink-0 border-t border-line px-3 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
+          <div className="mx-auto flex w-full max-w-[720px] items-center gap-2">
+            <Button
+              onClick={() => onReply?.({ ...email, alias: arrivedAt })}
+              variant="outline"
+              className="flex-1 gap-1.5 px-3 text-[13px] max-sm:min-h-11 sm:flex-none"
+            >
+              <Reply className="size-3.5" /> Reply
+            </Button>
+            {onReplyAll && (
+              <Button
+                onClick={() => onReplyAll({ ...email, alias: arrivedAt })}
+                variant="ghost"
+                className="gap-1.5 px-3 text-[13px] max-sm:min-h-11 text-ink-2"
+              >
+                <Users className="size-3.5" /> <span className="max-sm:hidden">Reply all</span>
+                <span className="sm:hidden">All</span>
+              </Button>
+            )}
+            {onForward && (
+              <Button
+                onClick={() => onForward({ ...email, alias: arrivedAt })}
+                variant="ghost"
+                className="gap-1.5 px-3 text-[13px] max-sm:min-h-11 text-ink-2"
+              >
+                <Forward className="size-3.5" /> <span className="max-sm:hidden">Forward</span>
+                <span className="sm:hidden">Fwd</span>
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
