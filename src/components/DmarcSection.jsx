@@ -31,8 +31,9 @@ export default function DmarcSection() {
     setError('')
     setNote('')
     setSummary(null)
+    // Declared outside the try so the catch can name the step it died on.
+    let step = 'read your message list'
     try {
-      let step = 'read your message list'
       const token = storage.getToken()
       const auth = { headers: { Authorization: `Bearer ${token}` } }
       const privateKey = await keySession.get()
