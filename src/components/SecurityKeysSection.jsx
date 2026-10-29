@@ -99,6 +99,8 @@ export default function SecurityKeysSection() {
 
   const keys = data?.keys || []
   const atCap = data && keys.length >= (data.max || 10)
+  // Only ask for a code when the account actually has one to give.
+  const codeRequired = data?.code_required !== false
 
   return (
     <div className="space-y-4">
@@ -162,18 +164,22 @@ export default function SecurityKeysSection() {
       {phase === 'adding' && (
         <form onSubmit={addKey} className="space-y-3 rounded-lg bg-secondary/60 p-4" data-testid="security-key-add">
           <p className="text-[12.5px] leading-relaxed text-ink-2">
-            Enter a code from your authenticator app, then touch the key when it blinks.
+            {codeRequired
+              ? 'Enter a code from your authenticator app, then touch the key when it blinks.'
+              : 'Have the key ready — the browser will ask you to touch it in a moment.'}
           </p>
-          <input
-            autoFocus
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            placeholder="123456"
-            value={code}
-            onChange={(e) => setCode(e.target.value.trim())}
-            className="w-full rounded-md border border-line bg-background px-3 py-2.5 text-[13px] text-ink-1"
-            data-testid="security-key-code"
-          />
+          {codeRequired && (
+            <input
+              autoFocus
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="123456"
+              value={code}
+              onChange={(e) => setCode(e.target.value.trim())}
+              className="w-full rounded-md border border-line bg-background px-2.5 py-2.5 text-[13px] text-ink-1"
+              data-testid="security-key-code"
+            />
+          )}
           <input
             placeholder="Name this key (e.g. blue YubiKey)"
             value={name}
@@ -185,7 +191,7 @@ export default function SecurityKeysSection() {
           <div className="flex gap-2">
             <button
               type="submit"
-              disabled={busy || !code.trim() || !!problem}
+              disabled={busy || (codeRequired && !code.trim()) || !!problem}
               className="h-11 flex-1 rounded-md bg-primary px-4 text-[13px] font-medium text-primary-foreground disabled:opacity-50"
             >
               {busy ? 'Waiting for the key…' : 'Add security key'}
@@ -204,22 +210,24 @@ export default function SecurityKeysSection() {
       {phase === 'removing' && target && (
         <form onSubmit={removeKey} className="space-y-3 rounded-lg bg-secondary/60 p-4" data-testid="security-key-remove">
           <p className="text-[12.5px] leading-relaxed text-ink-2">
-            Remove <span className="font-medium text-ink-1">{target.name}</span>. Enter a code from
-            your authenticator app to confirm.
+            Remove <span className="font-medium text-ink-1">{target.name}</span>.
+            {codeRequired ? ' Enter a code from your authenticator app to confirm.' : ' It will stop working at sign-in immediately.'}
           </p>
-          <input
-            autoFocus
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            placeholder="123456"
-            value={code}
-            onChange={(e) => setCode(e.target.value.trim())}
-            className="w-full rounded-md border border-line bg-background px-3 py-2.5 text-[13px] text-ink-1"
-          />
+          {codeRequired && (
+            <input
+              autoFocus
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="123456"
+              value={code}
+              onChange={(e) => setCode(e.target.value.trim())}
+              className="w-full rounded-md border border-line bg-background px-2.5 py-2.5 text-[13px] text-ink-1"
+            />
+          )}
           <div className="flex gap-2">
             <button
               type="submit"
-              disabled={busy || !code.trim()}
+              disabled={busy || (codeRequired && !code.trim())}
               className="h-11 flex-1 rounded-md bg-destructive px-4 text-[13px] font-medium text-white disabled:opacity-50"
             >
               {busy ? 'Removing…' : 'Remove key'}
