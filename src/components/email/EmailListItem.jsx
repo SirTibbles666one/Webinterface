@@ -99,7 +99,7 @@ export function EmailListItem({
           onSelect(uid)
         }
       }}
-      className={`${rowBase} ${ground} ${isChecked ? 'bg-primary/[0.06]' : ''} ${isFresh ? 'row-in' : ''}`}
+      className={`${rowBase} ${ground} ${isChecked ? 'bg-sand/10' : ''} ${isFresh ? 'row-in' : ''}`}
     >
       {/* The open row is marked by a rule at its edge, not by a colour block
           behind the text. */}
@@ -138,7 +138,9 @@ export function EmailListItem({
       {/* One dot slot for the whole column: the unread mark lands in the same
           place on every row, so the eye reads a straight edge rather than dots
           scattered after subjects of different lengths. */}
-      <span className="flex w-1.5 shrink-0 justify-center" aria-hidden={!isUnread}>
+      {/* Aligned to the sender's first line, not to the middle of a three-line row:
+          a dot floating between lines reads as a stray mark. */}
+      <span className="flex w-1.5 shrink-0 justify-center self-start pt-[7px]" aria-hidden={!isUnread}>
         <span
           className={`size-1.5 rounded-full bg-primary transition-opacity duration-200 ${isUnread ? 'opacity-100' : 'opacity-0'}`}
         />
