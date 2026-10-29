@@ -84,7 +84,10 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
   const [vanish, setVanish] = useState('off')
   // When to hand the message over. Null means now; a date means the server holds
   // it and sends it at that time.
-  const [sendAt, setSendAt] = useState(null)
+  // An edit opens on the time the message is already held for, not on "now":
+  // sending now would deliver a second copy and leave the held one still queued.
+  const [sendAt, setSendAt] = useState(() =>
+    replyData?.sendAt ? new Date(replyData.sendAt * 1000) : null)
   // Which of my addresses this goes out from. Empty means the real one. A reply
   // to mail that came through an alias starts on that alias.
   const [fromAlias, setFromAlias] = useState(() => replyData?.fromAlias ?? '')
@@ -514,7 +517,9 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
 
   const isSending       = ['resolving', 'fetchingkeys', 'encrypting', 'sending'].includes(sendState)
   const hasLoadingFiles = attachments.some((a) => a.status === 'loading')
-  const isSendBlocked   = isSending || sendState === 'done'
+  // An edit without a time would deliver now and leave the held copy queued.
+  const editNeedsTime = Boolean(replaceId) && !sendAt
+  const isSendBlocked   = isSending || sendState === 'done' || editNeedsTime
 
   const sendStatusLabel = {
     resolving:    'Resolving…',
@@ -549,7 +554,12 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
       {/* Title bar */}
       <div className={`flex items-center justify-between px-3 h-12 sm:h-10 bg-muted/30 border-b border-border shrink-0 select-none ${isPhone ? '' : 'rounded-t-lg'}`}>
         <span className="text-sm font-medium text-card-foreground truncate">
-          {subject || 'New Message'}
+          {replaceId && (
+            <span className="mr-2 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary align-middle">
+              Held
+            </span>
+          )}
+          {subject || (replaceId ? 'Edit before it goes' : 'New Message')}
         </span>
         <div className="flex items-center gap-1 ml-2 shrink-0">
           {!isPhone && (
@@ -997,11 +1007,20 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                     {offServerRecipients.length} recipient{offServerRecipients.length === 1 ? ' is' : 's are'} elsewhere — {sealExternal ? 'sealed link, body stays here' : 'nothing to delete there'}
                   </span>
                 )}
+                {/* A disabled button with no reason reads as a broken app. */}
+                {editNeedsTime && (
+                  <span
+                    title="This message is still held — pick a time to update it"
+                    className="text-[10px] text-amber-600 dark:text-amber-400"
+                  >
+                    Pick a time
+                  </span>
+                )}
                 <div className="relative shrink-0">
                   <button
                     type="button"
                     onClick={() => setWhenOpen((v) => !v)}
-                    title={sendAt ? `Goes out ${formatWhen(sendAt)}` : 'Send later'}
+                    title={sendAt ? `Held until ${formatWhen(sendAt)} — change` : 'Hold this message until…'}
                     className={`flex items-center gap-1 px-2 py-2 sm:py-1.5 rounded-md border text-xs ${
                       sendAt ? 'border-primary/40 text-primary bg-primary/10' : 'border-border text-foreground/60'
                     }`}
@@ -1011,7 +1030,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                   </button>
                   {whenOpen && (
                     <div className="absolute bottom-full right-0 mb-2 w-56 rounded-lg border border-border bg-popover p-2 shadow-lg z-20">
-                      <p className="px-1 pb-1 text-[11px] text-foreground/55">Send later</p>
+                      <p className="px-1 pb-1 text-[11px] text-foreground/55">Hold until…</p>
                       {whenPresets().map(([label, when]) => (
                         <button
                           key={label}
@@ -1031,7 +1050,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                           if (when) setWhenOpen(false)
                         }}
                       />
-                      {sendAt && (
+                      {sendAt && !replaceId && (
                         <button
                           type="button"
                           onClick={() => { setSendAt(null); setWhenOpen(false) }}
@@ -1046,14 +1065,20 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                 <button
                   onClick={sendWithPgpIfNeeded}
                   disabled={isSendBlocked || hasLoadingFiles || pgpBusy}
-                  title={hasLoadingFiles ? 'Waiting for files to finish loading…' : undefined}
+                  title={hasLoadingFiles
+                    ? 'Waiting for files to finish loading…'
+                    : editNeedsTime ? 'Pick a time — this message is still held' : undefined}
                   className="ml-auto sm:ml-0 flex items-center justify-center gap-2 px-5 sm:px-4 py-2 sm:py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
                 >
                   {isSending
                     ? <Loader2 className="w-4 h-4 sm:w-3.5 sm:h-3.5 animate-spin" />
                     : <Send className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                   }
-                  {sendAt ? 'Send later' : 'Send'}
+                  {isSending
+                    ? null
+                    : replaceId
+                      ? (sendAt ? `Update · ${formatWhen(sendAt)}` : 'Update')
+                      : (sendAt ? `Hold · ${formatWhen(sendAt)}` : 'Send')}
                 </button>
               </div>
             </div>

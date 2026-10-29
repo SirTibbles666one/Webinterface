@@ -356,6 +356,9 @@ const AuthorizedLayout = () => {
     setReplyData({
       to: draft.to ?? [], cc: draft.cc ?? [], bcc: draft.bcc ?? [],
       subject: draft.subject ?? '', body: draft.body ?? '',
+      // Opens on the time it is already held for, so the button says "Update"
+      // instead of offering to send a second copy now.
+      sendAt: item.send_at ?? draft.sendAt ?? null,
     })
     setComposeDraftId(draft.id)
     setComposeReplaceId(item.id)

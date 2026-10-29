@@ -266,7 +266,9 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
           ...(sendAt > 0 ? { send_at: sendAt, subject } : {}),
           // Editing a held message: the server replaces it in place and keeps the
           // id, so this is the same request shape as a first scheduling.
-          ...(replaceId && sendAt > 0 ? { replace_id: replaceId } : {}),
+          // Always named when editing, even if no time was chosen: the server must
+          // be able to refuse that case instead of sending a second copy.
+          ...(replaceId ? { replace_id: replaceId } : {}),
           // Keep the account address in the sent copy either way: the message
           // went out as the alias, and this is where it is filed.
           ...aliasField,
