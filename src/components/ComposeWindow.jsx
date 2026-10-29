@@ -636,7 +636,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="Subject"
-                className="flex-1 py-1.5 bg-transparent outline-none text-sm text-card-foreground placeholder:text-muted-foreground/60"
+                className="flex-1 py-1.5 bg-transparent outline-none text-sm text-card-foreground placeholder:text-muted-foreground/60 max-sm:min-h-11"
               />
             </div>
           </div>
@@ -989,10 +989,10 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                     value={vanish}
                     onChange={(e) => setVanish(e.target.value)}
                     disabled={isSendBlocked}
-                    className="bg-transparent border border-border rounded px-1.5 py-1.5 sm:py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                    className="bg-transparent border border-border rounded px-1.5 py-1.5 sm:py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 max-sm:min-h-11"
                     aria-label="Disappearing message"
                   >
-                    <option value="off">Keeps</option>
+                    <option value="off">No expiry</option>
                     <option value="read">Deletes after reading</option>
                     <option value="3600">Deletes in 1 hour</option>
                     <option value="86400">Deletes in 1 day</option>
@@ -1068,7 +1068,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                   title={hasLoadingFiles
                     ? 'Waiting for files to finish loading…'
                     : editNeedsTime ? 'Pick a time — this message is still held' : undefined}
-                  className="ml-auto sm:ml-0 flex items-center justify-center gap-2 px-5 sm:px-4 py-2 sm:py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+                  className="ml-auto sm:ml-0 flex items-center justify-center gap-2 px-5 sm:px-4 py-2 sm:py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 max-sm:min-h-11"
                 >
                   {isSending
                     ? <Loader2 className="w-4 h-4 sm:w-3.5 sm:h-3.5 animate-spin" />

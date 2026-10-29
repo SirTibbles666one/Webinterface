@@ -110,7 +110,7 @@ export function EmailListItem({
         }`}
       />
 
-      <div className="flex w-4 shrink-0 items-center justify-center self-stretch max-sm:w-7">
+      <div className="flex w-4 shrink-0 items-center justify-center self-stretch max-sm:w-11">
         <button
           type="button"
           aria-label={isChecked ? 'Unselect message' : 'Select message'}
@@ -119,7 +119,7 @@ export function EmailListItem({
             onCheck(uid)
           }}
           // The box is 16px; the button around it is thumb-sized on a phone.
-          className="flex items-center justify-center max-sm:p-2"
+          className="flex items-center justify-center max-sm:min-h-11 max-sm:min-w-11"
         >
           <span
             className={`flex size-4 items-center justify-center rounded border transition-all duration-120 max-sm:size-5 ${

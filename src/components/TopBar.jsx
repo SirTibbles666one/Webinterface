@@ -42,7 +42,7 @@ export function TopBar({
             placeholder="Search mail"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="h-9 w-full rounded-lg border border-line bg-secondary/50 pl-9 pr-14 text-[13px] text-ink-1 placeholder:text-ink-3 focus:border-line-strong focus:bg-secondary focus:outline-none"
+            className="h-9 w-full rounded-lg border border-line bg-secondary/50 pl-9 pr-14 text-[13px] text-ink-1 placeholder:text-ink-3 focus:border-line-strong focus:bg-secondary focus:outline-none max-sm:h-11"
           />
           <kbd className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded border border-line px-1.5 py-0.5 mono text-[10px] text-ink-3 sm:block">
             ⌘K
@@ -57,7 +57,7 @@ export function TopBar({
           <DropdownMenuRoot>
             <DropdownMenuTrigger asChild>
               <button
-                className="flex items-center gap-1.5 rounded-md py-1.5 pl-2 pr-1.5 text-[12.5px] text-ink-2 transition-colors duration-120 hover:bg-accent hover:text-ink-1"
+                className="flex items-center gap-1.5 rounded-md py-1.5 pl-2 pr-1.5 text-[12.5px] text-ink-2 transition-colors duration-120 hover:bg-accent hover:text-ink-1 max-sm:min-h-11"
                 aria-label="Account menu"
               >
                 <span className="flex size-6 items-center justify-center rounded-full bg-secondary text-[10px] font-semibold uppercase text-ink-2">

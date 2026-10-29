@@ -23,8 +23,9 @@ const DEFAULT_FOLDERS = [
   { id: 'drafts', icon: FileEdit, label: 'Drafts' },
 ]
 
+// 44px rows on the phone drawer; the desktop rail keeps its denser 36px rhythm.
 const row =
-  'group/row relative flex h-9 items-center gap-2.5 rounded-md px-2.5 text-[13px] transition-colors duration-120'
+  'group/row relative flex h-9 items-center gap-2.5 rounded-md px-2.5 text-[13px] transition-colors duration-120 max-md:min-h-11'
 const rowIdle = 'text-ink-2 hover:bg-accent hover:text-ink-1'
 const rowActive = 'bg-secondary text-ink-1 before:absolute before:inset-y-1.5 before:left-0 before:w-[2px] before:rounded-full before:bg-primary'
 
@@ -71,7 +72,7 @@ const Sidebar = ({
       <div className="px-2.5 pb-2">
         <button
           onClick={onCompose}
-          className="flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary text-[13px] font-semibold text-primary-foreground transition-colors duration-120 hover:bg-primary/90 active:scale-[0.995]"
+          className="flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary text-[13px] font-semibold text-primary-foreground transition-colors duration-120 hover:bg-primary/90 active:scale-[0.995] max-md:h-11"
         >
           New message
         </button>
@@ -110,7 +111,7 @@ const Sidebar = ({
         <span className="label">Groups</span>
         <button
           onClick={onRequestCreateGroup}
-          className="rounded p-0.5 text-ink-3 transition-colors duration-120 hover:text-ink-1"
+          className="flex items-center justify-center rounded p-0.5 text-ink-3 transition-colors duration-120 hover:text-ink-1 max-md:min-h-11 max-md:min-w-11"
           title="New group"
           aria-label="New group"
         >

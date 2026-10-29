@@ -125,6 +125,18 @@ export default function Settings() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  // Keep the strip's active section visible. Without this the spy marks a tab
+  // that sits off the right edge, so the nav looks stuck on the first item.
+  useEffect(() => {
+    const nav = document.getElementById('settings-nav')
+    if (!nav || nav.scrollWidth <= nav.clientWidth) return
+    const current = nav.querySelector('[aria-current="true"]')
+    if (!current) return
+    const n = nav.getBoundingClientRect(), c = current.getBoundingClientRect()
+    if (c.left >= n.left && c.right <= n.right) return
+    nav.scrollTo({ left: current.offsetLeft - 16, behavior: 'auto' })
+  }, [active])
+
   const signOut = () => {
     storage.clear?.()
     navigate('/login', { replace: true })
@@ -136,7 +148,7 @@ export default function Settings() {
         <div className="mx-auto flex h-14 w-full max-w-[1080px] items-center gap-3 px-4">
           <Link
             to="/"
-            className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[12.5px] text-ink-2 transition-colors duration-120 hover:bg-accent hover:text-ink-1"
+            className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[12.5px] text-ink-2 transition-colors duration-120 hover:bg-accent hover:text-ink-1 max-sm:min-h-11"
           >
             <ArrowLeft className="size-3.5" /> Mail
           </Link>
@@ -161,8 +173,9 @@ export default function Settings() {
           className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent md:hidden"
         />
         <nav
+          id="settings-nav"
           aria-label="Settings sections"
-          className="custom-scrollbar -mx-4 mb-6 flex gap-1 overflow-x-auto px-4 pb-2 md:sticky md:top-20 md:mx-0 md:mb-0 md:h-fit md:w-[188px] md:shrink-0 md:flex-col md:overflow-visible md:px-0"
+          className="custom-scrollbar -mx-4 mb-6 flex gap-1 overflow-x-auto px-4 pb-2 max-md:pr-10 md:sticky md:top-20 md:mx-0 md:mb-0 md:h-fit md:w-[188px] md:shrink-0 md:flex-col md:overflow-visible md:px-0"
         >
           {GROUPS.map((group) => (
             <div key={group.id} className="contents md:block md:pb-4">
@@ -173,7 +186,7 @@ export default function Settings() {
                   href={`#${item.id}`}
                   onClick={() => setActive(item.id)}
                   aria-current={active === item.id ? 'true' : undefined}
-                  className={`block shrink-0 whitespace-nowrap rounded-md border-l-2 px-2.5 py-1.5 text-[12.5px] transition-colors duration-120 ${
+                  className={`block shrink-0 whitespace-nowrap rounded-md border-l-2 px-2.5 py-1.5 text-[12.5px] transition-colors duration-120 max-md:inline-flex max-md:min-h-11 max-md:items-center ${
                     active === item.id
                       ? 'border-primary bg-secondary font-medium text-ink-1'
                       : 'border-transparent text-ink-2 hover:bg-accent hover:text-ink-1'

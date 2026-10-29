@@ -52,12 +52,12 @@ export default function ProfileSection() {
         onChange={(e) => setSignature(e.target.value)}
         placeholder="— sent from Sloth Lee Mail"
         rows={3}
-        className="mb-3 w-full resize-y rounded-lg border border-line-strong bg-field px-3 py-2 text-sm text-ink-1 outline-none focus:border-line-strong"
+        className="mb-3 w-full resize-none rounded-lg border border-line-strong bg-field px-3 py-2 text-sm text-ink-1 outline-none focus:border-line-strong sm:resize-y"
       />
 
       <button
         onClick={save}
-        className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 max-sm:min-h-11"
       >
         {saved ? <Check size={14} /> : null}
         {saved ? 'Saved' : 'Save'}

@@ -289,7 +289,7 @@ const EmailView = ({
               onClick={() => onReply?.({ ...email, alias: arrivedAt })}
               variant="outline"
               size="sm"
-              className="gap-1.5 px-3 text-[12.5px]"
+              className="gap-1.5 px-3 text-[12.5px] max-sm:min-h-11"
             >
               <Reply className="size-3.5" /> Reply
             </Button>

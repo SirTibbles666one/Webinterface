@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { X } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import EmailList from '@/components/EmailList'
 import ScheduledPanel from '@/components/ScheduledPanel'
@@ -429,7 +430,17 @@ const AuthorizedLayout = () => {
               className="absolute inset-0 bg-black/60"
               onClick={() => setNavOpen(false)}
             />
-            <div className="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-background border-r border-border shadow-2xl">
+            <div className="absolute inset-y-0 left-0 w-72 max-w-[85vw] border-r border-border bg-background shadow-2xl">
+              {/* A drawer whose only exit is a tap on a dimmed strip or the system
+                  back gesture strands anyone who does not know that gesture exists. */}
+              <button
+                type="button"
+                onClick={() => setNavOpen(false)}
+                aria-label="Close folders"
+                className="absolute right-1.5 top-1.5 z-10 flex size-11 items-center justify-center rounded-md text-ink-3 transition-colors duration-120 hover:bg-accent hover:text-ink-1"
+              >
+                <X className="size-5" />
+              </button>
               <Sidebar
                 selectedFolder={selectedFolder}
                 onSelectFolder={(folder) => { setSelectedFolder(folder); setNavOpen(false) }}
@@ -540,7 +551,7 @@ const AuthorizedLayout = () => {
             <div className="fixed inset-0 z-40 flex min-w-0 flex-1 flex-col bg-background md:static md:z-auto md:block">
               <button
                 onClick={() => setSelectedUid(null)}
-                  className="md:hidden flex items-center gap-1.5 px-3 py-2 border-b border-border text-sm text-foreground/70"
+                  className="md:hidden flex min-h-11 items-center gap-1.5 px-3 py-2 border-b border-border text-sm text-foreground/70"
                 >
                 <span aria-hidden="true">←</span> Back to inbox
               </button>

@@ -58,7 +58,7 @@ export function EmailToolbar({
               role="tab"
               aria-selected={filterMode === f.id}
               onClick={() => onFilterModeChange?.(f.id)}
-              className={`rounded-full px-2.5 py-1 text-[11.5px] font-medium transition-colors duration-120 max-sm:min-h-[34px] max-sm:px-3 ${
+              className={`rounded-full px-2.5 py-1 text-[11.5px] font-medium transition-colors duration-120 max-sm:min-h-11 max-sm:min-w-11 max-sm:px-3 ${
                 filterMode === f.id
                   ? 'bg-secondary text-ink-1'
                   : 'text-ink-3 hover:bg-accent hover:text-ink-2'
