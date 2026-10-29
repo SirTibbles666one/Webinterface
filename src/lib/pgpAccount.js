@@ -16,6 +16,10 @@
  * Nothing here touches the password itself beyond deriving from it in memory.
  */
 import api from '@/api'
+import { storage } from '@/storage'
+
+/** Every call here is authenticated; axios has no interceptor that adds the token. */
+const auth = () => ({ headers: { Authorization: `Bearer ${storage.getToken()}` } })
 import { getIdentity, restoreIdentity, forgetIdentity } from '@/pgp'
 import { wrapPrivateKey, unwrapPrivateKey } from '@/lib/pgpWrap'
 
@@ -27,7 +31,7 @@ export async function syncIdentityWithAccount(password) {
   const local = getIdentity()
   let stored = null
   try {
-    const res = await api.get('/user/pgpkey')
+    const res = await api.get('/user/pgpkey', auth())
     stored = res?.data?.exists ? res.data : null
   } catch {
     // A failed read must not block sign-in; the identity is still usable locally.
@@ -62,7 +66,7 @@ export async function syncIdentityWithAccount(password) {
       kdf: wrapped.kdf,
       name: local.name,
       email: local.email,
-    })
+    }, auth())
     return { action: 'uploaded' }
   }
 
@@ -73,7 +77,7 @@ export async function syncIdentityWithAccount(password) {
 export async function forgetIdentityEverywhere() {
   forgetIdentity()
   try {
-    await api.delete('/user/pgpkey')
+    await api.delete('/user/pgpkey', auth())
     return { action: 'removed' }
   } catch {
     return { action: 'removed_locally' }
