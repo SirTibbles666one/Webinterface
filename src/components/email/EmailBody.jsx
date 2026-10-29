@@ -197,43 +197,39 @@ function MailFrame({ html }) {
     const availW = Math.floor(wrap.clientWidth)
     if (!availW) return
 
-    // Pass 1: the message at the column's width.
+    const docEl = doc.documentElement
+    const bodyEl = doc.body
+
+    // Clear whatever the previous pass left on the message before measuring it.
+    bodyEl.style.transform = 'none'
+    bodyEl.style.width = ''
+    docEl.style.overflowX = ''
     frame.style.transform = 'none'
     frame.style.width = `${availW}px`
     frame.style.height = '10px'
     void frame.offsetHeight
 
-    let contentW = Math.max(doc.documentElement.scrollWidth, doc.body.scrollWidth)
-    let framed = availW
-    if (contentW > availW + 2) {
-      // Pass 2: it cannot reflow to the column, so give it the width it asks for and
-      // scale the whole thing down. Widening a table can unblock a wrap that was
-      // holding another column open, so this repeats until the width stops growing —
-      // one pass left a frame 104px narrower than the content it was meant to hold.
-      for (let i = 0; i < 4; i++) {
-        const wanted = Math.min(contentW, FRAME_MAX_WIDTH)
-        if (wanted <= framed + 2) break
-        framed = wanted
-        frame.style.width = `${framed}px`
-        void frame.offsetHeight
-        const next = Math.max(doc.documentElement.scrollWidth, doc.body.scrollWidth)
-        if (next <= contentW + 2) { contentW = next; break }
-        contentW = next
-      }
-    }
-    const fitScale = framed === availW ? 1 : Math.min(1, availW / framed)
+    // The width the message insists on, measured in a frame exactly as wide as the
+    // column. Mail that reflows answers `availW`; a fixed 600px newsletter answers 600.
+    const naturalW = Math.max(docEl.scrollWidth, bodyEl.scrollWidth)
+    const layoutW = Math.min(Math.max(naturalW, availW), FRAME_MAX_WIDTH)
+    const fitScale = layoutW > availW + 2 ? Math.min(1, availW / layoutW) : 1
 
-    const contentH = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight)
+    // Height is measured at the width it will actually be laid out at, never at the
+    // squeezed one, or the scale is computed from the wrong aspect ratio.
+    if (layoutW > availW + 2) {
+      bodyEl.style.width = `${layoutW}px`
+      void frame.offsetHeight
+    }
+    const contentH = Math.max(docEl.scrollHeight, bodyEl.scrollHeight)
+
     const top = wrap.getBoundingClientRect().top
     const availH = Math.max(window.innerHeight - top - 20, 200)
     const wholeScale = Math.min(fitScale, availH / contentH)
 
     let scale = fitScale
     let mode = fitScale < 0.985 ? 'fit' : 'full'
-    if (override === 'full') {
-      scale = 1
-      mode = 'full'
-    } else if (override === 'whole') {
+    if (override === 'whole') {
       scale = wholeScale
       mode = 'whole'
     } else if (wholeScale >= 0.92) {
@@ -242,25 +238,36 @@ function MailFrame({ html }) {
       mode = 'whole'
     }
 
-    frame.style.height = `${contentH}px`
-    frame.style.transformOrigin = 'top left'
-    frame.style.transform = scale === 1 ? 'none' : `scale(${scale})`
-    wrap.style.height = `${Math.ceil(contentH * scale)}px`
-    wrap.style.overflowX = framed > availW ? 'auto' : 'hidden'
+    // Shrink the message *inside* a frame that is never wider than the column. Widening
+    // the frame instead was the bug that put a 600px message into the reader's scroll
+    // area — whose content wrapper is a table that sizes to its widest child — so the
+    // whole page grew past the screen and the app's own header was cut off with it.
+    if (scale < 1) {
+      bodyEl.style.transform = `scale(${scale})`
+      bodyEl.style.transformOrigin = 'top left'
+      docEl.style.overflowX = 'hidden'
+    }
+    const renderedH = Math.ceil(contentH * scale)
+    frame.style.height = `${renderedH}px`
+    wrap.style.height = `${renderedH}px`
+    wrap.style.overflowX = 'hidden'
     wrap.dataset.scale = scale.toFixed(3)
     wrap.dataset.mode = mode
-    wrap.dataset.framed = String(framed)
-    wrap.dataset.content = `${contentW}x${contentH}`
+    wrap.dataset.layout = String(Math.round(layoutW))
+    wrap.dataset.content = `${Math.round(naturalW)}x${Math.round(contentH)}`
 
     lastWidth.current = availW
     setView({
       scale,
       mode,
+      layout: Math.round(layoutW),
       canFitWhole: wholeScale >= 0.75 && wholeScale < fitScale - 0.02,
     })
   }, [override])
 
-  measureRef.current = measure
+  useEffect(() => {
+    measureRef.current = measure
+  }, [measure])
 
   useEffect(() => {
     const wrap = wrapRef.current
@@ -292,7 +299,6 @@ function MailFrame({ html }) {
     }
   }, [src])
 
-  const showingFull = override === 'full'
   const isScaled = view.scale < 0.985
 
   return (
@@ -310,18 +316,17 @@ function MailFrame({ html }) {
           style={{ height: 10 }}
         />
       </div>
-      {(isScaled || showingFull || view.canFitWhole) && (
+      {(isScaled || view.canFitWhole) && (
         <div className="mt-2 space-y-1.5">
-          {(isScaled || showingFull) && (
-            <button
-              type="button"
-              onClick={() => setOverride(showingFull ? null : 'full')}
-              className="min-h-11 w-full rounded-md border border-line px-3 text-[12.5px] text-ink-2 transition-colors duration-120 hover:bg-accent hover:text-ink-1"
-            >
-              {showingFull ? 'Fit the message to the screen' : 'Show it at full size'}
-            </button>
+          {isScaled && (
+            // Say so rather than let a reader wonder why the type is small: this is a
+            // message with a fixed layout, shown complete instead of cut in half.
+            <p className="text-[11.5px] text-ink-3">
+              This message is laid out at {view.layout} px and shown
+              at {Math.round(view.scale * 100)}% so none of it is cut off.
+            </p>
           )}
-          {view.canFitWhole && !showingFull && (
+          {view.canFitWhole && (
             <button
               type="button"
               onClick={() => setOverride(override === 'whole' ? null : 'whole')}

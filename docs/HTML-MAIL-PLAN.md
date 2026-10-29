@@ -187,6 +187,20 @@ photographed — measures at 390×844: message spans y=392 to **y=809** of 844, 
 `insideClip 0`, the six-digit code present and legible, no page overflow. The whole email
 is on one screen, not a reflowed slice of one.
 
+### The frame must never be wider than the column
+
+The first version of the renderer widened the iframe to the message's own width when it
+could not reflow, and scaled the *element*. On the user's phone that produced a page
+wider than the screen: the reader's scroll-area content wrapper is a table that sizes to
+its widest child, so a 620px frame pushed the page to 620px — and the app's own header
+timestamp was cut off with it, which is what the screenshot showed. A message is now laid
+out at its own width *inside* a frame that is always exactly the column's width, and the
+document body is scaled in place (`transform` on `<body>`, `overflow-x: hidden`).
+
+Verified on a deliberately unreflowable 620px message at 390px: frame 342 = column 342,
+`frameOutsideColumn 0`, page `scrollWidth 390`, header timestamp fully visible, message
+shown at 55% with a one-line note underneath saying so.
+
 ## 9. What this plan will not do
 
 - It will not make an 8,000 px newsletter fit one screen at readable size. Nothing can;
