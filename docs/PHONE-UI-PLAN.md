@@ -128,11 +128,18 @@ equals the viewport at both, rail `offsetParent` null (hidden), tapping Delete a
 mounts **1** section with the back control present. Desktop unchanged (rail, all
 sections stacked).
 
-**Slice 2 — Flatten the settings cards.**
-One card per section, fields inside it, no inner card. Suppress the duplicated
-section heading on phones (the active nav row already says it).
-*Done when:* no section renders a bordered box inside a bordered box, and each
-screen shows one heading at the top.
+**Slice 2 — Flatten the settings cards. DONE** (`3d75fbb`, `bfbe98c`, `50c0865`).
+Nine sections put a bordered panel inside the bordered section card — a box in a box on
+a 390 px screen. Each inner panel keeps its surface and loses the outline; form fields
+keep their borders, because a field without one stops looking like something you can
+type in. The panel surface is `bg-secondary/60`, not `bg-background/50`: measured, the
+page colour at half opacity is nearly invisible in the light theme (#f6f6f0 on #ffffff)
+while the secondary token is one step from the card in both (#1f261d on #161c15,
+#eaede2 on #ffffff). The phone also stops naming the section twice — the app bar
+carries it, so the `h2` is suppressed there and the note stays.
+*Measured:* all 14 sections report **0** bordered panels inside the section card
+(inputs, buttons and links excluded from the count), **0** `h2` on a phone, page
+`scrollWidth` equals the viewport. Dark and light both resolve a visible panel surface.
 
 **Slice 3 — Reader action bar.**
 A sticky bottom bar on phones — Reply, Reply all, Forward — above the safe-area
