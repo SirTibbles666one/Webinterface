@@ -15,7 +15,7 @@ export function useEmailActions({ emailMeta, setEmailMeta, setUids, setPreviews,
     patchMeta(uid, { unread: false })
     try {
       const token = storage.getToken()
-      await api.post('/email/read', `{"uid":${uid}}`, { headers: { Authorization: `Bearer ${token}` } })
+      await api.post('/email/read', `{"uid":"${uid}"}`, { headers: { Authorization: `Bearer ${token}` } })
     } catch {}
   }
 
@@ -23,7 +23,7 @@ export function useEmailActions({ emailMeta, setEmailMeta, setUids, setPreviews,
     patchMeta(uid, { unread: true })
     try {
       const token = storage.getToken()
-      await api.post('/email/unread', `{"uid":${uid}}`, { headers: { Authorization: `Bearer ${token}` } })
+      await api.post('/email/unread', `{"uid":"${uid}"}`, { headers: { Authorization: `Bearer ${token}` } })
     } catch {}
   }
 
@@ -34,7 +34,7 @@ export function useEmailActions({ emailMeta, setEmailMeta, setUids, setPreviews,
       const token = storage.getToken()
       await api.post(
         '/email/star',
-        `{"uid":${uid},"starred":${next}}`,
+        `{"uid":"${uid}","starred":${next}}`,
         { headers: { Authorization: `Bearer ${token}` } },
       )
     } catch {}
@@ -44,7 +44,7 @@ export function useEmailActions({ emailMeta, setEmailMeta, setUids, setPreviews,
     try {
       const token = storage.getToken()
       const headers = { Authorization: `Bearer ${token}` }
-      await api.post('/email/delete', `{"uid":${uid}}`, { headers })
+      await api.post('/email/delete', `{"uid":"${uid}"}`, { headers })
       for (const g of groups) {
         if (g.email_uids.includes(uid)) {
           try { await api.post('/group/remove-email', `{"group_uid":${g.uid},"email_uid":${uid}}`, { headers }) } catch {}

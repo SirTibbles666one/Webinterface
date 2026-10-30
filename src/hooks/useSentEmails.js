@@ -33,7 +33,7 @@ export function useSentEmails(setPreviews) {
       const token = storage.getToken()
       const bulkRes = await api.post(
         '/email/sent/bulk',
-        `{"uids":[${uids.join(',')}]}`,
+        `{"uids":[${uids.map((u) => `"${u}"`).join(',')}]}`,
         { headers: { Authorization: `Bearer ${token}` } },
       )
       const privateKey = await keySession.get()

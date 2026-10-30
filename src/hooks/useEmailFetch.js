@@ -34,7 +34,7 @@ export function useEmailFetch() {
       if (newUids.length > 0) {
         const bulkRes = await api.post(
           '/email/bulk',
-          `{"uids":[${newUids.join(',')}]}`,
+          `{"uids":[${newUids.map((u) => `"${u}"`).join(',')}]}`,
           { headers: { Authorization: `Bearer ${token}` } },
         )
         const privateKey = await keySession.get()

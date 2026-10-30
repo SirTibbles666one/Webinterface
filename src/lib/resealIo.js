@@ -37,7 +37,7 @@ export async function makeResealIo(status) {
     status: async () => (await api.get('/pq/migration', jsonBody())).data,
 
     fetchMessage: async (uid) => {
-      const { data } = await api.post('/email/get', `{"uid":${uid}}`, jsonBody())
+      const { data } = await api.post('/email/get', `{"uid":"${uid}"}`, jsonBody())
       return { data: data.data, messageKey: data.message_key ?? null }
     },
 
@@ -50,7 +50,7 @@ export async function makeResealIo(status) {
       // uid is a u128: as a JSON number it is fine inside the text, but through
       // JSON.stringify a JS number would lose precision and an object would send
       // it as a quoted string, which the server rejects.
-      await api.post('/email/set', `{"uid":${uid},"data":${JSON.stringify(sealed.data)},"message_key":${JSON.stringify(sealed.messageKey)}}`, jsonBody())
+      await api.post('/email/set', `{"uid":"${uid}","data":${JSON.stringify(sealed.data)},"message_key":${JSON.stringify(sealed.messageKey)}}`, jsonBody())
     },
   }
 

@@ -295,7 +295,7 @@ const AuthorizedLayout = () => {
     const headers = { Authorization: `Bearer ${token}` }
     await Promise.all(toDelete.map(async (uid) => {
       try {
-        await api.post('/email/delete', `{"uid":${uid}}`, { headers })
+        await api.post('/email/delete', `{"uid":"${uid}"}`, { headers })
         for (const g of groups) {
           if (g.email_uids.includes(uid)) {
             try { await api.post('/group/remove-email', `{"group_uid":${g.uid},"email_uid":${uid}}`, { headers }) } catch {}

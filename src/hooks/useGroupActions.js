@@ -18,7 +18,7 @@ export function useGroupActions({ setGroups, setSelectedFolder, setModalState })
     if (!name) return
     try {
       const token = storage.getToken()
-      const res = await api.post('/group/update', `{"uid":${uid},"title":${JSON.stringify(name)}}`, {
+      const res = await api.post('/group/update', `{"uid":"${uid}","title":${JSON.stringify(name)}}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       setGroups((prev) => prev.map((g) => (g.uid === uid ? res.data : g)))
@@ -29,7 +29,7 @@ export function useGroupActions({ setGroups, setSelectedFolder, setModalState })
   const deleteGroup = async (uid) => {
     try {
       const token = storage.getToken()
-      await api.post('/group/delete', `{"uid":${uid}}`, {
+      await api.post('/group/delete', `{"uid":"${uid}"}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       setGroups((prev) => prev.filter((g) => g.uid !== uid))

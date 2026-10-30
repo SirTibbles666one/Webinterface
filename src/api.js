@@ -208,7 +208,7 @@ export const emailListAll = async () => {
 
 export const emailGetRaw = async (uid) => {
   const token = storage.getToken()
-  const response = await api.post('/email/get', `{"uid":${uid}}`, {
+  const response = await api.post('/email/get', `{"uid":"${uid}"}`, {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   })
   return { data: response.data.data, message_key: response.data.message_key }
@@ -217,8 +217,8 @@ export const emailGetRaw = async (uid) => {
 export const emailSetRaw = async (uid, data, messageKey) => {
   const token = storage.getToken()
   const bodyStr = messageKey
-    ? `{"uid":${uid},"data":"${data}","message_key":"${messageKey}"}`
-    : `{"uid":${uid},"data":"${data}"}`
+    ? `{"uid":"${uid}","data":"${data}","message_key":"${messageKey}"}`
+    : `{"uid":"${uid}","data":"${data}"}`
   const response = await api.post('/email/set', bodyStr, {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   })

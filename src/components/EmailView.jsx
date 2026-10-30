@@ -132,7 +132,7 @@ const EmailView = ({
     ;(async () => {
       try {
         const endpoint = selectedFolder === 'sent' ? '/email/sent/get' : '/email/get'
-        const res = await api.post(endpoint, `{"uid":${uid}}`, {
+        const res = await api.post(endpoint, `{"uid":"${uid}"}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         const privateKey = await keySession.get()
