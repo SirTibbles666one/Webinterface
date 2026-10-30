@@ -250,10 +250,12 @@ async function main() {
           parent: box(parent),
           parentChildren: [...parent.children].map((c) => c.tagName + '.' + (c.className || '').toString().slice(0, 22) + ' ' + box(c)),
           grid: parent.parentElement ? box(parent.parentElement) : null,
+          rowBox: (() => { const b = row.getBoundingClientRect(); const cs = getComputedStyle(row); return Math.round(b.width) + 'w@' + Math.round(b.left) + ' pad:' + cs.paddingLeft + '/' + cs.paddingRight; })(),
           style: (() => { const cs = getComputedStyle(el); return cs.display + ' ov:' + cs.overflow + ' clamp:' + (cs.webkitLineClamp || '-') + ' te:' + cs.textOverflow + ' ws:' + cs.whiteSpace; })(),
         });
       }
-      return out.slice(0, 6);
+      return { rows: out.slice(0, 2), innerWidth: window.innerWidth, clientWidth: document.documentElement.clientWidth,
+               scrollbar: window.innerWidth - document.documentElement.clientWidth };
     })()`)
     console.log('MEASURE', JSON.stringify(detail, null, 1))
   }
