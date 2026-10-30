@@ -144,7 +144,13 @@ export function EmailListItem({
 
       {/* Two columns of information on a wide screen, two lines on a phone —
           both aligned to the same gutters as the toolbar above. */}
-      <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-0.5 @[520px]:grid-cols-[minmax(0,180px)_minmax(0,1fr)_auto]">
+      <div
+        /* The gap is only worth having when something sits in the second column: an
+           empty time cell still cost 16px of the sender's line. */
+        className={`grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-y-0.5 @[520px]:grid-cols-[minmax(0,180px)_minmax(0,1fr)_auto] ${
+          stamped ? 'gap-x-4' : 'gap-x-0'
+        }`}
+      >
         <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-1.5">
           {/* The unread mark belongs to the sender line, not to a column of its own:
               keep it inline and the avatar can sit on the page gutter instead of being
@@ -169,7 +175,7 @@ export function EmailListItem({
             to row and left the dates ragged on the left edge. */}
         <span
           className={`col-start-2 row-start-1 shrink-0 justify-self-end whitespace-nowrap text-right mono tabular-nums text-[12px] text-ink-3 @[520px]:col-start-3 ${
-            stamped ? 'w-[52px]' : 'w-0'
+            stamped ? 'w-[52px]' : 'hidden'
           }`}
         >
           {stamped}
