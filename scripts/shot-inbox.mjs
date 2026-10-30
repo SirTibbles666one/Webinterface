@@ -226,6 +226,38 @@ async function main() {
     console.log('  shot:', await shot(`inbox-${vp.tag}`))
   }
 
+  // Why exactly this row stops short: geometry, not a guess.
+  if (process.env.MEASURE_ROW) {
+    await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 700, deviceScaleFactor: 2, mobile: true })
+    await send('Page.navigate', { url: `${WEB}/` })
+    await sleep(2200)
+    const detail = await evalJS(`(() => {
+      const rows = [...document.querySelectorAll('[data-uid], li[role="button"], .mail-row')];
+      const out = [];
+      for (const row of rows) {
+        // The subject is the first line that is not the sender: find the truncating node.
+        const leaves = [...row.querySelectorAll('.truncate, p, span')].filter(
+          (el) => el.children.length === 0 && !/sr-only/.test(el.className) && (el.textContent || '').trim(),
+        ).sort((x, y) => (y.textContent || '').length - (x.textContent || '').length);
+        const truncs = leaves.slice(0, 1);
+        if (!truncs.length) continue;
+        const el = truncs[0];
+        const parent = el.parentElement;
+        const box = (n) => { const b = n.getBoundingClientRect(); return Math.round(b.width) + 'w@' + Math.round(b.left); };
+        out.push({
+          text: (el.textContent || ''),
+          el: box(el), client: el.clientWidth, scroll: el.scrollWidth,
+          parent: box(parent),
+          parentChildren: [...parent.children].map((c) => c.tagName + '.' + (c.className || '').toString().slice(0, 22) + ' ' + box(c)),
+          grid: parent.parentElement ? box(parent.parentElement) : null,
+          style: (() => { const cs = getComputedStyle(el); return cs.display + ' ov:' + cs.overflow + ' clamp:' + (cs.webkitLineClamp || '-') + ' te:' + cs.textOverflow + ' ws:' + cs.whiteSpace; })(),
+        });
+      }
+      return out.slice(0, 6);
+    })()`)
+    console.log('MEASURE', JSON.stringify(detail, null, 1))
+  }
+
   // The reader, which the pass also touches.
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 700, deviceScaleFactor: 2, mobile: true })
   await send('Page.navigate', { url: `${WEB}/` })
