@@ -117,7 +117,7 @@ export function EmailListItem({
         }`}
       />
 
-      <div className="flex w-4 shrink-0 items-center justify-center self-stretch max-sm:w-6">
+      <div className="flex w-4 shrink-0 items-center justify-center self-stretch max-sm:hidden">
         <button
           type="button"
           aria-label={isChecked ? 'Unselect message' : 'Select message'}
@@ -142,22 +142,19 @@ export function EmailListItem({
 
       <SenderAvatar from={preview?.from} isSelected={isSelected} />
 
-      {/* One dot slot for the whole column: the unread mark lands in the same
-          place on every row, so the eye reads a straight edge rather than dots
-          scattered after subjects of different lengths. */}
-      {/* Aligned to the sender's first line, not to the middle of a three-line row:
-          a dot floating between lines reads as a stray mark. */}
-      <span className="flex w-1.5 shrink-0 justify-center self-start pt-[7px]" aria-hidden={!isUnread}>
-        <span
-          className={`size-1.5 rounded-full bg-primary transition-opacity duration-200 ${isUnread ? 'opacity-100' : 'opacity-0'}`}
-        />
-        {isUnread && <span className="sr-only">Unread</span>}
-      </span>
-
       {/* Two columns of information on a wide screen, two lines on a phone —
           both aligned to the same gutters as the toolbar above. */}
       <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-0.5 @[520px]:grid-cols-[minmax(0,180px)_minmax(0,1fr)_auto]">
         <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-1.5">
+          {/* The unread mark belongs to the sender line, not to a column of its own:
+              keep it inline and the avatar can sit on the page gutter instead of being
+              pushed right by a slot that exists for one 6px dot. */}
+          <span className="flex w-1.5 shrink-0 justify-center" aria-hidden={!isUnread}>
+            <span
+              className={`size-1.5 rounded-full bg-primary transition-opacity duration-200 ${isUnread ? 'opacity-100' : 'opacity-0'}`}
+            />
+            {isUnread && <span className="sr-only">Unread</span>}
+          </span>
           <span className={`truncate text-[13.5px] ${unreadWeight} ${undecryptable ? 'text-sand' : 'text-ink-1'}`}>
             {undecryptable ? 'Encrypted message' : senderLabel}
           </span>
