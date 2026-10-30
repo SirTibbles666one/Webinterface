@@ -24,7 +24,7 @@ import {
   exportPrivateKey,
   publishableKey,
 } from '@/pgp'
-import { wkdUrl, publishToKeyserver } from '@/lib/wkd'
+import { wkdUrl, wkdHash, publishToKeyserver } from '@/lib/wkd'
 import { pgpPublishWkd, pgpWkdStatus } from '@/api'
 import { copyWithToast } from '@/lib/toast'
 
@@ -180,14 +180,19 @@ export default function KeysSection({ accountEmail }) {
     setError('')
     try {
       const { keyB64, fingerprint, email } = await publishableKey()
-      const url = await wkdUrl(email)
-      const hash = url.split('/')[3]
+      // The hash is the address's z-base-32 digest, not a slice of the URL: the WKD
+      // URL is the advanced /.well-known/ form, so index 3 of it is ".well-known".
+      // Sending that made the server reject every publish with a bare 400.
+      const hash = await wkdHash(email)
       await pgpPublishWkd({ hash, key_b64: keyB64, email, fingerprint })
       const status = await pgpWkdStatus()
       setWkd(status)
       setNotice(`Published for ${email}`)
     } catch (err) {
-      setError(err.message || 'Could not publish the key')
+      // Say what the server said. "Request failed with status code 400" is a
+      // description of axios, not of the problem.
+      const serverSays = err?.response?.data?.message || err?.response?.data?.error
+      setError(serverSays || err.message || 'Could not publish the key')
     } finally {
       setWkdBusy(false)
     }
