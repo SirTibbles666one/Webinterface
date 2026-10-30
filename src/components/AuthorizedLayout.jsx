@@ -526,7 +526,11 @@ const AuthorizedLayout = () => {
             onOpen={() => navigate('/settings')}
             onDismiss={dismissSetup}
           />
-          <div className="flex-1 flex min-h-0">
+          <div
+            /* The phone bar is fixed to the bottom edge; reserve its height here so the
+               list ends above it instead of being clipped mid-row behind it. */
+            className="flex-1 flex min-h-0 max-sm:pb-[72px]"
+          >
             {/* With nothing open the list takes the whole width. An empty reading
                 pane on a resting screen is half the app showing nothing. */}
             <div
