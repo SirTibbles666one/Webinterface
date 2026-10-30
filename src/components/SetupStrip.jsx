@@ -29,7 +29,10 @@ export default function SetupStrip({ items, onOpen, onDismiss }) {
             {/* Two names and a count, never a comma list clipped mid-word: the strip is
                 one line on a phone, and "Recovery key, OpenPGP key,..." told the reader
                 neither what the third thing was nor that there was a third thing. */}
-            <span className="text-ink-3">
+            {/* On a phone there is room for the count only; two names plus "and 1 more"
+                still ran to "…an…" at 390px, and a clipped word is worse than no names.
+                The names are already one tap away in the expanded list. */}
+            <span className="hidden text-ink-3 sm:inline">
               {' — '}
               {items.slice(0, 2).map((i) => i.label).join(', ')}
               {items.length > 2 ? ` and ${items.length - 2} more` : ''}
