@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X } from 'lucide-react'
+import { PenLine, X } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import EmailList from '@/components/EmailList'
 import ScheduledPanel from '@/components/ScheduledPanel'
@@ -638,6 +638,21 @@ const AuthorizedLayout = () => {
           </div>
         </div>
       </div>
+
+      {/* On a phone the only way to start a message was the hamburger drawer. The
+          action that defines the app belongs on the screen, not one tap inside a menu. */}
+      {!composeOpen && !selectedUid && (
+        <button
+          type="button"
+          onClick={() => setComposeOpen(true)}
+          aria-label="New message"
+          data-testid="compose-fab"
+          className="fixed right-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-black/30 transition-transform duration-120 active:scale-95 sm:hidden"
+          style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+        >
+          <PenLine className="size-5" strokeWidth={2.2} />
+        </button>
+      )}
 
       <InputModal
         isOpen={modalState.type === 'create-group'}

@@ -108,7 +108,7 @@ const EmailList = ({
 
   return (
     <div className="flex h-full flex-col bg-background">
-      <div className="custom-scrollbar flex-1 overflow-y-auto">
+      <div className="custom-scrollbar flex-1 overflow-y-auto pb-24 sm:pb-0">
         <div className="mx-auto w-full max-w-[1040px]">
         {showSkeleton && (
           <div>
