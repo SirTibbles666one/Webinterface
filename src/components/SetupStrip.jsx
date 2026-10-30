@@ -26,7 +26,14 @@ export default function SetupStrip({ items, onOpen, onDismiss }) {
           {open ? <ChevronDown className="mt-[3px] size-3.5 shrink-0 text-ink-3" /> : <ChevronRight className="mt-[3px] size-3.5 shrink-0 text-ink-3" />}
           <span className="truncate max-sm:line-clamp-2 max-sm:whitespace-normal">
             {items.length === 1 ? 'One thing not set up yet' : `${items.length} things not set up yet`}
-            <span className="text-ink-3"> — {items.map((i) => i.label).join(', ')}</span>
+            {/* Two names and a count, never a comma list clipped mid-word: the strip is
+                one line on a phone, and "Recovery key, OpenPGP key,..." told the reader
+                neither what the third thing was nor that there was a third thing. */}
+            <span className="text-ink-3">
+              {' — '}
+              {items.slice(0, 2).map((i) => i.label).join(', ')}
+              {items.length > 2 ? ` and ${items.length - 2} more` : ''}
+            </span>
           </span>
         </button>
 
