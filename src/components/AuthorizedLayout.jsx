@@ -658,14 +658,15 @@ const AuthorizedLayout = () => {
           <button
             type="button"
             onClick={() => setNavOpen(true)}
-            aria-label={inboxUnread ? `Folders, ${inboxUnread} unread` : 'Folders'}
+            aria-label={inboxUnread ? `Folders and mailboxes, ${inboxUnread} unread in the inbox` : 'Folders and mailboxes'}
             className="flex min-h-11 items-center gap-2 rounded-lg px-2 text-[13px] text-ink-2 transition-colors duration-120 active:bg-accent"
           >
             <Inbox className="size-4.5" />
             <span>Folders</span>
-            {inboxUnread > 0 && (
-              <span className="mono rounded bg-secondary px-1.5 text-[11px] text-ink-1">{inboxUnread}</span>
-            )}
+            {/* No badge here. A bare number beside "Folders" reads as a folder count, and
+                the toolbar above already says "6 messages" — two numbers meaning different
+                things, next to each other, is worse than one. */}
+            {inboxUnread > 0 && <span className="sr-only">{inboxUnread} unread</span>}
           </button>
           <button
             type="button"
@@ -675,7 +676,7 @@ const AuthorizedLayout = () => {
             className="flex min-h-11 items-center gap-2 rounded-full bg-primary px-4 text-[13.5px] font-semibold text-primary-foreground transition-transform duration-120 active:scale-[0.98]"
           >
             <PenLine className="size-4" strokeWidth={2.4} />
-            <span>New</span>
+            <span>New mail</span>
           </button>
         </nav>
       )}
