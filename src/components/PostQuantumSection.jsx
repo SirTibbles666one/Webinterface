@@ -176,11 +176,30 @@ export default function PostQuantumSection() {
           )}
 
           {outcome && !resealing && (
-            <p className={`mt-2 text-[11.5px] ${outcome.error || outcome.failed?.length ? 'text-sand' : 'text-ink-2'}`}>
-              {outcome.error
-                ? `Stopped: ${outcome.error}`
-                : `${outcome.resealed} re-sealed${outcome.failed?.length ? `, ${outcome.failed.length} could not be opened and were left as they were` : ''}.`}
-            </p>
+            <div className="mt-2 space-y-1.5">
+              <p className={`text-[11.5px] ${outcome.error || outcome.failed?.length ? 'text-sand' : 'text-ink-2'}`}>
+                {outcome.error
+                  ? `Stopped: ${outcome.error}`
+                  : `${outcome.resealed} re-sealed${outcome.failed?.length ? `, ${outcome.failed.length} could not be opened and were left as they were` : ''}.`}
+              </p>
+              {outcome.failed?.length > 0 && (
+                <ul className="space-y-1 rounded-lg bg-secondary/60 p-2.5" data-testid="pq-failed-list">
+                  {outcome.failed.slice(0, 5).map((f) => (
+                    <li key={String(f.uid)} className="mono text-[11px] leading-relaxed text-ink-2">
+                      message …{String(f.uid).slice(-8)} — {f.reason}
+                    </li>
+                  ))}
+                  {outcome.failed.length > 5 && (
+                    <li className="mono text-[11px] text-ink-3">and {outcome.failed.length - 5} more</li>
+                  )}
+                  <li className="text-[11px] leading-relaxed text-ink-3">
+                    A message like this was sealed to a key this account no longer holds — usually one
+                    from before a key was replaced. Re-sealing it would destroy it, so it is left alone.
+                    A key backup file made before the change can still open it.
+                  </li>
+                </ul>
+              )}
+            </div>
           )}
         </div>
       )}
