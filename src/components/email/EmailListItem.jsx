@@ -17,7 +17,7 @@ import { SenderAvatar } from '@/components/SenderAvatar'
  * A clock for the eye, not a date library: the row is inside a day group, so the
  * only thing worth printing is the time — or the day, for anything older.
  */
-export function rowTime(date) {
+export function rowTime(date, omitDate = false) {
   if (!date) return ''
   const d = date instanceof Date ? date : new Date(date)
   if (Number.isNaN(d.getTime())) return ''
@@ -29,6 +29,9 @@ export function rowTime(date) {
   if (sameDay) {
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
   }
+  // Inside a day group the header already says which day it is; printing the date on every
+  // row repeats it six times and squeezes the name that the row exists to show.
+  if (omitDate) return ''
   const sameYear = d.getFullYear() === now.getFullYear()
   return d.toLocaleDateString([], sameYear ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: '2-digit' })
 }
@@ -51,6 +54,7 @@ const rowBase =
   '@container mail-row group/item relative flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors duration-120 cursor-pointer'
 
 export function EmailListItem({
+  compactTime = false,
   uid,
   preview,
   isSelected,
@@ -86,6 +90,9 @@ export function EmailListItem({
     ? 'bg-[color-mix(in_srgb,var(--color-primary)_9%,transparent)]'
     : 'hover:bg-accent'
   const unreadWeight = isUnread ? 'font-semibold' : 'font-normal'
+  // Empty when the day group above already names the day: the row should spend its
+  // width on the name, not on a date the reader just read.
+  const stamped = rowTime(preview?.date, compactTime)
 
   return (
     <div
@@ -110,7 +117,7 @@ export function EmailListItem({
         }`}
       />
 
-      <div className="flex w-4 shrink-0 items-center justify-center self-stretch max-sm:w-11">
+      <div className="flex w-4 shrink-0 items-center justify-center self-stretch max-sm:w-6">
         <button
           type="button"
           aria-label={isChecked ? 'Unselect message' : 'Select message'}
@@ -163,8 +170,12 @@ export function EmailListItem({
         {/* One width for the column, not three: "14:34" is 36px, "Oct 17" 43, and
             "Sep 24, 25" 72, so an auto column moved the sender's truncation point row
             to row and left the dates ragged on the left edge. */}
-        <span className="col-start-2 row-start-1 w-[72px] shrink-0 justify-self-end whitespace-nowrap text-right mono tabular-nums text-[12px] text-ink-3 @[520px]:col-start-3">
-          {rowTime(preview?.date)}
+        <span
+          className={`col-start-2 row-start-1 shrink-0 justify-self-end whitespace-nowrap text-right mono tabular-nums text-[12px] text-ink-3 @[520px]:col-start-3 ${
+            stamped ? 'w-[52px]' : 'w-0'
+          }`}
+        >
+          {stamped}
         </span>
 
         <div className="col-span-2 row-start-2 min-w-0 @[520px]:col-span-1 @[520px]:col-start-2 @[520px]:row-start-1">

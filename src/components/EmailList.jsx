@@ -60,6 +60,7 @@ const EmailList = ({
 
   const rowProps = (uid) => ({
     uid,
+    compactTime: true,
     preview: previews[uid],
     isSelected: selectedUid === uid,
     isChecked: !!checkedUids?.has(uid),
