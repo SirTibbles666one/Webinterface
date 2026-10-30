@@ -647,8 +647,8 @@ const AuthorizedLayout = () => {
           onClick={() => setComposeOpen(true)}
           aria-label="New message"
           data-testid="compose-fab"
-          className="fixed right-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-black/30 transition-transform duration-120 active:scale-95 sm:hidden"
-          style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+          className="fixed right-4 z-40 flex size-[52px] items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-black/30 transition-transform duration-120 active:scale-95 sm:hidden"
+          style={{ bottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
         >
           <PenLine className="size-5" strokeWidth={2.2} />
         </button>
