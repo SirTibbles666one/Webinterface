@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PenLine, X } from 'lucide-react'
+import { Inbox, PenLine, X } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import EmailList from '@/components/EmailList'
 import ScheduledPanel from '@/components/ScheduledPanel'
@@ -223,6 +223,11 @@ const AuthorizedLayout = () => {
   }, [visibleUids, filterMode, searchQuery, emailMeta, previews, selectedFolder])
 
   const totalFiltered = filteredUids.length
+  // The bar's badge counts what the inbox holds, not whatever list happens to be open.
+  const inboxUnread = useMemo(
+    () => (selectedFolder === 'inbox' ? uids.filter((uid) => emailMeta[uid]?.unread !== false).length : 0),
+    [uids, emailMeta, selectedFolder],
+  )
   const pageCount = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE))
   const safePage = Math.min(page, pageCount - 1)
   const pageStart = totalFiltered === 0 ? 0 : safePage * PAGE_SIZE + 1
@@ -639,19 +644,40 @@ const AuthorizedLayout = () => {
         </div>
       </div>
 
-      {/* On a phone the only way to start a message was the hamburger drawer. The
-          action that defines the app belongs on the screen, not one tap inside a menu. */}
+      {/* A phone gets a bar, not a floating button: the action that defines the app on
+          the right, and the drawer's only other job — switching folder — on the left,
+          where a thumb can reach it. Hidden while composing or reading, because both
+          take the bottom of the screen for themselves. */}
       {!composeOpen && !selectedUid && (
-        <button
-          type="button"
-          onClick={() => setComposeOpen(true)}
-          aria-label="New message"
-          data-testid="compose-fab"
-          className="fixed right-4 z-40 flex size-[52px] items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-black/30 transition-transform duration-120 active:scale-95 sm:hidden"
-          style={{ bottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+        <nav
+          aria-label="Mail actions"
+          data-testid="phone-bar"
+          className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-line bg-card/95 px-4 backdrop-blur sm:hidden"
+          style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))', paddingTop: '0.5rem' }}
         >
-          <PenLine className="size-5" strokeWidth={2.2} />
-        </button>
+          <button
+            type="button"
+            onClick={() => setNavOpen(true)}
+            aria-label={inboxUnread ? `Folders, ${inboxUnread} unread` : 'Folders'}
+            className="flex min-h-11 items-center gap-2 rounded-lg px-2 text-[13px] text-ink-2 transition-colors duration-120 active:bg-accent"
+          >
+            <Inbox className="size-4.5" />
+            <span>Folders</span>
+            {inboxUnread > 0 && (
+              <span className="mono rounded bg-secondary px-1.5 text-[11px] text-ink-1">{inboxUnread}</span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setComposeOpen(true)}
+            aria-label="New message"
+            data-testid="compose-fab"
+            className="flex min-h-11 items-center gap-2 rounded-full bg-primary px-4 text-[13.5px] font-semibold text-primary-foreground transition-transform duration-120 active:scale-[0.98]"
+          >
+            <PenLine className="size-4" strokeWidth={2.4} />
+            <span>New</span>
+          </button>
+        </nav>
       )}
 
       <InputModal
