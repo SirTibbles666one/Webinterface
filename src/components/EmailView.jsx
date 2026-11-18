@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
+import { debugLog } from '@/lib/debug'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenuRoot,
@@ -263,7 +264,7 @@ const EmailView = ({
           }
         }
       } catch (err) {
-        console.error('[EmailView] Failed to load/decrypt email uid=%s:', uid, err)
+        debugLog('[EmailView] Failed to load/decrypt email uid=%s:', uid, err)
         setEmail(null)
         setError(
           err?.response?.data?.code === 'email_not_found'

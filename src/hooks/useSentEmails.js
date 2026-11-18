@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
+import { debugLog } from '@/lib/debug'
 import { storage } from '@/storage'
 import { keySession } from '@/keySession'
 import api from '@/api'
@@ -42,7 +43,7 @@ export function useSentEmails(setPreviews) {
         bulkRes.data.emails.map(async ({ uid, data, message_key, received_at }) => {
           try {
             if (!privateKey) {
-              console.warn('[useSentEmails] Private key unavailable, cannot decrypt uid=%s', uid)
+              debugLog('[useSentEmails] Private key unavailable, cannot decrypt uid=%s', uid)
               newPreviews[uid] = { subject: '(key unavailable)', from: null, date: received_at ? new Date(received_at) : null, preview: '', attachments: [], decryptFailed: true }
               return
             }
@@ -61,7 +62,7 @@ export function useSentEmails(setPreviews) {
               e2ee:        parsed?.e2ee        ?? false,
             }
           } catch (err) {
-            console.error('[useSentEmails] Failed to decrypt uid=%s:', uid, err)
+            debugLog('[useSentEmails] Failed to decrypt uid=%s:', uid, err)
             // "(encrypted)" reads as "your mailbox is locked" whatever the real cause. A missing
           // post-quantum key is a different sentence and a different fix, so keep the code.
           const code = err?.code || ''

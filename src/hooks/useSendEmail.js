@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { debugLog } from '@/lib/debug'
 import api from '@/api'
 import { verifyProof, pinHead, pinnedHead, headRegressed, verifyHeadExtension } from '@/kt'
 import { storage } from '@/storage'
@@ -210,7 +211,7 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
           })
           return { ...payload, data_encrypted: toB64(envelope) }
         } catch (error) {
-          console.warn('[send] could not sign the copy for', recipient, error?.message)
+          debugLog('[send] could not sign the copy for', recipient, error?.message)
           return payload
         }
       }

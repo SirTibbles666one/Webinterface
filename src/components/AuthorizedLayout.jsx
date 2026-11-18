@@ -552,7 +552,6 @@ const AuthorizedLayout = () => {
   const handleLogout = () => {
     keySession.clear()
     storage.clear()
-    console.log('[Logout] localStorage after clear:', JSON.stringify(JSON.parse(localStorage.getItem('openneutron') || '{}')))
     window.location.reload()
   }
 
