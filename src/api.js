@@ -436,6 +436,59 @@ export const deleteAlias = async (local) => {
   return response.data
 }
 
+// Messages put away until a time you chose. The server leaves a snoozed message
+// out of every other folder, so this list is the only place it appears — and a
+// reload is not what brings it back, the clock is.
+export const listSnoozed = async () => {
+  const token = storage.getToken()
+  const response = await api.post('/email/snoozed', {}, { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
+export const snoozeEmail = async (uid, until) => {
+  const token = storage.getToken()
+  const response = await api.post('/email/snooze', { uid, until }, { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
+export const unsnoozeEmail = async (uid) => {
+  const token = storage.getToken()
+  const response = await api.post('/email/unsnooze', { uid }, { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
+// Named mailboxes: a set of the account's own address and aliases, read together.
+// The server decides what the caller may put in one, and says so with its own
+// error rather than letting the client guess.
+export const listMailboxes = async () => {
+  const token = storage.getToken()
+  const response = await api.get('/mailboxes', { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
+export const saveMailbox = async (name, addresses) => {
+  const token = storage.getToken()
+  const response = await api.post('/mailboxes', { name, addresses }, { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
+export const deleteMailbox = async (name) => {
+  const token = storage.getToken()
+  const response = await api.post('/mailboxes/delete', { name }, { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
+// Switching an account off is a reversible deny: the mail stays, sign-in stops.
+export const adminSetSuspended = async (username, suspended, reason = '') => {
+  const token = storage.getToken()
+  const response = await api.post(
+    '/admin/users/suspend',
+    { username, suspended, reason },
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+  return response.data
+}
+
 export const userRevokeSession = async (id) => {
   const token = storage.getToken()
   const response = await api.post('/user/sessions/revoke', { id }, { headers: { Authorization: `Bearer ${token}` } })

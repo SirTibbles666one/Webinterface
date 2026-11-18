@@ -1,5 +1,5 @@
 
-export const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024
+export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
 
 export function utf8ToBase64(str) {
   const bytes = new TextEncoder().encode(str)

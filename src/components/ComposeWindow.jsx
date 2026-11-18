@@ -671,7 +671,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-primary/10 border-2 border-dashed border-primary/50 rounded-lg pointer-events-none">
                 <Paperclip className="w-8 h-8 text-primary/70" />
                 <span className="text-sm font-medium text-primary/80">Drop files to attach</span>
-                <span className="text-xs text-primary/60">Max 20 MB per file</span>
+                <span className="text-xs text-primary/60">Max 25 MB per file</span>
               </div>
             )}
 
@@ -989,7 +989,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isSendBlocked}
                   className="p-2 sm:p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40"
-                  title="Attach files (max 20 MB each)"
+                  title="Attach files (max 25 MB each)"
                   aria-label="Attach files"
                 >
                   <Paperclip className="w-4 h-4" />
