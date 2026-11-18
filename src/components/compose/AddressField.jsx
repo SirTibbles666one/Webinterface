@@ -7,20 +7,22 @@ function Chip({ addr, onRemove }) {
   const valid = isValidEmail(addr)
   return (
     <span
-      // A phone cannot hover, so `title` never shows the full address. On small screens the
-      // chip wraps to at most two lines instead of clipping the domain off mid-word.
-      className={`inline-flex items-center gap-1 rounded border text-sm max-w-[220px] truncate px-2 py-0.5 max-sm:max-w-full max-sm:items-start max-sm:whitespace-normal max-sm:break-all max-sm:line-clamp-2 ${
+      // One row on every screen: the address truncates and the remove button stays pinned
+      // to the right. It shipped wrapping to two lines on phones, which pushed the × onto
+      // its own line and turned one address into a 120px box.
+      className={`inline-flex items-center gap-1 rounded border text-sm max-w-[220px] px-2 py-0.5 max-sm:h-11 max-sm:w-full max-sm:max-w-full max-sm:px-3 ${
         valid
           ? 'bg-primary/10 border-primary/25 text-foreground/90'
           : 'bg-destructive/10 border-destructive/30 text-destructive'
       }`}
       title={addr}
     >
-      <span className="truncate max-sm:whitespace-normal max-sm:break-all">{addr}</span>
+      <span className="min-w-0 flex-1 truncate text-left">{addr}</span>
       <button
         type="button"
         onClick={onRemove}
-        className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+        aria-label={`Remove ${addr}`}
+        className="shrink-0 opacity-60 transition-opacity hover:opacity-100 max-sm:flex max-sm:min-h-11 max-sm:min-w-11 max-sm:items-center max-sm:justify-center"
       >
         <X className="w-3 h-3" />
       </button>
