@@ -41,6 +41,7 @@ import { downloadAttachment } from '@/lib/utils'
 import { unpack, verifyEnvelope, fromB64 } from '@/lib/msgSign'
 import { verifyBytes } from '@/lib/sigKey'
 import { signatureState } from '@/lib/verifyMessage'
+import { userFacingError } from '@/lib/userError'
 import { addressBook } from '@/addressBook'
 import { SenderAvatar } from '@/components/SenderAvatar'
 import { EmailBody } from '@/components/email/EmailBody'
@@ -258,7 +259,7 @@ const EmailView = ({
         setEmail(null)
         setError(err?.response?.data?.code === 'email_not_found'
           ? 'This message no longer exists. If it was a disappearing message, it was deleted after it was read.'
-          : (err?.message ?? 'Unknown error'))
+          : userFacingError(err, { fallback: 'This message could not be opened. Try again in a moment.' }))
       } finally {
         setLoading(false)
       }

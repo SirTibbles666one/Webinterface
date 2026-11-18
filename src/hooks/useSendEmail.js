@@ -8,6 +8,7 @@ import { buildEmail } from '@/lib/emailBuilder'
 import { loadProfile, formatSender } from '@/lib/profile'
 import { sessionSigningKey, signBytes } from '@/lib/sigKey'
 import { signEnvelope, toB64, fromB64 } from '@/lib/msgSign'
+import { userFacingError } from '@/lib/userError'
 import { utf8ToBase64 } from '@/lib/mime'
 import { isValidEmail } from '@/lib/utils'
 
@@ -425,7 +426,7 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
       setSendState('done')
       setTimeout(() => onClose(null), 2000)
     } catch (err) {
-      reportError(err.response?.data?.error ?? err.message ?? 'Send failed. Please try again.')
+      reportError(userFacingError(err, { fallback: 'Send failed. Please try again.' }))
     }
   }
 

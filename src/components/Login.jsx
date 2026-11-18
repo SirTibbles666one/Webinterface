@@ -15,6 +15,7 @@ import { Mail } from 'lucide-react'
 import SlothMark from '@/components/SlothMark'
 import { cryptoUnavailableMessage } from '@/lib/cryptoFailure'
 import { publishSigningKeyAfterUnlock } from '@/lib/sigKey'
+import { userFacingError } from '@/lib/userError'
 
 const Login = () => {
   const [phase, setPhase] = useState('login')
@@ -86,7 +87,11 @@ const Login = () => {
       if (err.response?.status === 403 && err.response?.data?.code === 'account_pending') {
         setError('Your account is waiting for approval — you can sign in once it has been accepted.')
       } else {
-        setError(err.response?.data?.error || 'Login failed')
+        setError(userFacingError(err, {
+          fallback: 'Login failed. Check your details and try again.',
+          // A refused sign-in is not an expired session, which is what 401 means elsewhere.
+          status: { 401: 'Wrong username or password.' },
+        }))
       }
       setLoading(false)
     }
