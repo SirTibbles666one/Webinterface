@@ -25,6 +25,7 @@ import {
   Reply,
   Users,
   Forward,
+  ShieldAlert,
   Lock,
   Flame,
   Undo2,
@@ -32,7 +33,7 @@ import {
   Clock,
   AlarmClockOff,
 } from 'lucide-react'
-import api from '@/api'
+import api, { reportSpam } from '@/api'
 import { storage } from '@/storage'
 import { decryptStored } from '@/lib/decryptStored'
 import { keySession } from '@/keySession'
@@ -96,6 +97,9 @@ const EmailView = ({
   snoozeOptions = [],
 }) => {
   const [email, setEmail] = useState(null)
+  // 'spam' | 'ham' once reported, so the button can confirm and then stop offering itself
+  const [spamReport, setSpamReport] = useState(null)
+  const [spamError, setSpamError] = useState('')
   // Distinct from `error`: a locked key is a state with a way out, not a failure.
   const [locked, setLocked] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -700,6 +704,51 @@ const EmailView = ({
                 <Forward className="size-3.5" /> <span className="max-sm:hidden">Forward</span>
                 <span className="sm:hidden">Fwd</span>
               </Button>
+            )}
+            {email && !spamReport && (
+              <Button
+                onClick={async () => {
+                  // The server cannot read this message, so the report carries it. Built
+                  // from what is already decrypted on screen, text first: rspamd learns
+                  // from words and links, and sending less is sending less.
+                  const addr = (v) =>
+                    typeof v === 'object' && v ? v.address || v.email || v.name || '' : String(v || '')
+                  const raw = [
+                    `From: ${addr(email.from)}`,
+                    `To: ${(Array.isArray(email.to) ? email.to : [email.to]).map(addr).filter(Boolean).join(', ')}`,
+                    `Subject: ${email.subject || ''}`,
+                    `Date: ${email.date ? new Date(email.date).toUTCString() : new Date().toUTCString()}`,
+                    'Content-Type: text/plain; charset=utf-8',
+                    '',
+                    String(email.textBody || '').slice(0, 200000),
+                  ].join('\r\n')
+                  try {
+                    await reportSpam(uid, 'spam', raw)
+                    setSpamReport('spam')
+                    setSpamError('')
+                  } catch (err) {
+                    // An honest failure beats a button that lies about having taught it.
+                    setSpamError(err?.response?.data?.error || 'Could not report this message')
+                  }
+                }}
+                variant="ghost"
+                className="gap-1.5 px-3 text-[13px] max-sm:min-h-11 text-ink-2"
+                title={spamError || 'Teach the filter: this is spam. The message text is sent to the server.'}
+              >
+                <ShieldAlert className="size-3.5" />
+                <span className="max-sm:hidden">Report spam</span>
+                <span className="sm:hidden">Spam</span>
+              </Button>
+            )}
+            {spamReport && (
+              <span className="px-2 text-[12.5px] text-ink-3" role="status">
+                Reported — the filter will learn from it
+              </span>
+            )}
+            {spamError && !spamReport && (
+              <span className="px-2 text-[12.5px] text-destructive" role="alert">
+                {spamError}
+              </span>
             )}
           </div>
         </div>

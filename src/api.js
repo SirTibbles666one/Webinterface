@@ -90,6 +90,18 @@ api.interceptors.response.use(
   },
 )
 
+/**
+ * Tell the filter what this person calls spam (or not spam).
+ *
+ * The message has to travel with the report: the server stores mail encrypted and cannot
+ * read it, so it cannot learn from what it holds. This is the one moment a message is
+ * deliberately shown to the server — per message, on purpose, never automatic.
+ */
+export const reportSpam = async (uid, verdict, raw) => {
+  const res = await api.post('/spam/report', { uid: String(uid), verdict, raw })
+  return res.data
+}
+
 export const getUser = async () => {
   const token = storage.getToken()
   if (!token) return null
