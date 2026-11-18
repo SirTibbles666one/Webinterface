@@ -39,6 +39,23 @@
   --color-ink-3: #98a68e;
   --color-ink-4: #6f7d66;
 
+  /* Destructive and caution surfaces. `danger` / `warn` are inks for neutral
+     grounds; `danger-surface` / `warn-surface` are the tinted blocks, and
+     `danger-ink` is the ink that belongs on top of one. A raw `red-200` here
+     used to mean pale pink text on a pale mauve block once the light theme
+     landed (1.2:1). Both ramps are measured against every ground they are used
+     on, in both themes — see the ratios in the theme block below. */
+  --color-danger: #f2907a;
+  --color-danger-surface: #3a1d17;
+  --color-danger-ink: #ffb9a8;
+  --color-warn: #e0b47e;
+  --color-warn-surface: #3a2f1d;
+  --color-ok: #9ad98a;
+  /* A solid destructive button needs its own fill: white on `destructive`
+     (#e0593f) is 3.7:1, so a filled danger control cannot borrow it. */
+  --color-danger-fill: #c2412b;
+  --color-danger-fill-ink: #ffffff;
+
   /* Attention that is not an error (a setup gap), and the hairline everything
      sits on. */
   --color-sand: #c8a17a;
@@ -282,6 +299,24 @@
 
   --color-destructive: #b0341c;
   --color-destructive-foreground: #ffffff;
+
+  /* Danger and caution are re-derived, not flipped: a light theme needs darker
+     inks and paler blocks, with the same job in each theme.
+       danger         6.41:1 on background, 6.96:1 on card, 5.87:1 on secondary
+       danger-ink     8.48 / 9.19 / 7.75, and 6.74:1 on danger-surface
+       danger-fill    white on it 6.26:1
+       warn           6.30 / 6.83 / 5.76, and 5.52:1 on warn-surface
+       ok             5.95 / 6.46 / 5.45
+     Dark: danger 7.96 / 7.47 / 6.68, danger-ink 9.33 on its surface,
+     warn 6.86 on its surface, danger-fill ink 5.14, ok 11.15 / 10.46 / 9.36. */
+  --color-danger: #a72c1a;
+  --color-danger-surface: #f8d5cd;
+  --color-danger-ink: #8a1f10;
+  --color-warn: #7a5312;
+  --color-warn-surface: #f7e5c4;
+  --color-ok: #2f6b26;
+  --color-danger-fill: #b0341c;
+  --color-danger-fill-ink: #ffffff;
 
   --color-border: #dcdfd2;
   --color-input: #dcdfd2;

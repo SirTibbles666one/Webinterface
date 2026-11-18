@@ -156,7 +156,7 @@ export function AliasesSection() {
               <span className="text-[11px] text-ink-3">
                 · {row.received} {row.received === 1 ? 'message' : 'messages'}
               </span>
-              {row.disabled_at && <span className="text-[11px] text-amber-600 dark:text-amber-400">off</span>}
+              {row.disabled_at && <span className="text-[11px] text-warn">off</span>}
               <span className="ml-auto flex items-center gap-2">
                 <button type="button" onClick={() => copy(row.address)} className="text-ink-2" title="Copy">
                   {copied === row.address ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}

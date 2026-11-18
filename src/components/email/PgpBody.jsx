@@ -53,7 +53,7 @@ export function PgpBody({ armored, senderHint }) {
               ? 'text-primary border-primary/30 bg-primary/10'
               : bad
                 ? 'text-destructive border-destructive/40 bg-destructive/10'
-                : 'text-amber-500 border-amber-500/30 bg-amber-500/10'
+                : 'text-warn border-warn/40 bg-warn-surface'
           }`}
         >
           {sig === 'good' ? (

@@ -97,10 +97,10 @@ export default function TwoFactorSection() {
     <div data-testid="two-factor-section">
       <div className="flex items-center gap-2">
         {on
-          ? <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          : <ShieldAlert className="w-4 h-4 text-amber-400" />}
+          ? <ShieldCheck className="w-4 h-4 text-ok" />
+          : <ShieldAlert className="w-4 h-4 text-warn" />}
         <span className="flex-1 text-[12px] text-ink-3">Second factor</span>
-        <span className={`text-[11px] ${on ? 'text-emerald-400' : 'text-ink-3'}`}>
+        <span className={`text-[11px] ${on ? 'text-ok' : 'text-ink-3'}`}>
           {on ? 'on' : 'off'}
         </span>
       </div>
@@ -164,7 +164,7 @@ export default function TwoFactorSection() {
 
       {phase === 'codes' && (
         <div className="mt-2 space-y-2">
-          <p className="text-[11px] text-amber-300">
+          <p className="text-[11px] text-warn">
             Save these now — they are shown once and each works a single time if you lose your phone.
           </p>
           <div data-testid="recovery-codes" className="grid grid-cols-2 gap-1 rounded bg-foreground/5 p-2 text-[12px] font-mono">

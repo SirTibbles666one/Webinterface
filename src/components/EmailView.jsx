@@ -444,12 +444,12 @@ const EmailView = ({
         </div>
       ) : error ? (
         <div className="flex-1 flex items-center justify-center p-6">
-          <div className="bg-red-950/30 border border-red-900/40 text-red-300/80 rounded-md p-4 text-center">
+          <div className="bg-danger-surface border border-danger/40 text-danger-ink rounded-md p-4 text-center">
             <h4 className="font-bold mb-1">Error Loading Email</h4>
-            <p className="text-sm text-destructive-foreground/60">
+            <p className="text-sm text-danger-ink">
               Could not decrypt or retrieve email. The key might be incorrect or the data corrupted.
               <br />
-              <span className="font-mono text-xs mt-2 block bg-black/20 p-1 rounded">
+              <span className="font-mono text-xs mt-2 block bg-danger/10 p-1 rounded">
                 {error}
               </span>
             </p>
@@ -532,7 +532,7 @@ const EmailView = ({
                       <span className={`px-1.5 py-0.5 rounded ${
                         n.state === 'sealed' ? 'bg-primary/15 text-primary'
                           : n.state === 'opened' ? 'bg-muted text-foreground/70'
-                            : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                            : 'bg-warn-surface text-warn'
                       }`}>
                         {SEALED_LABEL[n.state] ?? n.state}
                       </span>

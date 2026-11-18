@@ -58,7 +58,7 @@ const ContextMenuItem = React.forwardRef(({ className, inset, destructive, ...pr
       "relative flex cursor-default select-none items-center gap-2 rounded-sm px-2.5 py-1.5 text-xs outline-none transition-colors focus:bg-accent focus:text-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-40",
       inset && "pl-8",
       destructive
-        ? "text-red-400/80 focus:bg-red-950/40 focus:text-red-300"
+        ? "text-danger focus:bg-danger-surface focus:text-danger-ink"
         : "text-foreground/80",
       className
     )}

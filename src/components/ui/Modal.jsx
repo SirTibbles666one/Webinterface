@@ -2,14 +2,39 @@ import React, { useEffect, useId, useRef } from 'react'
 import { X } from 'lucide-react'
 import { Button } from './button'
 
+/* What a keyboard may land on inside the panel. The panel itself is excluded —
+   it is tabIndex -1 so focus can be parked on it, not so Tab can stop there. */
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'
+
+/* Visible means what a keyboard user can see: not display:none, not
+   visibility:hidden, not hidden, not aria-hidden. Layout boxes are not
+   consulted because a zero-sized rect is also what a browser without layout
+   (jsdom, a prerender) reports for a perfectly good button. */
+function focusableIn(panel) {
+  if (!panel) return []
+  return Array.from(panel.querySelectorAll(FOCUSABLE)).filter((el) => {
+    if (el.disabled || el.getAttribute('aria-hidden') === 'true') return false
+    if (el.closest('[hidden], [aria-hidden="true"]')) return false
+    const style = window.getComputedStyle(el)
+    return style.display !== 'none' && style.visibility !== 'hidden'
+  })
+}
+
 /**
  * The one dialog shell.
  *
  * It carries the things a dialog cannot be trusted to remember per call site:
  * a dialog role and a label for assistive tech, Escape as a real way out,
+ * Tab wrapping inside the panel instead of walking into the page behind it,
  * focus moved in on open and returned to where it came from on close, and the
  * page behind it not scrolling while it is up. Call sites pass `label` when the
  * header is not the first thing inside.
+ *
+ * The trap is a keydown on the document rather than a real `inert` on #root:
+ * this dialog renders inline, inside #root, so making the root inert would make
+ * the dialog inert too. A portal would be the other way to earn `inert`, and it
+ * is a bigger change than the defect.
  */
 export function Modal({ isOpen, children, onClose, label, dismissible = true, initialFocusRef = null }) {
   const [mounted, setMounted] = React.useState(false)
@@ -29,14 +54,42 @@ export function Modal({ isOpen, children, onClose, label, dismissible = true, in
     return () => cancelAnimationFrame(raf)
   }, [isOpen])
 
-  // Escape closes, and the page behind does not scroll: on a phone a dialog over
-  // a scrolling list otherwise lets the list move under the thumb.
+  // Escape closes, Tab stays inside, and the page behind does not scroll: on a
+  // phone a dialog over a scrolling list otherwise lets the list move under the
+  // thumb. The trap listens on the document, not the panel, because the way a
+  // trap fails is focus being outside the panel already — a panel-scoped
+  // handler never fires to pull it back.
   useEffect(() => {
     if (!isOpen) return undefined
     const onKey = (e) => {
       if (e.key === 'Escape' && dismissible) {
         e.stopPropagation()
         onClose?.()
+        return
+      }
+      if (e.key !== 'Tab') return
+      const panel = panelRef.current
+      if (!panel) return
+      const items = focusableIn(panel)
+      if (items.length === 0) {
+        e.preventDefault()
+        panel.focus?.()
+        return
+      }
+      const first = items[0]
+      const last = items[items.length - 1]
+      const active = document.activeElement
+      if (!panel.contains(active)) {
+        e.preventDefault()
+        ;(e.shiftKey ? last : first).focus()
+        return
+      }
+      if (e.shiftKey && (active === first || active === panel)) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault()
+        first.focus()
       }
     }
     document.addEventListener('keydown', onKey)
