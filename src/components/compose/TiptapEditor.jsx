@@ -96,7 +96,7 @@ const EditorToolbar = ({ editor }) => {
   )
 }
 
-export const TiptapEditor = ({ value, onChange, placeholder, 'aria-label': ariaLabel = 'Message body' }) => {
+export const TiptapEditor = ({ value, onChange, placeholder, autoFocus = false, clamped = false, 'aria-label': ariaLabel = 'Message body' }) => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -111,6 +111,9 @@ export const TiptapEditor = ({ value, onChange, placeholder, 'aria-label': ariaL
       }),
     ],
     content: value,
+    // 'start' lands the caret in the empty paragraph above a quote, which is where a reply
+    // begins. Without it the caret sat at the end of the quoted text.
+    autofocus: autoFocus ? 'start' : false,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML())
     },
@@ -135,7 +138,12 @@ export const TiptapEditor = ({ value, onChange, placeholder, 'aria-label': ariaL
         className="flex-1 overflow-y-auto cursor-text"
         onClick={() => editor?.chain().focus().run()}
       >
-        <EditorContent editor={editor} className="h-full [&_.ProseMirror]:p-3 [&_.ProseMirror]:min-h-full [&_.ProseMirror]:outline-none" />
+        <EditorContent
+          editor={editor}
+          className={`h-full [&_.ProseMirror]:p-3 [&_.ProseMirror]:min-h-full [&_.ProseMirror]:outline-none ${
+            clamped ? 'compose-quote-clamped' : ''
+          }`}
+        />
       </div>
     </div>
   )

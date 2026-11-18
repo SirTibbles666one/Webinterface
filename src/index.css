@@ -462,3 +462,11 @@
 .thread-card .max-sm\:pb-24 {
   padding-bottom: 0.75rem !important;
 }
+
+
+/* A reply's quote stays in the document (it is sent) but out of the way, so the first thing
+   on screen is somewhere to write. The "On … wrote:" line goes with it. */
+.compose-quote-clamped .ProseMirror blockquote,
+.compose-quote-clamped .ProseMirror p:has(+ blockquote) {
+  display: none;
+}

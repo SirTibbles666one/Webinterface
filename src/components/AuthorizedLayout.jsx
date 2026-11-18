@@ -815,7 +815,9 @@ const AuthorizedLayout = () => {
     setReplyData({
       to:        replyAddr ? [replyAddr] : [],
       subject:   subj,
-      body:      buildQuotedHtml(email),
+      // An empty paragraph first: the quote alone left nowhere to type, which is what a
+      // reply opening looked like — a page of someone else's words and no box.
+      body:      `<p><br></p>${buildQuotedHtml(email)}`,
       inReplyTo: email.messageId ?? '',
       references: email.messageId ?? '',
       // Answer from the address they wrote to, not from the real one.

@@ -95,6 +95,11 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
   const [fromOpen, setFromOpen] = useState(false)
   // Two empty rows for Cc and Bcc cost a phone 106px before a single word is typed.
   // They open when they already hold something, or when asked for.
+  // A reply arrives with the whole quoted thread in the body. It stays in the document —
+  // so it is still sent — but it is hidden until asked for, which is what leaves an empty
+  // box to type in.
+  const [quoteOpen, setQuoteOpen] = useState(false)
+  const hasQuote = /<blockquote/i.test(body)
   const [showCc, setShowCc] = useState(() => (replyData?.cc?.length ?? 0) > 0)
   const [showBcc, setShowBcc] = useState(() => (replyData?.bcc?.length ?? 0) > 0)
   const [myAliases, setMyAliases] = useState([])
@@ -958,8 +963,21 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
               value={body}
               onChange={setBody}
               placeholder="Write your message… (or drag & drop files to attach)"
+              autoFocus={!!replyData}
+              clamped={hasQuote && !quoteOpen}
               aria-label="Message body"
             />
+
+            {hasQuote && (
+              <button
+                type="button"
+                onClick={() => setQuoteOpen((v) => !v)}
+                aria-expanded={quoteOpen}
+                className="mx-3 mb-1 shrink-0 self-start rounded border border-border/70 px-2 py-1 text-[11.5px] text-ink-3 transition-colors duration-120 hover:text-ink-1 max-sm:min-h-11"
+              >
+                {quoteOpen ? 'Hide quoted text' : 'Show quoted text'}
+              </button>
+            )}
 
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-1.5 px-3 py-2 border-t border-border/60 shrink-0">
