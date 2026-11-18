@@ -18,6 +18,7 @@ import { EmailToolbar } from '@/components/EmailToolbar'
 import { ThreadView } from '@/components/ThreadView'
 import * as draftStore from '@/lib/draftStore'
 import { formatClock } from '@/lib/appearance'
+import { htmlToText } from '@/lib/text'
 import { loadProfile } from '@/lib/profile'
 import { useEmailFetch } from '@/hooks/useEmailFetch'
 import { useSentEmails } from '@/hooks/useSentEmails'
@@ -380,9 +381,10 @@ const AuthorizedLayout = () => {
     for (const d of drafts) {
       map[d.id] = {
         subject:  d.subject || '(no subject)',
-        from:     { email: '', name: d.to?.[0] ? `To: ${d.to[0]}` : '(no recipients)' },
+        from:     { email: '', name: d.to?.filter(Boolean)?.[0] ? `To: ${d.to.filter(Boolean)[0]}` : 'Draft' },
         date:     d.updatedAt ? new Date(d.updatedAt) : null,
-        preview:  d.body?.slice(0, 100) ?? '',
+        // The body is HTML; a preview is a sentence.
+        preview:  htmlToText(d.body).slice(0, 100),
         isDraft:  true,
       }
     }

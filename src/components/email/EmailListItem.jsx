@@ -85,7 +85,10 @@ export function EmailListItem({
   const undecryptable = !!preview?.decryptFailed
   const isInGroup = selectedFolder && selectedFolder !== 'inbox' && selectedFolder !== 'starred'
 
-  const senderLabel = preview?.from?.name || preview?.from?.email || uid
+  // A preview can carry a null name; printing it is how "null" reached a row in Drafts.
+  const senderLabel = [preview?.from?.name, preview?.from?.email, uid]
+    .map((v) => (v == null ? '' : String(v).trim()))
+    .find((v) => v && v !== 'null' && v !== 'undefined') || 'Unknown'
     ? undecryptable || !preview?.preview
       ? untilLabel
       : `${untilLabel} · ${preview.preview}`
