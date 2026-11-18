@@ -157,7 +157,7 @@ export default function SessionsSection() {
 
       {confirmAll ? (
         <div className="mt-2 flex items-center gap-2">
-          <p className="flex-1 text-[11px] text-amber-300">This signs out every device, including this one.</p>
+          <p className="flex-1 text-[11px] text-warn">This signs out every device, including this one.</p>
           <button type="button" onClick={revokeAll} disabled={busy === 'all'}
             className="rounded-md bg-destructive px-2 py-1 text-[11px] text-destructive-foreground disabled:opacity-50">
             {busy === 'all' ? 'Signing out…' : 'Yes, sign out all'}

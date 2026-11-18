@@ -60,7 +60,7 @@ export default function RecoveryKeySection() {
           and nothing else: the account comes back, mail sealed afterwards does not open.
           The date is the deploy that changed the format; a key set before it is a v1 blob. */}
       {status?.set && status.set_at * 1000 < RECOVERY_BUNDLE_V2_FROM && (
-        <p className="mt-2 flex items-start gap-1.5 text-xs text-amber-400">
+        <p className="mt-2 flex items-start gap-1.5 text-xs text-warn">
           <ShieldAlert className="mt-0.5 w-3.5 h-3.5 shrink-0" />
           <span>
             This key was made before recovery covered your quantum key. It restores your account,
@@ -72,14 +72,14 @@ export default function RecoveryKeySection() {
       {status && (
         <div className="mt-2 space-y-2">
           {status.set ? (
-            <p className="flex items-start gap-1.5 text-xs text-green-400">
+            <p className="flex items-start gap-1.5 text-xs text-ok">
               <ShieldCheck className="mt-0.5 w-3.5 h-3.5 shrink-0" />
               <span>
                 Set {when(status.set_at)}. {status.used_at > 0 && `Last used ${when(status.used_at)} — create a new one.`}
               </span>
             </p>
           ) : (
-            <p className="flex items-start gap-1.5 text-xs text-amber-400">
+            <p className="flex items-start gap-1.5 text-xs text-warn">
               <ShieldAlert className="mt-0.5 w-3.5 h-3.5 shrink-0" />
               <span>
                 No recovery key. If you forget your password, your encrypted mail cannot be recovered.

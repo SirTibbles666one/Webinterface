@@ -133,7 +133,7 @@ export default function OpenPgpGuide() {
       {test ? (
         <p
           className={`mt-2 text-xs ${
-            test.state === 'fail' ? 'text-red-300' : test.state === 'pass' ? 'text-emerald-300' : 'text-ink-2'
+            test.state === 'fail' ? 'text-danger' : test.state === 'pass' ? 'text-ok' : 'text-ink-2'
           }`}
         >
           {test.text}

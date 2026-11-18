@@ -142,14 +142,14 @@ export default function RecoveryKeySetup({ privateKey, username, onDone }) {
         </button>
 
         {confirmSkip ? (
-          <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
-            <p className="flex items-start gap-2 text-xs text-amber-400">
+          <div className="mt-3 rounded-lg border border-warn/40 bg-warn-surface p-3">
+            <p className="flex items-start gap-2 text-xs text-warn">
               <AlertTriangle className="mt-0.5 w-3.5 h-3.5 shrink-0" />
               Without a recovery key, forgetting your password permanently loses every encrypted
               message you have received.
             </p>
             <div className="mt-2 flex gap-2">
-              <button onClick={onDone} className="rounded-lg bg-amber-500/20 px-3 py-1.5 text-xs text-amber-300">
+              <button onClick={onDone} className="rounded-lg bg-warn-surface px-3 py-1.5 text-xs text-warn">
                 I understand, skip
               </button>
               <button onClick={() => setConfirmSkip(false)} className="rounded-lg px-3 py-1.5 text-xs text-foreground/60">

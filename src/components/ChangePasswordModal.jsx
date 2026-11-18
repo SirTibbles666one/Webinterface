@@ -222,8 +222,8 @@ export function ChangePasswordModal({ isOpen, onClose }) {
                   </button>
                 </div>
               ) : (
-                <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5">
-                  <p className="text-[11px] text-amber-500/90">
+                <div className="rounded-md border border-warn/40 bg-warn-surface p-2.5">
+                  <p className="text-[11px] text-warn">
                     You are signed in, so you can set a new password without the old one.
                     Messages already stored stay encrypted with the old key — they will not
                     be readable after this unless you remember it. Nothing is deleted.
@@ -290,7 +290,7 @@ export function ChangePasswordModal({ isOpen, onClose }) {
                 <div className="flex justify-between text-xs text-ink-3">
                   <span>{progress.done} / {progress.total} emails</span>
                   {progress.failed > 0 && (
-                    <span className="text-amber-500">{progress.failed} skipped</span>
+                    <span className="text-warn">{progress.failed} skipped</span>
                   )}
                   <span>{pct}%</span>
                 </div>
@@ -306,7 +306,7 @@ export function ChangePasswordModal({ isOpen, onClose }) {
             {progress.failed === 0 ? (
               <CheckCircle2 className="w-10 h-10 text-primary" />
             ) : (
-              <XCircle className="w-10 h-10 text-amber-500" />
+              <XCircle className="w-10 h-10 text-warn" />
             )}
             <p className="text-sm text-ink-1">{status}</p>
             {progress.failed > 0 && (

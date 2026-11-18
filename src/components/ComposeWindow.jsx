@@ -772,7 +772,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                 </span>
               )}
               {sealExternal && sealMode === 'key' && attachments.length > 0 && (
-                <span className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
+                <span className="flex items-center gap-1 text-[11px] text-warn">
                   attachments need
                   <button
                     type="button"
@@ -847,7 +847,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                 >
                   new phrase
                 </button>
-                <span className="text-amber-600 dark:text-amber-400 w-full">It is not in the email — anything else you use to tell them is the weak link.</span>
+                <span className="text-warn w-full">It is not in the email — anything else you use to tell them is the weak link.</span>
               </div>
             )}
             {Object.keys(keySuggestions).length > 0 && (
@@ -942,7 +942,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
             {encryptionLine && (
               <p
                 className={`px-3 pt-2 text-[11px] leading-snug ${
-                  encryptionLine.tone === 'good' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
+                  encryptionLine.tone === 'good' ? 'text-ok' : 'text-warn'
                 }`}
               >
                 {encryptionLine.text}
@@ -1037,7 +1037,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                 </label>
                 {vanish !== 'off' && offServerRecipients.length > 0 && (
                   <span
-                    className="hidden md:inline text-[10px] text-amber-600 dark:text-amber-400 max-w-[130px] leading-tight"
+                    className="hidden md:inline text-[10px] text-warn max-w-[130px] leading-tight"
                     title={offServerRecipients.join(', ')}
                   >
                     {offServerRecipients.length} recipient{offServerRecipients.length === 1 ? ' is' : 's are'} elsewhere — {sealExternal ? 'sealed link, body stays here' : 'nothing to delete there'}
@@ -1047,7 +1047,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                 {editNeedsTime && (
                   <span
                     title="This message is still held — pick a time to update it"
-                    className="text-[10px] text-amber-600 dark:text-amber-400"
+                    className="text-[10px] text-warn"
                   >
                     Pick a time
                   </span>
@@ -1120,7 +1120,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
             </div>
 
             {vanish !== 'off' && offServerRecipients.length > 0 && (
-              <p className="px-3 pb-2 text-[10px] text-amber-600 dark:text-amber-400 md:hidden">
+              <p className="px-3 pb-2 text-[10px] text-warn md:hidden">
                 Disappearing applies on this server only — {offServerRecipients.length} recipient
                 {offServerRecipients.length === 1 ? ' is' : 's are'} elsewhere and will keep their copy.
               </p>

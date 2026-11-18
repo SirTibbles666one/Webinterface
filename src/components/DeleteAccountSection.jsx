@@ -47,10 +47,10 @@ export default function DeleteAccountSection({ onDeleted }) {
   }
 
   return (
-    <section className="mb-4 rounded-xl bg-red-950/25 p-4">
+    <section className="mb-4 rounded-xl bg-danger-surface p-4">
       <div className="mb-2 flex items-center gap-2">
-        <Trash2 size={16} className="text-red-400" />
-        <h3 className="text-sm font-medium text-red-200">Delete this account</h3>
+        <Trash2 size={16} className="text-danger" />
+        <h3 className="text-sm font-medium text-danger-ink">Delete this account</h3>
       </div>
       <p className="mb-3 text-xs text-ink-2">
         Deletes the mailbox, every message stored for it, your recovery record,
@@ -61,13 +61,13 @@ export default function DeleteAccountSection({ onDeleted }) {
       {!open ? (
         <button
           onClick={() => setOpen(true)}
-          className="rounded-lg border border-red-800 px-3 py-1.5 text-sm text-red-300 hover:bg-red-950/50"
+          className="rounded-lg border border-danger px-3 py-1.5 text-sm text-danger-ink hover:bg-danger/10"
         >
           Delete account…
         </button>
       ) : (
         <form onSubmit={submit} className="space-y-2">
-          <div className="flex items-start gap-2 rounded-lg bg-red-950/40 p-2 text-xs text-red-200">
+          <div className="flex items-start gap-2 rounded-lg border border-danger/40 bg-danger/10 p-2 text-xs text-danger-ink">
             <AlertTriangle size={14} className="mt-0.5 shrink-0" />
             <span>Your encrypted mail cannot be recovered after this. Export anything you want to keep first.</span>
           </div>
@@ -85,12 +85,12 @@ export default function DeleteAccountSection({ onDeleted }) {
             placeholder="Type DELETE to confirm"
             className="w-full rounded-lg border border-line-strong bg-field px-3 py-2 text-sm text-ink-1 outline-none focus:border-line-strong"
           />
-          {error ? <p className="text-xs text-red-300">{error}</p> : null}
+          {error ? <p className="text-xs text-danger">{error}</p> : null}
           <div className="flex gap-2">
             <button
               type="submit"
               disabled={busy}
-              className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
+              className="rounded-lg bg-danger-fill px-3 py-1.5 text-sm font-medium text-danger-fill-ink hover:brightness-110 disabled:opacity-50"
             >
               {busy ? 'Deleting…' : 'Permanently delete'}
             </button>

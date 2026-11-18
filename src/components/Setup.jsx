@@ -135,7 +135,7 @@ const SetupForm = () => {
                 required
               />
             </div>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {error && <p className="text-danger text-sm">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Generating keys…' : 'Setup Account'}
             </Button>

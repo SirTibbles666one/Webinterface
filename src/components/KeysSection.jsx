@@ -361,8 +361,8 @@ export default function KeysSection({ accountEmail }) {
           </div>
         )}
         {mode === 'overview' && conflicts.length > 0 && (
-          <div className="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-2 space-y-2">
-            <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+          <div className="mb-3 rounded-lg border border-warn/40 bg-warn-surface p-2 space-y-2">
+            <p className="text-[11px] font-medium text-warn">
               Two different keys for the same address
             </p>
             {conflicts.map((c) => (
@@ -515,13 +515,13 @@ export default function KeysSection({ accountEmail }) {
                           <button
                             type="button"
                             onClick={() => setVerifying(c.email)}
-                            className="block text-[10px] text-amber-600 dark:text-amber-400 text-left"
+                            className="block text-[10px] text-warn text-left"
                           >
                             unverified — tap to check the fingerprint
                           </button>
                         )}
                         {c.verified && (
-                          <span className="block text-[10px] text-emerald-600 dark:text-emerald-400">verified</span>
+                          <span className="block text-[10px] text-ok">verified</span>
                         )}
                         {verifying === c.email && (
                           <div className="mt-1 rounded border border-line/70 p-1.5 space-y-1">

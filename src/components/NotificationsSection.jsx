@@ -88,7 +88,7 @@ export default function NotificationsSection() {
       )}
 
       {supported && homeScreen && (
-        <p className="mb-3 text-xs text-amber-400/90">
+        <p className="mb-3 text-xs text-warn">
           On an iPhone, notifications only work once this app is added to the home
           screen: Share, then Add to Home Screen, then open it from there.
         </p>
