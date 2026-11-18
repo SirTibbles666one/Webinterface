@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, MoreHorizontal, Star, MailOpen, Mail, Trash2 } from 'lucide-react'
 
 /**
  * A conversation, opened as its own screen.
@@ -13,9 +13,12 @@ import { ChevronDown } from 'lucide-react'
  * `renderMessage(uid)` is supplied by the layout so this file stays layout-agnostic: it
  * already knows how to fetch, decrypt and render one message.
  */
-export function ThreadView({ cards, label, count, onBack, renderMessage }) {
+export function ThreadView({ cards, label, count, onBack, renderMessage, messageActions }) {
   // The newest message arrives open: it is why the conversation was opened.
   const [open, setOpen] = useState(() => new Set(cards.length ? [String(cards[0].uid)] : []))
+  // Starring, marking and deleting lived in the reader header this screen hides. Without a menu
+  // of its own a conversation could be read and answered, but not tidied.
+  const [menuFor, setMenuFor] = useState(null)
   const toggle = (uid) =>
     setOpen((prev) => {
       const next = new Set(prev)
@@ -50,7 +53,7 @@ export function ThreadView({ cards, label, count, onBack, renderMessage }) {
           {cards.map((card) => {
             const isOpen = open.has(String(card.uid))
             return (
-              <li key={String(card.uid)} className="overflow-hidden rounded-xl border border-line bg-card">
+              <li key={String(card.uid)} className="relative overflow-hidden rounded-xl border border-line bg-card">
                 <button
                   type="button"
                   onClick={() => toggle(card.uid)}
@@ -72,6 +75,54 @@ export function ThreadView({ cards, label, count, onBack, renderMessage }) {
                     />
                   </span>
                 </button>
+
+                {messageActions && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setMenuFor((v) => (String(v) === String(card.uid) ? null : card.uid))
+                    }}
+                    aria-label={menuFor === card.uid ? 'Close message actions' : `Actions for this message`}
+                    aria-expanded={String(menuFor) === String(card.uid)}
+                    className="absolute right-1 top-1 flex size-10 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-accent hover:text-ink-1"
+                  >
+                    <MoreHorizontal className="size-4" />
+                  </button>
+                )}
+
+                {String(menuFor) === String(card.uid) && messageActions && (
+                  <div className="absolute right-2 top-12 z-20 w-48 overflow-hidden rounded-lg border border-line bg-popover shadow-lg">
+                    <button
+                      type="button"
+                      onClick={() => { messageActions.toggleStar(card.uid); setMenuFor(null) }}
+                      className="flex min-h-11 w-full items-center gap-2 px-3 text-left text-[13px] text-ink-1 hover:bg-accent"
+                    >
+                      <Star className={`size-4 ${card.starred ? 'text-primary' : 'text-ink-3'}`} />
+                      {card.starred ? 'Unstar' : 'Star'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (card.unread) messageActions.markRead(card.uid)
+                        else messageActions.markUnread(card.uid)
+                        setMenuFor(null)
+                      }}
+                      className="flex min-h-11 w-full items-center gap-2 px-3 text-left text-[13px] text-ink-1 hover:bg-accent"
+                    >
+                      {card.unread ? <MailOpen className="size-4 text-ink-3" /> : <Mail className="size-4 text-ink-3" />}
+                      {card.unread ? 'Mark as read' : 'Mark as unread'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { messageActions.remove(card.uid); setMenuFor(null) }}
+                      className="flex min-h-11 w-full items-center gap-2 px-3 text-left text-[13px] text-destructive hover:bg-accent"
+                    >
+                      <Trash2 className="size-4" />
+                      Delete
+                    </button>
+                  </div>
+                )}
                 {isOpen && (
                   <div className="thread-card border-t border-line">
                     {renderMessage(card.uid)}

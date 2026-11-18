@@ -891,6 +891,7 @@ const AuthorizedLayout = () => {
       sender: previews[uid]?.from?.name || previews[uid]?.from?.email || '',
       when: cardWhen(previews[uid]?.date),
       unread: emailMeta[uid]?.unread !== false,
+      starred: !!emailMeta[uid]?.starred,
     }))
 
   const renderReader = (inline, uidOverride) => renderEmail(
@@ -1205,6 +1206,17 @@ const AuthorizedLayout = () => {
                 count={openThread.count}
                 onBack={() => setOpenThread(null)}
                 renderMessage={(uid) => renderEmail(uid, true)}
+                messageActions={{
+                  toggleStar,
+                  markRead,
+                  markUnread,
+                  remove: (uid) => {
+                    deleteOne(uid)
+                    setOpenThread((t) =>
+                      t ? { ...t, uids: t.uids.filter((u) => String(u) !== String(uid)), count: Math.max(1, t.count - 1) } : t,
+                    )
+                  },
+                }}
               />
             )}
 
