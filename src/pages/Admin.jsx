@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, RefreshCw, Plus, Trash2, ShieldCheck, Shield, KeyRound, Copy, X,
   Search, Server, HardDrive, Inbox, ExternalLink, Power,
+  History,
 } from 'lucide-react'
 import EmptyArt from '@/components/EmptyArt'
 import { Button } from '@/components/ui/button'
@@ -12,7 +13,7 @@ import {
   adminGetUsers, adminCreateUser, adminDeleteUser, adminSetAdminStatus, adminSetSuspended,
   adminGetWaitlist, adminApproveWaitlist, adminGetPending, adminApprovePending,
   adminDenyPending, adminSetRecoveryAddress, adminSendRecovery,
-  adminGetRecipients, adminGetDiskUsage,
+  adminGetRecipients, adminGetDiskUsage, adminListAudit,
 } from '@/api'
 import { storage } from '@/storage'
 
@@ -30,6 +31,8 @@ const TABS = [
   { id: 'access', label: 'Access', icon: ShieldCheck },
   { id: 'deliverability', label: 'Deliverability', icon: Server },
   { id: 'system', label: 'System', icon: HardDrive },
+  // Last, because it is where you go when something needs explaining rather than doing.
+  { id: 'activity', label: 'Activity', icon: History },
 ]
 
 const inviteStatus = (status) => {
@@ -88,6 +91,9 @@ function Admin() {
   const [invitesLoading, setInvitesLoading] = useState(true)
   const [recipients, setRecipients] = useState(null)
   const [disk, setDisk] = useState(null)
+  // null = not read yet; { records, total, chain } once the server answers.
+  const [audit, setAudit] = useState(null)
+  const [auditLoading, setAuditLoading] = useState(false)
 
   const [busy, setBusy] = useState('')
   const [copied, setCopied] = useState('')
@@ -143,6 +149,24 @@ function Admin() {
     }
   }, [])
 
+  const fetchAudit = useCallback(async () => {
+    setAuditLoading(true)
+    try {
+      const data = await adminListAudit({ limit: 50 })
+      setAudit(data)
+    } catch (err) {
+      // A server without the route is not an empty log — say which it is.
+      const status = err?.response?.status
+      setAudit({ records: [], total: 0, chain: null, unavailable: status === 404 || status === 501 })
+    } finally {
+      setAuditLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (tab === 'activity' && audit === null) fetchAudit()
+  }, [tab, audit, fetchAudit])
+
   useEffect(() => {
     if (!storage.getIsAdmin()) {
       navigate('/')
@@ -156,6 +180,7 @@ function Admin() {
 
   const refresh = (which = tab) => {
     setError('')
+    if (which === 'activity') fetchAudit()
     if (which === 'people') fetchUsers()
     if (which === 'access') { fetchPending(); fetchInvites() }
     if (which === 'deliverability' || which === 'system') fetchDelivery()
@@ -692,6 +717,83 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
         )}
 
         {/* ── Deliverability ─────────────────────────────────────────────── */}
+        {tab === 'activity' && (
+          <Panel
+            title="Activity"
+            note="Every administrative action, newest first. Records are hash-chained: each one carries the hash of the record before it, so a deleted or edited row breaks the chain and is named here."
+          >
+            {auditLoading && audit === null ? (
+              <Empty>Loading…</Empty>
+            ) : audit?.unavailable ? (
+              <Empty>This server does not keep an audit log.</Empty>
+            ) : (
+              <>
+                {/* One integrity line, not a badge per row: per-row badges would imply a
+                    per-row check that does not happen. */}
+                {audit?.chain && (
+                  <div className="border-b border-line px-4 py-2 text-[12px]">
+                    {audit.chain.ok ? (
+                      <span className="text-ink-3">
+                        ✓ Chain intact — {audit.chain.count} record{audit.chain.count === 1 ? '' : 's'}
+                      </span>
+                    ) : (
+                      <span className="text-destructive" role="alert">
+                        ⚠ The log may have been edited: record {audit.chain.count} {audit.chain.why}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {audit?.records?.length ? (
+                  <>
+                    {/* Phones get cards, like the People tab. */}
+                    <ul className="divide-y divide-line sm:hidden">
+                      {audit.records.map((r, i) => (
+                        <li key={`${r.at}-${i}`} className="px-4 py-3">
+                          <div className="flex items-baseline justify-between gap-3">
+                            <p className="min-w-0 flex-1 text-[13.5px] text-ink-1">
+                              <span className="text-ink-3">{r.actor}</span> {r.action}
+                              {r.target ? <span className="text-ink-2"> · {r.target}</span> : null}
+                            </p>
+                            <span className="mono shrink-0 text-[11.5px] text-ink-3">
+                              {new Date(r.at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          {r.detail ? <p className="mt-0.5 truncate text-[12.5px] text-ink-3">{r.detail}</p> : null}
+                        </li>
+                      ))}
+                    </ul>
+                    <table className="hidden w-full text-left text-[13px] sm:table">
+                      <thead>
+                        <tr className="border-b border-line">
+                          <th className="label px-4 py-2">When</th>
+                          <th className="label px-4 py-2">Who</th>
+                          <th className="label px-4 py-2">Action</th>
+                          <th className="label px-4 py-2">Target</th>
+                          <th className="label px-4 py-2">Detail</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {audit.records.map((r, i) => (
+                          <tr key={`${r.at}-${i}`} className="border-b border-line/60">
+                            <td className="mono whitespace-nowrap px-4 py-2 text-ink-3">
+                              {new Date(r.at * 1000).toLocaleString()}
+                            </td>
+                            <td className="px-4 py-2 text-ink-2">{r.actor}</td>
+                            <td className="px-4 py-2 text-ink-1">{r.action}</td>
+                            <td className="px-4 py-2 text-ink-2">{r.target || '—'}</td>
+                            <td className="px-4 py-2 text-ink-3">{r.detail || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </>
+                ) : (
+                  <Empty>No administrative actions recorded yet.</Empty>
+                )}
+              </>
+            )}
+          </Panel>
+        )}
         {tab === 'deliverability' && (
           <Panel
             title="Addresses this server accepts"

@@ -10,7 +10,7 @@ import { keySession } from './keySession'
 // It is also indiscriminate: any 16+ digit run after `:`/`,`/`[` inside a message body is
 // quoted too, which corrupts that body. The real fix is uids as strings on the wire
 // (docs/UID-ON-THE-WIRE.md); until then this must stay.
-const QUOTE_BIG_DIGITS = /([,:\[]\s*)(\d{16,})/g
+const QUOTE_BIG_DIGITS = /([,:[]\s*)(\d{16,})/g
 
 // Does this parsed value contain a number too big to have survived as a double?
 function hasUnsafeNumber(node, depth = 0) {
@@ -134,7 +134,7 @@ export const getUser = async () => {
       headers: { Authorization: `Bearer ${token}` },
     })
     return response.data
-  } catch (error) {
+  } catch {
     return null
   }
 }
@@ -180,6 +180,20 @@ export const adminDenyPending = async (username) => {
   const response = await api.post(
     '/admin/pending/deny',
     { username },
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+  return response.data
+}
+
+/**
+ * What administrators have done. Admin-only on the server, and reading it is itself recorded
+ * — which is why this is a POST: it is an action, not a page fetch.
+ */
+export const adminListAudit = async ({ offset = 0, limit = 50, target = '' } = {}) => {
+  const token = storage.getToken()
+  const response = await api.post(
+    '/admin/audit',
+    { offset, limit, ...(target ? { target } : {}) },
     { headers: { Authorization: `Bearer ${token}` } },
   )
   return response.data

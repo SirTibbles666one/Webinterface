@@ -201,21 +201,31 @@ already carried `trash`, `junk`, `subject_rules` and now `roles` without ever to
 
 ---
 
-## 4. Open questions for the owner
+## 4. Decisions (taken 2026-11-18)
 
-These change the design and are not mine to decide:
+1. **Audit retention: keep everything.** Prune only once the file passes ~50 MB, and prune
+   oldest-first with a record of the pruning itself. An audit log that forgets is a log that
+   can be waited out.
+2. **Staff access: yes, for moderation.** The role exists and its capabilities are fixed here
+   rather than left to the endpoint's convenience:
 
-1. **Retention of the audit log.** Forever is honest and grows forever; 12 months is usual.
-   My suggestion: keep everything, and add pruning only when the file passes ~50 MB.
-2. **Who gets staff access.** If nobody does, Phase F is unnecessary work and should be
-   dropped rather than built "for completeness".
-3. **Should an admin be able to read another account's mail?** Today the answer is no — the
-   server cannot decrypt it. Worth stating in the panel rather than leaving an admin to
-   discover it and assume the panel is broken.
-4. **Whether suspension should notify the account holder** by mail at the address on file.
-   It is the kinder behaviour and it also tells an attacker they have been noticed.
+   | capability | staff | admin |
+   |---|---|---|
+   | see accounts, health, audit | ✓ | ✓ |
+   | suspend / unsuspend **with a reason** | ✓ | ✓ |
+   | approve / deny signups and waitlist | ✓ | ✓ |
+   | delete an account | ✗ | ✓ |
+   | change credentials or recovery address | ✗ | ✓ |
+   | grant or revoke any role | ✗ | ✓ |
+   | read another account's mail | ✗ (nobody can — the server cannot decrypt it) | ✗ |
 
----
+   Staff is enforced server-side on each endpoint, not by hiding buttons.
+3. **Suspension notifies the account holder** by mail to the address on file, with the reason
+   and, when there is one, the end date. Silence is how a moderation decision looks like a
+   bug from the other side.
+4. **The panel says out loud that nobody can read another account's mail.** A line in the
+   People tab, not a footnote in a document: an admin who expects a mail viewer and does not
+   find one concludes the panel is broken.
 
 ## 5. Build order and honest sizing
 
