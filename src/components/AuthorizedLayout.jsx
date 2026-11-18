@@ -972,6 +972,7 @@ const AuthorizedLayout = () => {
                 uid={selectedUid}
                 onBack={() => setSelectedUid(null)}
                 myEmail={userEmail}
+                onRequestUnlock={() => setUnlockDismissed(false)}
                 emailMeta={selectedUid ? (emailMeta[selectedUid] ?? {}) : null}
                 arrivedAt={selectedUid ? (previews[selectedUid]?.alias ?? null) : null}
                 onToggleStar={toggleStar}

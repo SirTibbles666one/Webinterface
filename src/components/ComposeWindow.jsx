@@ -616,7 +616,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                     <button
                       type="button"
                       onClick={() => setFromAlias('')}
-                      className={`px-2 py-1 rounded-full text-[11px] border transition-colors ${
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-[11px] border transition-colors max-sm:min-h-[44px] max-sm:px-3 max-sm:text-[12px] ${
                         fromAlias === ''
                           ? 'bg-primary/15 border-primary/40 text-primary'
                           : 'border-border/70 text-muted-foreground hover:border-border'
@@ -629,7 +629,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                         key={a.local}
                         type="button"
                         onClick={() => setFromAlias(a.local)}
-                        className={`px-2 py-1 rounded-full text-[11px] border transition-colors ${
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-[11px] border transition-colors max-sm:min-h-[44px] max-sm:px-3 max-sm:text-[12px] ${
                           fromAlias === a.local
                             ? 'bg-primary/15 border-primary/40 text-primary'
                             : 'border-border/70 text-muted-foreground hover:border-border'

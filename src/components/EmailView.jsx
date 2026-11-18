@@ -83,10 +83,14 @@ const EmailView = ({
   // Putting a message away until a time you chose, and the way back before then.
   onSnooze = null,
   onWake = null,
+  // Locked mail is not an error: the reader asks the shell to open the unlock prompt.
+  onRequestUnlock = null,
   snoozedUntil = null,
   snoozeOptions = [],
 }) => {
   const [email, setEmail] = useState(null)
+  // Distinct from `error`: a locked key is a state with a way out, not a failure.
+  const [locked, setLocked] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   // A line about the message's lifespan, for both sides of a disappearing mail.
@@ -149,6 +153,7 @@ const EmailView = ({
     setLoading(true)
     setError(null)
     setNote(null)
+    setLocked(false)
     setSealed([])
     setSealedMsg('')
     const token = storage.getToken()
@@ -159,7 +164,11 @@ const EmailView = ({
           headers: { Authorization: `Bearer ${token}` },
         })
         const privateKey = await keySession.get()
-        if (!privateKey) throw new Error('Private key is not available. Please log out and log back in.')
+        if (!privateKey) {
+          setLocked(true)
+          setLoading(false)
+          return
+        }
         const text = await decryptStored(res.data.data, res.data.message_key, privateKey)
         const parsed = parseEmail(text)
         addressBook.addAll(parsed?.from ? [parsed.from] : [])
@@ -405,6 +414,22 @@ const EmailView = ({
       ) : loading ? (
         <div className="flex-1 flex items-center justify-center">
           <span className="size-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        </div>
+      ) : locked ? (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="w-full max-w-sm rounded-lg border border-line bg-card p-5 text-center">
+            <Lock className="mx-auto size-5 text-ink-3" />
+            <h2 className="display mt-3 text-[17px] text-ink-1">This message is locked</h2>
+            <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-2">
+              Messages are decrypted in this browser only. Unlock the mailbox to read this one —
+              nothing has been lost, and the sender does not need to resend it.
+            </p>
+            {onRequestUnlock && (
+              <Button onClick={onRequestUnlock} className="mt-4 w-full max-sm:min-h-[44px]">
+                Unlock mailbox
+              </Button>
+            )}
+          </div>
         </div>
       ) : error ? (
         <div className="flex-1 flex items-center justify-center p-6">

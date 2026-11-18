@@ -63,10 +63,11 @@
     },
     {
       "id": "locked-mail-affordance",
-      "why": "Dismissing the unlock prompt leaves a strip with a way back instead of stranding the account.",
+      "why": "A locked mailbox is a state with a way out: a strip, a calm reader card, and never an error telling the user to log out.",
       "must": [
         "Mail is locked",
-        "Not now"
+        "Not now",
+        "This message is locked"
       ]
     }
   ]
