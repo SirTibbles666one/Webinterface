@@ -9,9 +9,13 @@ running system, not a reading of the source alone.
 
 | severity | count | what |
 |---|---|---|
-| **High** | 2 | a post-quantum unlock gap that hid every message (fixed today); deploys are user-visible |
-| **Medium** | 4 | panic paths in request threads; an unthrottled public endpoint; CSP reporting silently broken; sidecars that only grow |
-| **Low** | 3 | bot rejections with no summary; CORS posture undocumented; one 502 in the same window |
+| **High** | 2 | a post-quantum unlock gap that hid every message (fixed); deploys are user-visible (fixed) |
+| **Medium** | 3 | poisoned locks in two sidecars (fixed); an unthrottled public endpoint (fixed); CSP reporting silently broken (fixed) |
+| **Low** | 3 | 576 live sessions with no cap; bot rejections with no summary; CORS posture undocumented |
+
+Three of the four Medium findings were fixed during the audit; the fourth was **wrong** and is
+corrected below rather than padded. Two of my own numbers were also wrong on first pass (record
+counts and what a sidecar actually holds) — the corrected figures are the ones quoted here.
 | **Strong** | 8 checks | transport authentication, TLS, throttling, backups, tests, logs |
 
 Nothing found allows reading another account's mail, sending as someone else, or reaching the
@@ -57,25 +61,27 @@ later: a real drain — stop accepting, finish in-flight requests, then swap.
 
 ## Medium
 
-### 3. 195 panic paths sit outside tests, and a request thread has no safety net
+### 3. Poisoned locks — **fixed**, and the first half of this finding was wrong
 
-`api/endpoints/email.rs` alone has 79 (`unwrap`/`expect`/`panic!`). Request threads are spawned
-without `catch_unwind`, so a panic loses that request entirely — the client sees a dropped
-connection and the log a panic. Only two mutexes use `.lock().unwrap()` (`suspended.rs`,
-`notes.rs`), against nine that recover from poisoning with `unwrap_or_else(|p| p.into_inner())`;
-those two are where a panic becomes a cascade.
+**Correction:** the router already contains panics. `handle_request` wraps every handler in
+`catch_unwind(AssertUnwindSafe(…))` and answers `500 internal_error` with a log line, so the claim
+that a request thread had no safety net was wrong. 195 panic sites outside tests remain (79 in
+`email.rs`), but each one costs a single request, not the process.
 
-Fix: wrap the per-request call in `catch_unwind` and answer 500 with a code, and move those two
-locks onto the recovery pattern the rest of the tree already uses.
+What was real: `suspended.rs` and `notes.rs` were the only two sidecars taking their mutex with
+`.lock().unwrap()`, against nine that recover with `unwrap_or_else(|p| p.into_inner())`. One panic
+while either lock was held poisons it, and then **every** later call panics — a permanently broken
+endpoint rather than one bad request. Both now recover, and 182 server tests pass.
 
-### 4. The public note endpoints have no throttle
+### 4. The public note endpoints had no throttle — **fixed**
 
-nginx zones cover `waitlist`, `evidence`, `register`, `account_recovery` and `login`. `/api/note`,
-`/api/note/open` and `/api/note/burn` are public and unthrottled. The token is 32 characters of
-urlsafe base64 so guessing is not the risk; the risk is a script grinding the endpoint, and each
-open writes the sidecar.
+nginx zones covered `waitlist`, `evidence`, `register`, `account_recovery` and `login`; `/api/note`,
+`/api/note/open` and `/api/note/burn` were public and unthrottled. The token is 32 characters of
+urlsafe base64 so guessing was not the risk — a script grinding the endpoint was, and each open
+writes the sidecar.
 
-Fix: one `limit_req` zone for `/api/note` — a note is opened once by one person.
+Fixed: a `note` zone at 20 r/m with a burst of 10 on all three exact paths. Measured: a burst of 30
+answers 11 through and 19 × `429`; a normal single request is unchanged.
 
 ### 5. CSP reporting is broken exactly when it matters
 
@@ -85,13 +91,21 @@ lost — and a lost violation report is how a broken policy stays invisible.
 
 Fix applied: the sink now answers every request (204) and cannot die on a malformed body.
 
-### 6. Sidecars only ever grow
+### 6. Sidecar growth — **mostly wrong, one real leak (fixed)**
 
-`notes.json` is 842 KB for 89 notes; `sessions.json` is 208 KB while only 2 sessions are live. Both
-have sweeps, but sweeps delete *records*, not the file's history. At this rate it is harmless; the
-trajectory is one JSON file being rewritten per write, growing forever.
+**Correction:** the first pass counted top-level keys instead of records. The true figures:
+`notes.json` holds **92 notes, 7 still sealed**; `sessions.json` holds **576 live sessions**.
 
-Fix: compact on load when a file is more than half empty (write once, atomically).
+Sessions are not stale — they are 576 real sessions, which is the actual finding: there is no cap
+per account and no inactivity expiry, so tokens accumulate silently (each ≈360 bytes; harmless now,
+unbounded later). Recommendation: expire on inactivity and cap per account, with a "sign out
+everywhere".
+
+Notes are bounded by design — `STATUS_TTL_SECONDS` keeps a tombstone for 30 days so the sender's
+status view can answer "opened / expired / revoked" — and 83 of the 85 tombstones were inside that
+window. **One leak was real:** a revoked note that was never opened has neither `opened_at` nor
+`expired_at`, so it fell into the sweep's `None => true` arm and stayed forever. Revoking now
+settles it.
 
 ## Low
 
