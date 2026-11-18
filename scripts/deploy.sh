@@ -9,7 +9,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-KEY=/opt/data/home/.ssh/mail_ed25519
+KEY=${MAIL_SSH_KEY:-$HOME/.ssh/mail_ed25519}
 HOST=root@46.62.155.175
 STATIC=/opt/on/data/static
 
