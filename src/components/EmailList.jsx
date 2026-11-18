@@ -315,13 +315,9 @@ const EmailList = ({
                           </span>
                         </span>
                         <span className="mt-0.5 block truncate text-[13px] text-ink-2">
-                          {thread.subject}
+                          {thread.count > 1 ? `[${thread.count}] ` : ''}{thread.subject}
                         </span>
-                        {latest.preview && (
-                          <span className="mt-0.5 block truncate text-[12.5px] text-ink-3">
-                            {latest.preview}
-                          </span>
-                        )}
+                        {/* Two lines, like a Proton row: people, then subject. */}
                       </span>
                       {onDeleteThread && (
                         /* Over the time, like a single row's actions: hovering moves nothing. A

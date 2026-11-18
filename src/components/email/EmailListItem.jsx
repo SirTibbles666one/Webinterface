@@ -208,9 +208,9 @@ export function EmailListItem({
             </p>
             {isStarred && <Star className="size-3 shrink-0 self-center fill-sand text-sand" aria-label="Starred" />}
           </div>
-          {snippet && (
-            <p className="mail-row-snippet mt-0.5 truncate text-[12.5px] leading-snug text-ink-3" title={snippet}>{snippet}</p>
-          )}
+          {/* No snippet line. Proton's inbox is two lines — people, then subject — and a
+              third line of preview text was what made this list feel crowded next to it.
+              The subject is the thing you scan; the preview is what opening is for. */}
         </div>
       </div>
 
