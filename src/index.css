@@ -471,3 +471,10 @@
 .ProseMirror p.sloth-quote-attribution {
   display: none;
 }
+
+/* The paragraph node drops the class above (TipTap's Paragraph keeps only what it is told to),
+   but the node view wrapper carries this attribute, so the sibling selector is the reliable
+   one. Both are kept: whichever survives an editor upgrade, the line stays hidden. */
+.ProseMirror p:has(+ [data-node-view-wrapper]) {
+  display: none;
+}
