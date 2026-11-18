@@ -450,6 +450,13 @@
   display: none !important;
 }
 
+/* Inside a conversation the whole screen scrolls. A body that scrolls itself swallows the
+   swipe: the reader could not reach the other messages in the thread. */
+.thread-card [data-view-body] {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
 /* The message body reserves 96px at its foot to clear the fixed action bar. A card has no
    bar, and that reservation was the empty space under every opened message. */
 .thread-card .max-sm\:pb-24 {

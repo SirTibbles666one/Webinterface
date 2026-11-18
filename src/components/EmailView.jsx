@@ -493,6 +493,7 @@ const EmailView = ({
         </div>
       ) : email ? (
         <div
+          data-view-body
           className={`custom-scrollbar overflow-y-auto overscroll-contain ${
             // 34vh, not 42: the bar now carries four verbs, and at 42 the bar itself fell
             // below the list viewport — the buttons were there, just not on screen.
