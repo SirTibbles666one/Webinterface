@@ -89,10 +89,9 @@
     },
     {
       "id": "inline-reading",
-      "why": "On a phone a message opens in place under its row, and the list stays.",
+      "why": "On a phone a message opens in place under its row, and the list stays; the block announces itself.",
       "must": [
-        "Open message",
-        "Close"
+        "Opened message"
       ]
     }
   ]

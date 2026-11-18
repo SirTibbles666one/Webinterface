@@ -77,6 +77,8 @@ body text rendered; `Close` collapsed it; opening a second message left exactly 
 open block; document overflow 0. At 1440 the pane is unchanged and there is no
 inline block at all.
 
-Known gaps: the phone compose bar hides while a message is inline (the plan wanted a
-floating action instead), and the open block's own "Open message / Close" header is
-functional rather than designed.
+The header bar is gone: tapping the open row again collapses it, which is both the
+Proton gesture and one control instead of two. With the bar absent, composing became
+unreachable, so a floating action (56px, bottom-right, above the safe area) appears
+while a message is open. Verified at 390: FAB at right 374 in a 390 viewport, tap the
+row to collapse, FAB opens the composer.

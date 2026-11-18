@@ -467,6 +467,12 @@ const AuthorizedLayout = () => {
       }
       return
     }
+    // On a phone the message opens under its own row, so tapping that row again is
+    // the natural way to close it. The desktop pane keeps its selection.
+    if (isPhone && selectedUid != null && String(selectedUid) === String(uid)) {
+      setSelectedUid(null)
+      return
+    }
     setSelectedUid(uid)
     markRead(uid)
   }
@@ -1039,17 +1045,12 @@ const AuthorizedLayout = () => {
                 onClearFilter={() => setFilterMode('all')}
                 inlineUid={isPhone ? selectedUid : null}
                 inlineSlot={isPhone && selectedUid ? (
-                  <div key={selectedUid} className="border-b border-line bg-card">
-                    <div className="flex items-center justify-between gap-3 px-3 py-0.5">
-                      <span className="text-[10.5px] uppercase tracking-[0.08em] text-ink-3">Open message</span>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedUid(null)}
-                        className="min-h-11 px-2 text-[12.5px] text-ink-2 transition-colors duration-120 active:text-ink-1"
-                      >
-                        Close
-                      </button>
-                    </div>
+                  <div
+                    key={selectedUid}
+                    role="region"
+                    aria-label="Opened message"
+                    className="border-b border-line bg-card"
+                  >
                     {renderReader(true)}
                   </div>
                 ) : null}
@@ -1120,6 +1121,21 @@ const AuthorizedLayout = () => {
             <span>New mail</span>
           </button>
         </nav>
+      )}
+
+      {/* With a message open inline the bar is gone, and composing must not be: one
+          floating action, thumb-height above the home indicator. */}
+      {!composeOpen && isPhone && selectedUid && (
+        <button
+          type="button"
+          onClick={() => setComposeOpen(true)}
+          aria-label="New message"
+          data-testid="compose-fab-inline"
+          className="fixed right-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform duration-120 active:scale-95"
+          style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+        >
+          <PenLine className="size-5" strokeWidth={2.2} />
+        </button>
       )}
 
       <InputModal
