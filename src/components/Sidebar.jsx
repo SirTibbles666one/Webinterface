@@ -105,7 +105,7 @@ const Sidebar = ({
       <div className="flex h-14 shrink-0 items-center px-4">
         <a
           href="https://slothlee.xyz"
-          className="flex items-center gap-2 rounded-md transition-opacity duration-120 hover:opacity-80"
+          className="flex items-center gap-2 rounded-md transition-opacity duration-120 hover:opacity-80 max-md:min-h-11"
           title="Sloth Lee — all products"
         >
           <SlothMark className="size-6 shrink-0" />
@@ -129,7 +129,7 @@ const Sidebar = ({
         </span>
         <a
           href="https://app.slothlee.xyz/"
-          className="flex h-6 items-center rounded-md px-2.5 text-[11px] text-ink-3 transition-colors duration-120 hover:bg-secondary/60 hover:text-ink-1 max-md:h-11 max-md:px-3"
+          className="flex h-6 items-center rounded-md px-2.5 text-[11px] text-ink-3 transition-colors duration-120 hover:bg-secondary/60 hover:text-ink-1 max-md:h-11 max-md:min-w-11 max-md:justify-center max-md:px-3"
         >
           Bot
         </a>
