@@ -274,3 +274,21 @@ responsible shape. A partial deploy would leave the server accepting a field no 
 and no test covering the hash switch.
 
 Staged patch: `/data/cache/scratch/kt/keylog.rs` (leaf field + v2 label + versioned hash).
+
+## The subject, and where it stops being private
+
+A message body is sealed end to end. The subject line has one narrow exception, and it is worth
+being precise about it because "zero-knowledge" invites the assumption that everything is.
+
+- **Sending now**: the subject does not leave the browser. It is inside the MIME, which is inside
+  the ciphertext. `POST /email/sendencrypted` carries no `subject` field at all.
+- **Scheduling**: a held message used to post its subject in clear, because the server shows the
+  sender what is waiting. It now posts `subject_enc` — the subject sealed to the sender's own
+  public key — and the server stores and returns an opaque blob. `ScheduledPanel` decrypts it.
+  A row written before this change still carries a plaintext `subject` and still renders.
+- **Sealed notes** (`/note/create`) still post their subject in clear. That is the remaining
+  exception; it needs the same treatment, and it touches the note list the same way.
+
+The rule to hold: the server may store what it must hand back, but it should not be able to read
+it. A subject is not needed for delivery — the MIME already has one — so anything the server keeps
+is for the sender's own display, and can be sealed.
