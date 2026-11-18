@@ -5,8 +5,10 @@ import {
   userSecurityKeyRegisterBegin,
   userSecurityKeyRegisterFinish,
   userSecurityKeyRemove,
+  userSecurityKeyReauthBegin,
+  userSecurityKeyReauthFinish,
 } from '@/api'
-import { createSecurityKey, describeKeyError, securityKeyProblem } from '@/lib/webauthn'
+import { createSecurityKey, getAssertion, describeKeyError, securityKeyProblem } from '@/lib/webauthn'
 
 const when = (unix) => {
   if (!unix) return 'never used'
@@ -32,6 +34,9 @@ export default function SecurityKeysSection() {
   const [name, setName] = useState('')
   const [target, setTarget] = useState(null)
   const [busy, setBusy] = useState(false)
+  // True for five minutes after touching an enrolled key: the server accepts that in place
+  // of an authenticator code, and this only decides whether to keep asking for one.
+  const [confirmedWithKey, setConfirmedWithKey] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
@@ -53,6 +58,26 @@ export default function SecurityKeysSection() {
     setName('')
   }
 
+  const confirmWithKey = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      const begun = await userSecurityKeyReauthBegin()
+      const assertion = await getAssertion(begun.options)
+      await userSecurityKeyReauthFinish({
+        challenge_id: begun.challenge_id,
+        ...assertion,
+      })
+      setConfirmedWithKey(true)
+      setCode('')
+      setNotice('Confirmed with your key. Add or remove a key now — no app code needed.')
+    } catch (err) {
+      setError(err?.response?.data?.error || describeKeyError(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const addKey = async (e) => {
     e.preventDefault()
     setBusy(true)
@@ -60,7 +85,7 @@ export default function SecurityKeysSection() {
     try {
       // The code is proven first: without it a stolen session could enrol a key
       // of its own and keep access after the password is changed.
-      const begun = await userSecurityKeyRegisterBegin(code.trim())
+      const begun = await userSecurityKeyRegisterBegin(confirmedWithKey ? '' : code.trim())
       const credential = await createSecurityKey(begun.options)
       await userSecurityKeyRegisterFinish({
         challenge_id: begun.challenge_id,
@@ -84,7 +109,7 @@ export default function SecurityKeysSection() {
     setBusy(true)
     setError('')
     try {
-      await userSecurityKeyRemove(target.id, code.trim())
+      await userSecurityKeyRemove(target.id, confirmedWithKey ? '' : code.trim())
       setPhase('idle')
       setTarget(null)
       setCode('')
@@ -164,11 +189,22 @@ export default function SecurityKeysSection() {
       {phase === 'adding' && (
         <form onSubmit={addKey} className="space-y-3 rounded-lg bg-secondary/60 p-4" data-testid="security-key-add">
           <p className="text-[12.5px] leading-relaxed text-ink-2">
-            {codeRequired
-              ? 'Enter a code from your authenticator app, then touch the key when it blinks.'
+            {codeRequired && !confirmedWithKey
+              ? 'Confirm it is you: touch a key you already have, or enter a code from your authenticator app.'
               : 'Have the key ready — the browser will ask you to touch it in a moment.'}
           </p>
-          {codeRequired && (
+          {codeRequired && !confirmedWithKey && (
+            <button
+              type="button"
+              onClick={confirmWithKey}
+              disabled={busy}
+              data-testid="security-key-confirm-with-key"
+              className="w-full min-h-11 rounded-md border border-line px-3 text-[13px] text-ink-2 hover:bg-accent"
+            >
+              Use a key I already have
+            </button>
+          )}
+          {codeRequired && !confirmedWithKey && (
             <input
               autoFocus
               inputMode="numeric"
@@ -211,7 +247,9 @@ export default function SecurityKeysSection() {
         <form onSubmit={removeKey} className="space-y-3 rounded-lg bg-secondary/60 p-4" data-testid="security-key-remove">
           <p className="text-[12.5px] leading-relaxed text-ink-2">
             Remove <span className="font-medium text-ink-1">{target.name}</span>.
-            {codeRequired ? ' Enter a code from your authenticator app to confirm.' : ' It will stop working at sign-in immediately.'}
+            {codeRequired && !confirmedWithKey
+              ? ' Confirm with a key you already have, or a code from your authenticator app.'
+              : ' It will stop working at sign-in immediately.'}
           </p>
           {codeRequired && (
             <input

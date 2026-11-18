@@ -459,6 +459,24 @@ export const loginSecurityKeyFinish = async (challenge, challengeId, assertion) 
   return response.data
 }
 
+// Proof by an already-enrolled key, so adding a YubiKey does not require an authenticator
+// app code. The server accepts either: a code, or a key touched in the last five minutes.
+export const userSecurityKeyReauthBegin = async () => {
+  const token = storage.getToken()
+  const response = await api.post('/user/webauthn/reauth/begin', {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return response.data
+}
+
+export const userSecurityKeyReauthFinish = async (payload) => {
+  const token = storage.getToken()
+  const response = await api.post('/user/webauthn/reauth/finish', payload, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return response.data
+}
+
 export const userSecurityKeys = async () => {
   const token = storage.getToken()
   const response = await api.get('/user/webauthn', { headers: { Authorization: `Bearer ${token}` } })
