@@ -1028,6 +1028,7 @@ const AuthorizedLayout = () => {
                 onFilterModeChange={setFilterMode}
                 onToggleSelectAll={handleToggleSelectAll}
                 allChecked={pagedUids.length > 0 && pagedUids.every(uid => checkedUids.has(uid))}
+                anyChecked={checkedUids.size > 0}
                 onDeleteSelected={deleteSelected}
                 onRestoreSelected={selectedFolder === 'trash' ? restoreSelected : null}
                 onMarkSelectedRead={markSelectedRead}

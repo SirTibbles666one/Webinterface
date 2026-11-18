@@ -33,6 +33,7 @@ export function EmailToolbar({
   onFilterModeChange,
   onToggleSelectAll,
   allChecked = false,
+  anyChecked = false,
   onDeleteSelected,
   // Trash: Restore appears, and Delete says it is for good.
   onRestoreSelected = null,
@@ -61,6 +62,9 @@ export function EmailToolbar({
       {/* Selecting is the way to every bulk action, so the control that starts it is always
           visible while there are rows — a checkbox that only appears on hover is a feature
           nobody finds, and on a phone there is no hover at all. */}
+      {/* On a phone this was a bare ring with no label: "Select all" is hidden below `sm`.
+          It now appears with the row boxes — once a selection exists — instead of being an
+          unexplained circle in the filter bar. */}
       {pagedUids.length > 0 && (
         <button
           type="button"
@@ -70,7 +74,9 @@ export function EmailToolbar({
             ? `Clear the selection of ${pagedUids.length} message${pagedUids.length !== 1 ? 's' : ''}`
             : `Select all ${pagedUids.length} message${pagedUids.length !== 1 ? 's' : ''} shown`}
           title={allChecked ? 'Clear the selection' : `Select the ${pagedUids.length} messages shown`}
-          className="flex shrink-0 items-center gap-1.5 rounded-md py-1 pl-1 pr-1.5 text-[11.5px] text-ink-3 transition-colors duration-120 hover:bg-accent hover:text-ink-1 max-sm:min-h-11 max-sm:min-w-11 max-sm:justify-center max-sm:px-2"
+          className={`flex shrink-0 items-center gap-1.5 rounded-md py-1 pl-1 pr-1.5 text-[11.5px] text-ink-3 transition-colors duration-120 hover:bg-accent hover:text-ink-1 max-sm:min-h-11 max-sm:min-w-11 max-sm:justify-center max-sm:px-2 ${
+            anyChecked || allChecked ? '' : 'max-sm:hidden'
+          }`}
         >
           <span
             className={`flex size-4 shrink-0 items-center justify-center rounded border transition-colors duration-120 max-sm:size-5 ${
