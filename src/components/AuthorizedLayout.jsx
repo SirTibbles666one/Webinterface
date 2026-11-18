@@ -1172,20 +1172,9 @@ const AuthorizedLayout = () => {
         </nav>
       )}
 
-      {/* With a message open inline the bar is gone, and composing must not be: one
-          floating action, thumb-height above the home indicator. */}
-      {!composeOpen && isPhone && selectedUid && (
-        <button
-          type="button"
-          onClick={() => setComposeOpen(true)}
-          aria-label="New message"
-          data-testid="compose-fab-inline"
-          className="fixed right-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform duration-120 active:scale-95"
-          style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
-        >
-          <PenLine className="size-5" strokeWidth={2.2} />
-        </button>
-      )}
+      {/* No floating compose button while a message is open. It existed because inline reading
+          hid the action bar, and now that the reader takes the screen it lands on top of that
+          bar's own controls. Replying is the right action here, and it is the first one. */}
 
       <InputModal
         isOpen={modalState.type === 'create-group'}
