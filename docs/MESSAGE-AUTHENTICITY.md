@@ -136,7 +136,44 @@ performed. That closes the "set a header on plaintext and get a lock" trick. It 
 make the lock a statement about the sender, because the server seals inbound mail itself —
 so the label stays unchanged until signatures exist, and this document is the record of why.
 
-## Appendix — server groundwork, started and deliberately not deployed
+## Step 1 done — the server publishes signing keys (deployed 2026-11-18)
+
+`openneutron` now carries an ML-DSA-65 signing key per account, and the log witnesses it:
+
+- `Leaf.sig` (base64 SHA-256 of the public key); leaves **with** it hash under `kt/v2/leaf`,
+  leaves without it are byte-identical to v1. A fixed test vector (`36f6c405…001a`) plus an
+  independent inline recomputation pin that, so the two copies cannot drift together.
+- `record()` carries `sig` forward across a password or PQ key change, so a password change
+  cannot silently unpublish an identity. `record_removal()` deliberately clears it, and a
+  password reset drops the sidecar key — otherwise a key whose leaf was removed would stay
+  published and unwitnessed.
+- `data/sigkeys.json` sidecar holds the **full** public key (not a `User` field: `users.bin` is
+  positional bincode and one new field would make every existing account unreadable).
+- `POST /api/user/sigkey` validates length (1952 bytes ±2), **logs the hash before storing the
+  key**, so the server never serves an unwitnessed key. `GET` returns it or `null`.
+- `GET/POST /api/email/publickeys` now includes `sig_key` for internal recipients.
+
+**Deployed by me after review, not by the implementing agent:** 158 Rust tests pass, image
+`openneutron:kt-v2` built, previous image tagged `openneutron:rollback-20261118-pre-kt`,
+container recreated (17 users loaded, SMTP listening).
+
+**Verified live:**
+
+| check | result |
+|---|---|
+| KT head before → after deploy | `size 23 / QH54wAIm…` → **identical** (no history moved) |
+| `GET /api/user/sigkey` unauthenticated | `401` |
+| publish a real 1952-byte ML-DSA-65 key (QA) | `200 "Signing key published"`, head `23 → 24`, new root |
+| `/api/kt/proof` for that account | leaf carries `sig`, index 23 |
+| **client** `verifyProof` on that real leaf | **passes** — v2 leaf hash, pinned signer and head signature all agree |
+| encrypted round trip after the restart | composes, delivers, decrypts |
+
+That last row is the one that matters: the client's `kt/v2/leaf` implementation and the
+server's agree on real data, which is the failure unit tests cannot catch.
+
+---
+
+## Appendix — server groundwork (superseded by the section above)
 
 The design says the server field lands first. Working through it revealed that the leaf hash
 is only a third of the job:
