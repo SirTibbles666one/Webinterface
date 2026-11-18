@@ -576,21 +576,21 @@ const EmailView = ({
                   ) : (
                   <div
                     key={i}
-                    className="inline-flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+                    className="inline-flex items-center gap-2.5 px-3 py-2 rounded-lg bg-secondary/60 border border-line transition-colors hover:bg-accent"
                   >
-                    <Paperclip className="size-4 shrink-0 text-foreground/55" />
+                    <Paperclip className="size-4 shrink-0 text-ink-3" />
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate max-w-[200px]">
+                      <p className="text-sm font-medium text-ink-1 truncate max-w-[200px]">
                         {att.name}
                       </p>
-                      <p className="text-xs text-foreground/50">
+                      <p className="text-xs text-ink-3">
                         {att.contentType}
                       </p>
                     </div>
                     {att.data && (
                       <button
                         onClick={() => downloadAttachment(att)}
-                        className="ml-1 p-1 rounded text-foreground/40 hover:text-foreground hover:bg-white/10 transition-colors"
+                        className="ml-1 rounded p-1 text-ink-3 transition-colors hover:bg-accent hover:text-ink-1 max-sm:min-h-[44px] max-sm:min-w-[44px]"
                         title="Download"
                       >
                         <Download className="size-3.5" />
