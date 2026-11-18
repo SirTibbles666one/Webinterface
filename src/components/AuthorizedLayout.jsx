@@ -190,6 +190,9 @@ const AuthorizedLayout = () => {
   }, [])
 
   const checkServer = useCallback(async () => {
+    // Signed out, or never signed in: there is nothing to ask the server, and a 30 s loop of 401s
+    // is how a session that was ended keeps being replayed in the logs and on the wire.
+    if (!storage.getToken()) return
     try {
       const token = storage.getToken()
       const res = await api.get('/user/me', { headers: { Authorization: `Bearer ${token}` } })

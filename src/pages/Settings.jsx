@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, LogOut } from 'lucide-react'
 import { storage } from '@/storage'
-import api, { userTwoFactorStatus, userSecurityKeys } from '@/api'
+import api, { userTwoFactorStatus, userSecurityKeys, userSessions, userRevokeSession } from '@/api'
+import { endSession } from '@/lib/signOut'
 import { fetchPostQuantumStatus } from '@/lib/pqSetup'
 import ProfileSection from '@/components/ProfileSection'
 import PasswordSection from '@/components/PasswordSection'
@@ -202,8 +203,13 @@ export default function Settings() {
     nav.scrollTo({ left: current.offsetLeft - 16, behavior: 'auto' })
   }, [active])
 
-  const signOut = () => {
-    storage.clear?.()
+  const signOut = async () => {
+    // Revoke before clearing: a token that the server still honours is not a signed-out session.
+    await endSession({
+      sessions: userSessions,
+      revoke: userRevokeSession,
+      clear: () => storage.clear?.(),
+    })
     navigate('/login', { replace: true })
   }
 
