@@ -1,4 +1,18 @@
-# Inline reading: open a message in the list, Proton-style
+# Inline reading (superseded)
+
+**Status: removed 18 Nov 2026, on the owner's report.** Inline reading opened a message *inside its
+own row*, which kept the rest of the list above and below and left the body a ~250 px window — mail
+was cut off mid-sentence on his phone. A phone now opens a message **full screen**, in the same
+container the desktop pane uses, with its own back control, a 15.5 px body and the reply bar pinned
+to the bottom. The floating compose button that existed only to compensate for the hidden bar is gone
+with it. The parity manifest carries this as `fullscreen-reading` (with `replaces: inline-reading`)
+rather than deleting the entry.
+
+What follows is the original design record, kept because the reasoning about row height, the
+`block`-not-`flex` fix and the 42vh body cap still explains why the inline version looked the way it did.
+
+---
+
 
 Status: **built and verified** (see "What shipped" at the end).
 
