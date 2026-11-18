@@ -1,15 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, RefreshCw, Plus, Trash2, ShieldCheck, Shield, KeyRound, Copy, X,
-  Search, Server, HardDrive, Inbox, ExternalLink,
+  Search, Server, HardDrive, Inbox, ExternalLink, Power,
 } from 'lucide-react'
 import EmptyArt from '@/components/EmptyArt'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ConfirmModal, InputModal } from '@/components/ui/Modal'
 import {
-  adminGetUsers, adminCreateUser, adminDeleteUser, adminSetAdminStatus,
+  adminGetUsers, adminCreateUser, adminDeleteUser, adminSetAdminStatus, adminSetSuspended,
   adminGetWaitlist, adminApproveWaitlist, adminGetPending, adminApprovePending,
   adminDenyPending, adminSetRecoveryAddress, adminSendRecovery,
   adminGetRecipients, adminGetDiskUsage,
@@ -93,6 +93,9 @@ function Admin() {
   const [copied, setCopied] = useState('')
   const [query, setQuery] = useState('')
   const [recovery, setRecovery] = useState(null)
+  // The setup token exists only in the create response; if this panel is
+  // closed the password cannot be shown again, so it lives beside the modal.
+  const [created, setCreated] = useState(null)
 
   const fetchUsers = useCallback(async () => {
     setUsersLoading(true)
@@ -217,7 +220,13 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
   const createUser = async (username) => {
     setModalState({ type: null })
     try {
-      await adminCreateUser(username.trim())
+      const data = await adminCreateUser(username.trim())
+      setCreated({
+        username: data?.username || username.trim(),
+        token: data?.setup_token || '',
+        copied: false,
+        error: '',
+      })
       fetchUsers()
     } catch (err) {
       setError(err?.response?.data?.error || 'Could not create that account')
@@ -242,6 +251,37 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
       setUsers((prev) => prev.map((u) => (u.username === user.username ? { ...u, is_admin: !u.is_admin } : u)))
     } catch (err) {
       setError(err?.response?.data?.error || 'Could not change that role')
+    }
+  }
+
+  // Suspending is reversible: the mailbox and its mail stay, sign-in stops.
+  // The server refuses to suspend the caller, so the button is disabled for
+  // the signed-in admin instead of round-tripping into a 409.
+  const toggleSuspended = async (user, suspended) => {
+    setBusy(user.username)
+    setError('')
+    try {
+      await adminSetSuspended(user.username, suspended, 'switched off from the admin panel')
+      await fetchUsers()
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Could not change that account')
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const signInMessage = (username, token) =>
+    `Your Sloth Lee Mail account (${username}) is ready.  Sign in at ${window.location.origin}/login ` +
+    `Username: ${username} One-time password: ${token}  You will be asked to choose your own password ` +
+    'and create your key the first time you sign in. The one-time password stops working as soon as you do.'
+
+  const copySignIn = async () => {
+    try {
+      await navigator.clipboard.writeText(signInMessage(created.username, created.token))
+      setCreated((c) => c && { ...c, copied: true, error: '' })
+      setTimeout(() => setCreated((c) => c && { ...c, copied: false }), 2000)
+    } catch {
+      setCreated((c) => c && { ...c, error: 'Clipboard unavailable — select the password and copy it by hand' })
     }
   }
 
@@ -397,59 +437,87 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                   {filteredUsers.map((user) => {
                     const self = user.username === storage.getUsername()
                     return (
-                      <tr key={user.uid ?? user.username} className="border-b border-line/70 last:border-0">
-                        <td className={cell}>
-                          <p className="truncate font-medium text-ink-1" title={user.username}>{user.username}</p>
-                          <p className="mono truncate text-[11px] text-ink-3">{user.email ?? `${user.username}@slothlee.xyz`}</p>
-                        </td>
-                        <td className={`${cell} hidden sm:table-cell`}>
-                          {user.recovery_email ? (
-                            <span className="text-ink-2">{user.recovery_email}</span>
-                          ) : (
-                            // "not set" reads as a dead end; the useful thing to
-                            // offer is the way to set it.
+                      <Fragment key={user.uid ?? user.username}>
+                        <tr className="border-b-0">
+                          <td className={cell}>
+                            <p className="truncate font-medium text-ink-1" title={user.username}>{user.username}</p>
+                            <p className="mono truncate text-[11px] text-ink-3">{user.email ?? `${user.username}@slothlee.xyz`}</p>
+                          </td>
+                          <td className={`${cell} hidden sm:table-cell`}>
+                            {user.recovery_email ? (
+                              <span className="text-ink-2">{user.recovery_email}</span>
+                            ) : (
+                              // "not set" reads as a dead end; the useful thing to
+                              // offer is the way to set it.
+                              <button
+                                onClick={() => openRecovery(user)}
+                                className="text-[12px] text-ink-4 underline decoration-line-strong underline-offset-2 transition-colors duration-120 hover:text-primary"
+                              >
+                                Set recovery
+                              </button>
+                            )}
+                          </td>
+                          <td className={cell}>
+                            <button
+                              onClick={() => toggleAdmin(user)}
+                              disabled={self}
+                              title={self ? 'You cannot change your own role' : user.is_admin ? 'Revoke admin' : 'Grant admin'}
+                              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors duration-120 max-sm:min-h-[30px] max-sm:px-2.5 ${
+                                user.is_admin
+                                  ? 'border-primary/35 bg-primary/10 text-primary'
+                                  : 'border-line text-ink-3 hover:border-line-strong hover:text-ink-2'
+                              } ${self ? 'opacity-60' : ''}`}
+                            >
+                              {user.is_admin ? <ShieldCheck className="size-3" /> : <Shield className="size-3" />}
+                              {user.is_admin ? 'admin' : 'user'}
+                            </button>
+                          </td>
+                          <td className={`${cell} text-right`}>
                             <button
                               onClick={() => openRecovery(user)}
-                              className="text-[12px] text-ink-4 underline decoration-line-strong underline-offset-2 transition-colors duration-120 hover:text-primary"
+                              title={`Password recovery for ${user.username}`}
+                              aria-label={`Password recovery for ${user.username}`}
+                              className="rounded p-1.5 text-ink-3 transition-colors duration-120 hover:bg-accent hover:text-primary max-sm:p-2.5"
                             >
-                              Set recovery
+                              <KeyRound className="size-4" />
                             </button>
-                          )}
-                        </td>
-                        <td className={cell}>
-                          <button
-                            onClick={() => toggleAdmin(user)}
-                            disabled={self}
-                            title={self ? 'You cannot change your own role' : user.is_admin ? 'Revoke admin' : 'Grant admin'}
-                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors duration-120 max-sm:min-h-[30px] max-sm:px-2.5 ${
-                              user.is_admin
-                                ? 'border-primary/35 bg-primary/10 text-primary'
-                                : 'border-line text-ink-3 hover:border-line-strong hover:text-ink-2'
-                            } ${self ? 'opacity-60' : ''}`}
-                          >
-                            {user.is_admin ? <ShieldCheck className="size-3" /> : <Shield className="size-3" />}
-                            {user.is_admin ? 'admin' : 'user'}
-                          </button>
-                        </td>
-                        <td className={`${cell} text-right`}>
-                          <button
-                            onClick={() => openRecovery(user)}
-                            title={`Password recovery for ${user.username}`}
-                            aria-label={`Password recovery for ${user.username}`}
-                            className="rounded p-1.5 text-ink-3 transition-colors duration-120 hover:bg-accent hover:text-primary max-sm:p-2.5"
-                          >
-                            <KeyRound className="size-4" />
-                          </button>
-                          <button
-                            onClick={() => setModalState({ type: 'delete', username: user.username })}
-                            title={`Delete ${user.username}`}
-                            aria-label={`Delete ${user.username}`}
-                            className="rounded p-1.5 text-ink-3 transition-colors duration-120 hover:bg-destructive/10 hover:text-destructive max-sm:p-2.5"
-                          >
-                            <Trash2 className="size-4" />
-                          </button>
-                        </td>
-                      </tr>
+                            <button
+                              onClick={() => setModalState({ type: 'delete', username: user.username })}
+                              title={`Delete ${user.username}`}
+                              aria-label={`Delete ${user.username}`}
+                              className="rounded p-1.5 text-ink-3 transition-colors duration-120 hover:bg-destructive/10 hover:text-destructive max-sm:p-2.5"
+                            >
+                              <Trash2 className="size-4" />
+                            </button>
+                          </td>
+                        </tr>
+                        {/* Switching an account off keeps its mail; only the
+                            way in stops. Full width so it reads as a decision
+                            about the whole row, not another icon. */}
+                        <tr className="border-b border-line/70 last:border-0">
+                          <td colSpan={4} className="px-4 pb-3 pt-0">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => toggleSuspended(user, !user.suspended)}
+                              disabled={self || busy === user.username}
+                              title={
+                                self
+                                  ? 'You cannot switch your own account off'
+                                  : user.suspended
+                                    ? 'Let this account sign in again'
+                                    : 'Keep the mail, stop sign-in'
+                              }
+                              className={`w-full gap-1.5 text-[12.5px] max-sm:min-h-[44px] ${
+                                user.suspended ? 'border-primary/40 text-primary hover:bg-primary/10' : 'text-ink-2'
+                              }`}
+                            >
+                              <Power className="size-4" />
+                              {self ? 'This is your account' : user.suspended ? 'Switch it back on' : 'Switch this account off'}
+                            </Button>
+                          </td>
+                        </tr>
+                      </Fragment>
                     )
                   })}
                 </tbody>
@@ -677,6 +745,44 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
         confirmText="Delete"
         onConfirm={deleteUser}
       />
+
+      {/* A one-time password that is never shown again: this panel is the
+          only chance to hand it over, so it stays until dismissed. */}
+      {created && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-xl border border-line bg-card p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="display text-[16px] text-ink-1">Account created</h3>
+                <p className="mono mt-0.5 text-[11.5px] text-ink-3">{created.username}@slothlee.xyz</p>
+              </div>
+              <button onClick={() => setCreated(null)} aria-label="Close" className="rounded p-1 text-ink-3 hover:text-ink-1">
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <p className="mt-3 text-[12px] leading-relaxed text-ink-3">
+              Hand this over: it is a one-time password, not a reset link. It is the only way in
+              until they choose their own password.
+            </p>
+
+            <code className="mono mt-3 block break-all rounded-lg border border-line bg-background/40 p-3 text-[12px] text-ink-1">
+              {created.token || 'The server did not return a one-time password'}
+            </code>
+
+            <p className="mt-2 text-[11.5px] leading-relaxed text-ink-4">
+              It stops working the moment they set their own password, and the account is unusable
+              without it — there is no way to show it again.
+            </p>
+
+            <Button variant="outline" className="mt-3 w-full gap-2" disabled={!created.token} onClick={copySignIn}>
+              <Copy className="size-3.5" /> {created.copied ? 'Copied' : 'Copy sign-in message'}
+            </Button>
+
+            {created.error && <p className="mt-2 text-[12px] text-destructive">{created.error}</p>}
+          </div>
+        </div>
+      )}
 
       {recovery && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
