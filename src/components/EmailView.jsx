@@ -174,11 +174,22 @@ const EmailView = ({
         }
         const text = await decryptStored(res.data.data, res.data.message_key, privateKey)
         const parsed = parseEmail(text)
+        // The lock must report something this client can check, not something the server
+        // wrote. It used to be read from an OpenNeutron-E2EE header inside the body, so a
+        // hostile server could render any message and set that header to show a lock.
+        // A message that reached the reader through a message_key was sealed to a key
+        // this browser holds and decrypted — that is a local fact. It still does not say
+        // *who* sealed it; sender signatures are the next step, not this one.
+        const arrivedSealed = !!res.data.message_key
         addressBook.addAll(parsed?.from ? [parsed.from] : [])
         addressBook.addAll(parsed?.to ?? [])
         addressBook.addAll(parsed?.cc ?? [])
         const receivedAt = res.data.received_at
-        setEmail({ ...parsed, date: parsed.date ?? (receivedAt ? new Date(receivedAt) : null) })
+        setEmail({
+          ...parsed,
+          e2ee: arrivedSealed,
+          date: parsed.date ?? (receivedAt ? new Date(receivedAt) : null),
+        })
 
         // A sent copy of a sealed note carries "link: …/api/note?t=<token>" and,
         // for a passphrase note, "passphrase: …". Ask the server what became of
