@@ -1109,6 +1109,7 @@ const AuthorizedLayout = () => {
                 onSelect={handleSelect}
                 onCheck={handleCheck}
                 onCheckThread={handleCheckThread}
+                openThreadInPane={!isPhone}
                 loading={loading}
                 hasMore={selectedFolder === 'inbox' && hasMore}
                 onLoadMore={loadMore}

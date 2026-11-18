@@ -20,6 +20,7 @@ const EmailList = ({
   checkedUids,
   onSelect,
   onCheck,
+  openThreadInPane = false,
   // Selects (or clears) every message in a conversation at once.
   onCheckThread = null,
   loading,
@@ -247,6 +248,10 @@ const EmailList = ({
                   else next.add(thread.key)
                   return next
                 })
+                // A desktop has a pane beside the list, so opening a conversation should also
+                // show it there. A phone has no room for both: the reader covers the whole
+                // screen, so selecting here would hide the expansion the click just made.
+                if (openThreadInPane) onSelect(thread.latestUid)
               }
 
               return (
