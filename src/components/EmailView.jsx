@@ -506,7 +506,7 @@ const EmailView = ({
               <SenderAvatar from={email.from} variant="view" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-3">
-                  <p className="truncate text-[13.5px] font-semibold text-ink-1">
+                  <p className="truncate text-[13.5px] font-semibold text-ink-1" title={email.from?.name || email.from?.email || ''}>
                     {email.from?.name || email.from?.email || '(unknown sender)'}
                   </p>
                   <span className="mono shrink-0 text-[11.5px] text-ink-3">
@@ -641,7 +641,7 @@ const EmailView = ({
                   >
                     <Paperclip className="size-4 shrink-0 text-ink-3" />
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-ink-1 truncate max-w-[200px]">
+                      <p className="text-sm font-medium text-ink-1 truncate max-w-[200px]" title={att.name}>
                         {att.name}
                       </p>
                       <p className="text-xs text-ink-3">

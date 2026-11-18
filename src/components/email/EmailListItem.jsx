@@ -170,7 +170,12 @@ export function EmailListItem({
             />
             {isUnread && <span className="sr-only">Unread</span>}
           </span>
-          <span className={`truncate text-[13.5px] ${unreadWeight} ${undecryptable ? 'text-sand' : 'text-ink-1'}`}>
+          {/* A phone cannot hover, so `title` is the only way to read a clipped name —
+              and on desktop it is the one that costs nothing. */}
+          <span
+            className={`truncate text-[13.5px] ${unreadWeight} ${undecryptable ? 'text-sand' : 'text-ink-1'}`}
+            title={undecryptable ? 'Encrypted message' : senderLabel}
+          >
             {undecryptable ? 'Encrypted message' : senderLabel}
           </span>
           {preview?.e2ee && <Lock className="size-3 shrink-0 text-ink-3" aria-label="End-to-end encrypted" />}
@@ -192,13 +197,16 @@ export function EmailListItem({
 
         <div className="col-span-2 row-start-2 min-w-0 @[520px]:col-span-1 @[520px]:col-start-2 @[520px]:row-start-1">
           <div className="flex min-w-0 items-baseline gap-2">
-            <p className={`truncate text-[13px] ${isUnread ? 'text-ink-1' : 'text-ink-2'}`}>
+            <p
+              className={`truncate text-[13px] ${isUnread ? 'text-ink-1' : 'text-ink-2'}`}
+              title={preview?.subject || '(no subject)'}
+            >
               {preview?.subject || '(no subject)'}
             </p>
             {isStarred && <Star className="size-3 shrink-0 self-center fill-sand text-sand" aria-label="Starred" />}
           </div>
           {snippet && (
-            <p className="mail-row-snippet mt-0.5 truncate text-[12.5px] leading-snug text-ink-3">{snippet}</p>
+            <p className="mail-row-snippet mt-0.5 truncate text-[12.5px] leading-snug text-ink-3" title={snippet}>{snippet}</p>
           )}
         </div>
       </div>

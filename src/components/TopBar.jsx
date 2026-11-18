@@ -85,9 +85,7 @@ export function TopBar({
         </div>
 
         <div className="ml-auto flex items-center gap-1">
-          <span className="mono hidden max-w-[200px] truncate pr-2 text-[11.5px] text-ink-3 lg:inline">
-            {userEmail}
-          </span>
+          <span className="mono hidden max-w-[200px] truncate pr-2 text-[11.5px] text-ink-3 lg:inline" title={{userEmail}}>{userEmail}</span>
 
           <DropdownMenuRoot>
             <DropdownMenuTrigger asChild>
