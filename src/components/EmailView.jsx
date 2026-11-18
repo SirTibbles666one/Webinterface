@@ -1,5 +1,4 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenuRoot,
@@ -242,7 +241,15 @@ const EmailView = ({
   }, [uid])
 
   return (
-    <div className="flex flex-col h-full bg-background overflow-hidden">
+    <div
+      className={`flex flex-col bg-background ${
+        // Inline, this block is a slot inside a list row, so it must not be a flex
+        // column with `h-full`: that resolved to the row's height, the middle scroller
+        // shrank to fit, and the action bar was pushed out of the box — the "buttons
+        // are hidden" complaint. As a plain block the bar simply stacks under the body.
+        inline ? 'block' : 'flex flex-col h-full overflow-hidden'
+      }`}
+    >
       {/* The bar carries actions only. What the message is, and who sent it,
           belongs in the reading column below, where the eye already is. */}
       <div className="flex h-14 shrink-0 items-center gap-1 border-b border-line px-3 max-sm:h-12 max-sm:px-2">
@@ -406,7 +413,7 @@ const EmailView = ({
         </div>
       )}
 
-      {/* min-h-0 on the ScrollArea below: a flex child's default min-height is its
+      {/* min-h-0 on the scroller below: a flex child's default min-height is its
           content, so without it the message pushes the viewport to its own height and
           the reader's overflow-hidden cuts it at the fold — unscrollable long mail. */}
       {uid === null ? (
@@ -449,7 +456,11 @@ const EmailView = ({
           </div>
         </div>
       ) : email ? (
-        <ScrollArea className={inline ? 'max-h-[62vh] overscroll-contain' : 'flex-1 min-h-0'}>
+        <div
+          className={`custom-scrollbar overflow-y-auto overscroll-contain ${
+            inline ? 'max-h-[42vh]' : 'flex-1 min-h-0'
+          }`}
+        >
           {/* One measure for the whole message: a line of text that runs the
               width of a wide window is unreadable, and the header has to sit in
               the same column as the body it introduces. */}
@@ -609,7 +620,7 @@ const EmailView = ({
               </div>
             </div>
           )}
-        </ScrollArea>
+        </div>
       ) : null}
 
       {/* The three verbs a reader wants, on a bar that cannot scroll away. It sits
