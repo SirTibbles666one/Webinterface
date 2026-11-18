@@ -878,20 +878,27 @@ const AuthorizedLayout = () => {
   // One reader, two homes: the desktop pane and (on a phone) the row that was tapped.
   // One card per message: who sent it, when, and whether it has been read.
   // A conversation is read to work out when things were said, and "18 Nov" alone cannot answer
-  // "did this arrive before or after the one above it". Date and time, always.
+  // "did this arrive before or after the one above it". Today shows the clock, as the list does
+  // (24-hour, matching rowTime); anything older shows the day and the clock.
   const cardWhen = (value) => {
     if (!value) return ''
     const d = new Date(value)
     if (Number.isNaN(d.getTime())) return ''
-    return d.toLocaleString(undefined, {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
+    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+    const now = new Date()
+    const sameDay =
+      d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear()
+    if (sameDay) return time
+    const sameYear = d.getFullYear() === now.getFullYear()
+    const day = d.toLocaleDateString(
+      [],
+      sameYear ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: '2-digit' },
+    )
+    return `${day}, ${time}`
   }
-  // `thread.uids` runs oldest→newest (that is how threads.js builds it), and a conversation
-  // read from the top should start with the message that just arrived, not the first one ever.
+
   const threadCards = (threadUids) =>
     [...threadUids].reverse().map((uid) => ({
       uid,
