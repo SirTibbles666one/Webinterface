@@ -28,17 +28,26 @@ At 320px the bar holds one row: options, attach and Send together.
 Done when: chrome ≤ 200px at 390px, and a reply typed, sent and re-read shows the signature in the
 right place and the quote still attached.
 
-## Phase 2 — the quote, properly (~a day)
+## Phase 2 — the quote, properly (~a day) — **1 and 2 shipped**
 
-The CSS hidden quote is honest but blunt: it removes the quote from view entirely, and a reader
-who wants to check one line must reveal the whole thread.
+The CSS hidden quote was honest but blunt: it removed the quote from view entirely, and a reader
+who wanted to check one line had to reveal the whole thread.
 
-1. **A real quote node.** Register a `blockquote`-wrapping node view that renders a closed card —
-   `On 18 Nov 2026, Ines Novak wrote` plus the first line, and an expand control. This is the
-   piece the earlier inline-reading work deferred; it is the difference between hiding the thread
-   and summarising it.
-2. **Keep the document honest.** The card must still serialise to `<blockquote>` on send, or
-   replies start arriving without the thread they answer.
+Shipped: a `blockquote` node view (`QuoteCard.jsx` + `QuoteCardNode` in `TiptapEditor.jsx`)
+rendering a closed card with the attribution and a preview line, opening in place. It serialises
+back to `<blockquote>` and keeps the attribution in a `data-attribution` attribute, so the reply
+still carries the thread — verified through `editor.getHTML()`, not through the DOM, because a
+node view renders a `div` and never shows a `<blockquote>` element.
+
+Two approaches that failed first, both kept here because they are the obvious ones:
+- hiding the attribution paragraph with `p:has(+ blockquote)` — a node view is a `div`, so the
+  selector never matches;
+- hiding it by a class on the paragraph — TipTap's Paragraph node keeps only the attributes it
+  is told to, so the class is gone by the time CSS looks for it.
+Carrying the attribution on the node is the fix: one copy, nothing to hide.
+
+1. ~~A real quote node~~ — shipped.
+2. ~~Keep the document honest~~ — shipped (`sendsBlockquote: true`).
 3. **Nested quotes.** A reply to a reply currently nests quote-in-quote text verbatim. Collapse
    depth 2+ into a single "earlier messages" line.
 
