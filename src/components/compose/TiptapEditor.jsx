@@ -125,7 +125,10 @@ export const TiptapEditor = ({ value, onChange, placeholder, 'aria-label': ariaL
   })
 
   return (
-    <div className="flex flex-col h-full">
+    // `h-full` here resolved to the CONTENT height inside a flex parent, so a long draft
+    // grew the wrapper past the composer and painted under its bottom bar. Taking the
+    // parent's height with flex-1 + min-h-0 keeps the scroll area inside the composer.
+    <div className="flex min-h-0 flex-1 flex-col">
       <EditorToolbar editor={editor} />
       {/* Clicking anywhere in this area focuses the editor */}
       <div
