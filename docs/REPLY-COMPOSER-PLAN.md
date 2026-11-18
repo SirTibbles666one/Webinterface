@@ -62,10 +62,12 @@ Done when: a three-deep thread replies with one card, sending produces a `text/h
 2. ~~**Draft autosave indicator.**~~ Shipped: a draft is written a beat after typing stops (it was
    only written when the composer closed, so a failed send plus a closed tab lost the message) and
    **Saved** appears beside the subject — with the time on a desktop, the word alone on a phone.
-3. **Undo send.** A 5-second window in which the message is held and can be recalled — this needs
-   a server-side hold (the scheduled-send path already delays delivery, so the mechanism exists).
-4. **Keyboard-aware footer.** On Android the keyboard covers the footer on some devices; anchor it
-   with `visualViewport` so Send stays reachable with the keyboard open.
+3. ~~**Undo send.**~~ Shipped as a **client-side** five-second hold, deliberately: the scheduled
+   path ticks once a minute, so a server hold would either deliver up to a minute late or need a
+   second sweeper. The draft is saved before the window, so a tab closed inside it loses nothing.
+   Proven both ways — Undo: 0 send calls; waiting: 1.
+4. **Keyboard-aware footer** — **already implemented** before this plan was written: the composer
+   sizes itself to `visualViewport` (`useVisualViewport`), so Send sits above the keyboard.
 
 Done when: killing the tab mid-reply loses nothing, a forced send failure is recoverable in one
 tap, and Send is tappable with the keyboard open at 390px.
