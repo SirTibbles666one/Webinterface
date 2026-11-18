@@ -54,9 +54,13 @@ export function ThreadView({ cards, label, count, onBack, renderMessage, message
             const isOpen = open.has(String(card.uid))
             return (
               <li key={String(card.uid)} className="relative overflow-hidden rounded-xl border border-line bg-card">
-                <button
-                  type="button"
-                  onClick={() => toggle(card.uid)}
+                <div className="flex min-h-12 w-full items-center gap-1 px-3 py-3">
+                  <button
+                    type="button"
+                    onClick={() => toggle(card.uid)}
+                    aria-expanded={isOpen}
+                    className="flex min-w-0 flex-1 items-center gap-2 text-left transition-colors duration-120 active:bg-accent/60"
+                  > toggle(card.uid)}
                   aria-expanded={isOpen}
                   className="flex min-h-12 w-full items-center gap-2 px-3 py-3 text-left transition-colors duration-120 active:bg-accent/60"
                 >
@@ -74,22 +78,20 @@ export function ThreadView({ cards, label, count, onBack, renderMessage, message
                       className={`size-3.5 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`}
                     />
                   </span>
-                </button>
+</button>
 
-                {messageActions && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setMenuFor((v) => (String(v) === String(card.uid) ? null : card.uid))
-                    }}
-                    aria-label={menuFor === card.uid ? 'Close message actions' : `Actions for this message`}
-                    aria-expanded={String(menuFor) === String(card.uid)}
-                    className="absolute right-1 top-1 flex size-10 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-accent hover:text-ink-1"
-                  >
-                    <MoreHorizontal className="size-4" />
-                  </button>
-                )}
+                  {messageActions && (
+                    <button
+                      type="button"
+                      onClick={() => setMenuFor((v) => (String(v) === String(card.uid) ? null : card.uid))}
+                      aria-label="Actions for this message"
+                      aria-expanded={String(menuFor) === String(card.uid)}
+                      className="flex size-10 shrink-0 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-accent hover:text-ink-1"
+                    >
+                      <MoreHorizontal className="size-4" />
+                    </button>
+                  )}
+                </div>
 
                 {String(menuFor) === String(card.uid) && messageActions && (
                   <div className="absolute right-2 top-12 z-20 w-48 overflow-hidden rounded-lg border border-line bg-popover shadow-lg">
