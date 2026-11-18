@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import DOMPurify from 'dompurify'
 import { ExternalLink } from 'lucide-react'
 import { segmentLinks } from '@/emailParser'
@@ -63,8 +63,65 @@ function declaresBackground(doc) {
   return false
 }
 
-function prepareMail(html, { senderThemed }) {
+// Nothing in a message may call out to the network until the reader says so.
+//
+// A remote <img> is a read receipt: it tells the sender that this message was opened,
+// when, and from which IP. In an encrypted mailbox that leak defeats the point of the
+// encryption, so remote references are neutralised on the way in and the original URL
+// is kept in data-sloth-remote so "Show images" can put it back.
+const REMOTE = /^\s*(https?:)?\/\//i
+const TRANSPARENT = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+
+function blockRemoteContent(doc) {
+  let blocked = 0
+  const stash = (el, attr, value) => {
+    el.setAttribute(`data-sloth-remote-${attr}`, value)
+    blocked += 1
+  }
+  for (const el of doc.body.querySelectorAll('img, image')) {
+    const src = el.getAttribute('src') || ''
+    if (REMOTE.test(src)) {
+      stash(el, 'src', src)
+      el.setAttribute('src', TRANSPARENT)
+      el.setAttribute('data-sloth-blocked', 'image')
+    }
+    const srcset = el.getAttribute('srcset')
+    if (srcset && REMOTE.test(srcset.split(',')[0])) {
+      stash(el, 'srcset', srcset)
+      el.removeAttribute('srcset')
+    }
+  }
+  for (const el of doc.body.querySelectorAll('[background]')) {
+    const bg = el.getAttribute('background') || ''
+    if (REMOTE.test(bg)) {
+      stash(el, 'background', bg)
+      el.removeAttribute('background')
+    }
+  }
+  // Inline style can fetch too: background-image: url(https://tracker/...).
+  for (const el of doc.body.querySelectorAll('[style]')) {
+    const style = el.getAttribute('style') || ''
+    if (!/url\(/i.test(style)) continue
+    const kept = style
+      .split(';')
+      .map((decl) => decl.trim())
+      .filter((decl) => {
+        const m = decl.match(/url\(\s*['"]?([^'")]+)/i)
+        if (m && REMOTE.test(m[1])) {
+          stash(el, 'style', decl)
+          return false
+        }
+        return true
+      })
+      .join('; ')
+    el.setAttribute('style', kept)
+  }
+  return blocked
+}
+
+export function prepareMail(html, { senderThemed, allowRemote = false }) {
   const doc = new DOMParser().parseFromString(html, 'text/html')
+  const blocked = allowRemote ? 0 : blockRemoteContent(doc)
   for (const el of doc.body.querySelectorAll('*')) {
     el.removeAttribute('nowrap')
 
@@ -90,7 +147,7 @@ function prepareMail(html, { senderThemed }) {
     if (kept.length) el.setAttribute('style', kept.join('; '))
     else el.removeAttribute('style')
   }
-  return doc.body.innerHTML
+  return { html: doc.body.innerHTML, blocked }
 }
 
 // Heuristic: treat textBody as HTML if it starts with an HTML tag
@@ -364,7 +421,7 @@ function MailFrame({ html, senderThemed }) {
           src={src}
           title="Message body"
           onLoad={() => measureRef.current?.()}
-          sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+          sandbox="allow-same-origin allow-popups"
           referrerPolicy="no-referrer"
           scrolling="no"
           className={`email-html-body block w-full border-0 ${senderThemed ? 'bg-white' : 'bg-background'}`}
@@ -397,6 +454,42 @@ function MailFrame({ html, senderThemed }) {
   )
 }
 
+// One message's HTML, with the sender's remote content held back until asked for.
+function HtmlBody({ html }) {
+  const [showImages, setShowImages] = useState(false)
+  const clean = useMemo(() => sanitizeHtml(html), [html])
+  const senderThemed = useMemo(
+    () => declaresBackground(new DOMParser().parseFromString(clean, 'text/html')),
+    [clean],
+  )
+  // allowRemote is part of the key: flipping it re-runs prepareMail and puts the
+  // stashed URLs back, so the frame reloads with the sender's images.
+  const { html: prepared, blocked } = useMemo(
+    () => prepareMail(clean, { senderThemed, allowRemote: showImages }),
+    [clean, senderThemed, showImages],
+  )
+  return (
+    <>
+      {blocked > 0 && !showImages && (
+        <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-line bg-secondary/60 px-3 py-2 text-[12.5px] text-ink-2">
+          <span>
+            {blocked === 1 ? '1 remote image was' : `${blocked} remote images were`} blocked, so the
+            sender cannot tell you opened this.
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowImages(true)}
+            className="min-h-11 rounded px-2 font-medium text-ink-1 underline underline-offset-2 sm:min-h-0"
+          >
+            Show images
+          </button>
+        </div>
+      )}
+      <MailFrame html={prepared} senderThemed={senderThemed} />
+    </>
+  )
+}
+
 export function EmailBody({ textBody, htmlBody, senderHint }) {
   // An OpenPGP message is ciphertext and needs its own reader.
   //
@@ -417,9 +510,7 @@ export function EmailBody({ textBody, htmlBody, senderHint }) {
   const resolvedHtml = htmlBody || (textBody && looksLikeHtml(textBody) ? textBody : null)
 
   if (resolvedHtml) {
-    const clean = sanitizeHtml(resolvedHtml)
-    const senderThemed = declaresBackground(new DOMParser().parseFromString(clean, 'text/html'))
-    return <MailFrame html={prepareMail(clean, { senderThemed })} senderThemed={senderThemed} />
+    return <HtmlBody html={resolvedHtml} />
   }
 
   const text = textBody || ''
