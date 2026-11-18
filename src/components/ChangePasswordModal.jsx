@@ -18,6 +18,7 @@ import { storage } from '@/storage'
 import { ensureStoredKey } from '@/lib/keyRecovery'
 import { userSetCredentials, emailListAll, emailGetRaw, emailSetRaw } from '@/api'
 import { cryptoUnavailableMessage, isCryptoUnavailable } from '@/lib/cryptoFailure'
+import * as draftStore from '@/lib/draftStore'
 
 export function ChangePasswordModal({ isOpen, onClose }) {
   const [phase, setPhase] = useState('form') // 'form' | 'working' | 'done'
@@ -133,6 +134,13 @@ export function ChangePasswordModal({ isOpen, onClose }) {
       //    accepts future requests with the new token (token is unchanged here)
       storage.set({ encrypted_key: newEncryptedKey, public_key: newPublicKeyB64 })
       await keySession.set(newKeyPair.privateKey)
+      // Drafts are encrypted under a key derived from the session key, so a new key pair makes
+      // the old blob unreadable. Rewrite it while both are in hand.
+      try {
+        await draftStore.reencryptAll()
+      } catch {
+        /* drafts are recoverable from memory for this session regardless */
+      }
 
       if (forgot) {
         // Without the old key the stored messages cannot be re-encrypted. Say how

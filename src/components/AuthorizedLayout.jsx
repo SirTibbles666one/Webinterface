@@ -16,6 +16,7 @@ import { hasIdentity } from '@/lib/pgpRing'
 import { UnlockModal } from '@/components/UnlockModal'
 import { EmailToolbar } from '@/components/EmailToolbar'
 import { ThreadView } from '@/components/ThreadView'
+import * as draftStore from '@/lib/draftStore'
 import { formatClock } from '@/lib/appearance'
 import { loadProfile } from '@/lib/profile'
 import { useEmailFetch } from '@/hooks/useEmailFetch'
@@ -95,7 +96,7 @@ const AuthorizedLayout = () => {
   // Bumped whenever a held message changes, so the panel does not wait a minute
   // to show the edit the sender just made.
   const [scheduledVersion, setScheduledVersion] = useState(0)
-  const [drafts, setDrafts] = useState(() => storage.getDrafts())
+  const [drafts, setDrafts] = useState(() => draftStore.drafts())
   const navigate = useNavigate()
   const [userEmail, setUserEmail] = useState('')
   const [isAdmin, setIsAdmin] = useState(() => storage.getIsAdmin())
@@ -282,6 +283,15 @@ const AuthorizedLayout = () => {
     return () => {
       clearInterval(serverPollId)
     }
+  }, [])
+
+  // Drafts are encrypted at rest, so they arrive after the first render.
+  useEffect(() => {
+    let alive = true
+    draftStore.loadDrafts().then((loaded) => {
+      if (alive) setDrafts(loaded)
+    })
+    return () => { alive = false }
   }, [])
 
   useEffect(() => {
@@ -739,8 +749,8 @@ const AuthorizedLayout = () => {
 
   const handleComposeClose = useCallback((savedDraft) => {
     if (savedDraft) {
-      storage.saveDraft(savedDraft)
-      setDrafts(storage.getDrafts())
+      draftStore.put(savedDraft)
+      setDrafts(draftStore.drafts())
     }
     setComposeOpen(false)
     setReplyData(null)
@@ -751,7 +761,7 @@ const AuthorizedLayout = () => {
   const handleScheduled = useCallback(({ id, sendAt, draft }) => {
     if (!id || !draft) return
     storage.saveScheduledDraft(id, sendAt, draft)
-    setDrafts(storage.getDrafts())
+    setDrafts(draftStore.drafts())
     setScheduledVersion((n) => n + 1)
   }, [])
 
@@ -775,8 +785,8 @@ const AuthorizedLayout = () => {
   }, [])
 
   const handleCancelledScheduled = useCallback((id) => {
-    storage.deleteDraft(`sched_${id}`)
-    setDrafts(storage.getDrafts())
+    draftStore.remove(`sched_${id}`)
+    setDrafts(draftStore.drafts())
   }, [])
 
   const handleScheduledItems = useCallback((items) => {
@@ -786,8 +796,8 @@ const AuthorizedLayout = () => {
   }, [])
 
   const handleDeleteDraft = useCallback((draftId) => {
-    storage.deleteDraft(draftId)
-    setDrafts(storage.getDrafts())
+    draftStore.remove(draftId)
+    setDrafts(draftStore.drafts())
   }, [])
 
   const handleComposeTo = useCallback((emailAddr) => {

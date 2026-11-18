@@ -15,6 +15,7 @@ import { makePassphrase } from '@/lib/passphrase'
 import { lookupKey } from '@/lib/wkd'
 import { loadProfile } from '@/lib/profile'
 import { formatClock } from '@/lib/appearance'
+import * as draftStore from '@/lib/draftStore'
 import api from '@/api'
 import { storage } from '@/storage'
 
@@ -554,7 +555,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
     if (!draft) return undefined
     const timer = setTimeout(() => {
       try {
-        storage.saveDraft(draft)
+        draftStore.put(draft)
         setSavedAt(Date.now())
       } catch {
         /* a full or blocked store must not interrupt writing */

@@ -4,6 +4,7 @@ import { ArrowLeft, LogOut } from 'lucide-react'
 import { storage } from '@/storage'
 import api, { userTwoFactorStatus, userSecurityKeys, userSessions, userRevokeSession } from '@/api'
 import { endSession } from '@/lib/signOut'
+import * as draftStore from '@/lib/draftStore'
 import { fetchPostQuantumStatus } from '@/lib/pqSetup'
 import ProfileSection from '@/components/ProfileSection'
 import PasswordSection from '@/components/PasswordSection'
@@ -208,7 +209,12 @@ export default function Settings() {
     await endSession({
       sessions: userSessions,
       revoke: userRevokeSession,
-      clear: () => storage.clear?.(),
+      clear: () => {
+        // Drafts are ciphertext under the session key; removing them on sign-out means a shared
+        // browser keeps nothing that was left half-written.
+        draftStore.clearAll().catch(() => {})
+        storage.clear?.()
+      },
     })
     navigate('/login', { replace: true })
   }
