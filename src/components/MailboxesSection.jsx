@@ -18,6 +18,9 @@ export function MailboxesSection() {
   const [name, setName] = useState('')
   const [picked, setPicked] = useState([])
   const [busy, setBusy] = useState(false)
+  // Removing a mailbox is irreversible, so it asks once, inline: a phone has no
+  // hover and a modal for this would be heavier than the action.
+  const [confirming, setConfirming] = useState(null)
   const [error, setError] = useState('')
 
   const refresh = useCallback(async () => {
@@ -105,9 +108,28 @@ export function MailboxesSection() {
                   {(row.addresses ?? []).length > 0 ? row.addresses.join(', ') : 'no addresses yet'}
                 </p>
               </div>
+              {confirming === row.name ? (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => { setConfirming(null); remove(row.name) }}
+                    disabled={busy}
+                    className="min-h-[44px] rounded-lg border border-destructive/40 px-2.5 text-[12px] font-medium text-destructive active:bg-destructive/10 sm:min-h-9"
+                  >
+                    Remove
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirming(null)}
+                    className="min-h-[44px] rounded-lg px-2.5 text-[12px] text-ink-3 sm:min-h-9"
+                  >
+                    Keep
+                  </button>
+                </div>
+              ) : (
               <button
                 type="button"
-                onClick={() => remove(row.name)}
+                onClick={() => setConfirming(row.name)}
                 disabled={busy}
                 className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-destructive/30 text-destructive transition-colors duration-120 active:bg-destructive/10 disabled:opacity-45 sm:min-h-9 sm:min-w-9"
                 aria-label={`Remove ${row.name}`}
@@ -115,6 +137,7 @@ export function MailboxesSection() {
               >
                 <Trash2 className="size-4" />
               </button>
+              )}
             </li>
           ))}
         </ul>

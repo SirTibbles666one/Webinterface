@@ -208,7 +208,9 @@ export function EmailListItem({
           time, waiting to be hit by accident. A finger swipes the row or holds it instead. */}
       <div
         className={`absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-0.5 rounded-md border border-line bg-card/95 px-1 py-0.5 shadow-sm transition-opacity duration-120 ${
-          menuOpen ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100'
+          // `focus-within` matters as much as hover: without it these buttons are
+          // focusable but invisible, so a keyboard user tabs into nothing.
+          menuOpen ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100 focus-within:opacity-100'
         } pointer-coarse:hidden`}
       >
         <button

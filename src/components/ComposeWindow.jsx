@@ -1127,7 +1127,9 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                   className="ml-auto sm:ml-0 flex items-center justify-center gap-2 px-5 sm:px-4 py-2 sm:py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 max-sm:min-h-11"
                 >
                   {isSending
-                    ? <Loader2 className="w-4 h-4 sm:w-3.5 sm:h-3.5 animate-spin" />
+                    // A spinner with no text is an unnamed button exactly when the state
+                    // matters most; keep the word beside it.
+                    ? <><Loader2 className="w-4 h-4 sm:w-3.5 sm:h-3.5 animate-spin" /><span className="ml-1.5">Sending…</span></>
                     : <Send className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                   }
                   {isSending
