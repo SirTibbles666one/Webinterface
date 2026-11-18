@@ -54,12 +54,14 @@ Carrying the attribution on the node is the fix: one copy, nothing to hide.
 Done when: a three-deep thread replies with one card, sending produces a `text/html` part whose
 `blockquote` still contains the thread, and the card survives a save-and-reopen of the draft.
 
-## Phase 3 — never lose a reply (~a day)
+## Phase 3 — never lose a reply (~a day) — **1 and 2 shipped**
 
-1. **Send failure keeps the draft.** A failed send must leave the composer open with the text
-   intact and a retry control; today a failure is reported but the recovery path is manual.
-2. **Draft autosave indicator.** Drafts exist (`draftId`, `onDeleteDraft`), but nothing says when
-   the text was last saved. One line: "Saved 14:32".
+1. ~~**Send failure keeps the draft.**~~ Shipped: the error wraps to two lines instead of one
+   ellipsised line and carries a **Try again** control. Proven with a real refused recipient —
+   `550 RCPT TO rejected` — with the composer open and the text intact.
+2. ~~**Draft autosave indicator.**~~ Shipped: a draft is written a beat after typing stops (it was
+   only written when the composer closed, so a failed send plus a closed tab lost the message) and
+   **Saved** appears beside the subject — with the time on a desktop, the word alone on a phone.
 3. **Undo send.** A 5-second window in which the message is held and can be recalled — this needs
    a server-side hold (the scheduled-send path already delays delivery, so the mechanism exists).
 4. **Keyboard-aware footer.** On Android the keyboard covers the footer on some devices; anchor it
