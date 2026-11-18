@@ -13,19 +13,11 @@ import { ChevronDown } from 'lucide-react'
  * and opens in place. The content stays in the document, so it is still sent, and the node
  * serialises back to a plain `<blockquote>` for every other mail client.
  */
-export function QuoteCard({ editor, getPos, node }) {
+export function QuoteCard({ node }) {
   const [open, setOpen] = useState(false)
 
-  // The attribution line ("On … wrote:") is the paragraph immediately before the quote, which
-  // is where a reply builder puts it. Read from the document rather than stored twice.
-  let attribution = ''
-  try {
-    const before = editor.state.doc.resolve(getPos()).nodeBefore
-    const text = (before?.textContent || '').trim()
-    if (/wrote:$/.test(text)) attribution = text
-  } catch {
-    /* the node may be detached mid-update; the fallback below is fine */
-  }
+  // Carried on the node itself, so there is one copy of it and nothing to hide.
+  const attribution = (node.attrs?.attribution || '').trim()
 
   const preview = (node.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 96)
 

@@ -107,6 +107,19 @@ const QuoteCardNode = Node.create({
   group: 'block',
   content: 'block+',
   defining: true,
+  // The attribution rides on the quote rather than in a paragraph beside it: a separate
+  // paragraph has to be hidden by CSS, and both the class and the `:has(+ …)` selector were
+  // stripped or unmatched, leaving the line visible twice.
+  addAttributes() {
+    return {
+      attribution: {
+        default: '',
+        parseHTML: (element) => element.getAttribute('data-attribution') || '',
+        renderHTML: (attributes) =>
+          attributes.attribution ? { 'data-attribution': attributes.attribution } : {},
+      },
+    }
+  },
   parseHTML() {
     return [{ tag: 'blockquote' }]
   },

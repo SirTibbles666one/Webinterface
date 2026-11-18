@@ -450,7 +450,7 @@ export function buildQuotedHtml(email) {
   }
   if (buffer.length) paragraphs.push(buffer.join(' '))
   const quoted = paragraphs.map((para) => `<p>${escapeHtml(para)}</p>`).join('') || '<p></p>'
-  return `<p></p><p class="sloth-quote-attribution"><em>${escapeHtml(attribution)}</em></p><blockquote>${quoted}</blockquote>`
+  return `<p></p><blockquote data-attribution="${escapeHtml(attribution)}">${quoted}</blockquote>`
 }
 
 export function buildQuotedBody(email) {
