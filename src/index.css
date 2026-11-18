@@ -397,7 +397,7 @@
   to   { opacity: 1; transform: none; }
 }
 .compose-window { animation: sheet-pop .2s cubic-bezier(.2, .7, .2, 1) both; }
-@media (max-width: 639px) {
+@media (max-width: 767px) {
   .compose-window { animation: sheet-up .26s cubic-bezier(.2, .7, .2, 1) both; }
 }
 
@@ -407,7 +407,7 @@
 }
 .toast-in { animation: toast-in .22s cubic-bezier(.2, .7, .2, 1) both; }
 
-@media (max-width: 639px) {
+@media (max-width: 767px) {
   /* A control whose only content is an icon is a thumb target, not a glyph.
      The icon keeps its size; the box around it grows to the 44px floor, because
      padding on a 16px glyph still leaves a 16px hit rect reading as "does nothing"
