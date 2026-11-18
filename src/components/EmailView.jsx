@@ -492,7 +492,9 @@ const EmailView = ({
       ) : email ? (
         <div
           className={`custom-scrollbar overflow-y-auto overscroll-contain ${
-            inline ? 'max-h-[42vh]' : 'flex-1 min-h-0'
+            // 34vh, not 42: the bar now carries four verbs, and at 42 the bar itself fell
+            // below the list viewport — the buttons were there, just not on screen.
+            inline ? 'max-h-[34vh]' : 'flex-1 min-h-0'
           }`}
         >
           {/* One measure for the whole message: a line of text that runs the
@@ -681,11 +683,11 @@ const EmailView = ({
           as the arrow: an arrow alone next to a back arrow is a guess. */}
       {email && (
         <div className={`shrink-0 border-t border-line bg-background/95 px-3 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] ${inline ? "" : "max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-30 max-sm:backdrop-blur-sm"}`}>
-          <div className="mx-auto flex w-full max-w-[720px] items-center gap-2">
+          <div className="mx-auto flex w-full max-w-[720px] items-center gap-1.5 overflow-x-auto sm:gap-2">
             <Button
               onClick={() => onReply?.({ ...email, alias: arrivedAt })}
               variant="outline"
-              className="flex-1 gap-1.5 px-3 text-[13px] max-sm:min-h-11 sm:flex-none"
+              className="shrink-0 gap-1.5 px-2.5 text-[13px] max-sm:min-h-11 sm:flex-none sm:px-3"
             >
               <Reply className="size-3.5" /> Reply
             </Button>
@@ -693,7 +695,7 @@ const EmailView = ({
               <Button
                 onClick={() => onReplyAll({ ...email, alias: arrivedAt })}
                 variant="ghost"
-                className="gap-1.5 px-3 text-[13px] max-sm:min-h-11 text-ink-2"
+                className="shrink-0 gap-1.5 px-2.5 text-[13px] max-sm:min-h-11 text-ink-2 sm:px-3"
               >
                 <Users className="size-3.5" /> <span className="max-sm:hidden">Reply all</span>
                 <span className="sm:hidden">All</span>
@@ -703,7 +705,7 @@ const EmailView = ({
               <Button
                 onClick={() => onForward({ ...email, alias: arrivedAt })}
                 variant="ghost"
-                className="gap-1.5 px-3 text-[13px] max-sm:min-h-11 text-ink-2"
+                className="shrink-0 gap-1.5 px-2.5 text-[13px] max-sm:min-h-11 text-ink-2 sm:px-3"
               >
                 <Forward className="size-3.5" /> <span className="max-sm:hidden">Forward</span>
                 <span className="sm:hidden">Fwd</span>
@@ -742,7 +744,7 @@ const EmailView = ({
                   }
                 }}
                 variant="ghost"
-                className="gap-1.5 px-3 text-[13px] max-sm:min-h-11 text-ink-2"
+                className="shrink-0 gap-1.5 px-2.5 text-[13px] max-sm:min-h-11 text-ink-2 sm:px-3"
                 title={
                   spamError ||
                   (inJunk
