@@ -11,7 +11,8 @@ running system, not a reading of the source alone.
 |---|---|---|
 | **High** | 2 | a post-quantum unlock gap that hid every message (fixed); deploys are user-visible (fixed) |
 | **Medium** | 3 | poisoned locks in two sidecars (fixed); an unthrottled public endpoint (fixed); CSP reporting silently broken (fixed) |
-| **Low** | 3 | 576 live sessions with no cap; bot rejections with no summary; CORS posture undocumented |
+| **Low** | 2 | bot rejections with no summary; CORS posture undocumented |
+| **Fixed after review** | 1 | 576 sessions with no per-account cap (`qatester` held 400) |
 
 Three of the four Medium findings were fixed during the audit; the fourth was **wrong** and is
 corrected below rather than padded. Two of my own numbers were also wrong on first pass (record
@@ -108,6 +109,13 @@ window. **One leak was real:** a revoked note that was never opened has neither 
 settles it.
 
 ## Low
+
+6b. **Sessions had limits but no cap — fixed.** Age (30 days) and idle (14 days) limits were
+   already enforced, so my first note claiming otherwise was wrong. What was missing is a
+   per-account cap: **576 live sessions, 400 of them one test account**. That is a "signed-in
+   devices" list nobody can read, and a spray surface for a stolen password. Cap is now 20 per
+   account, oldest idle first, enforced on new sessions and in the sweep; two tests pin it
+   (184 server tests).
 
 7. **Bot rejections are invisible to the owner.** 13 Postfix rejects in 24 h, all unsolicited
    traffic. The health card reports rspamd's counts, not the SMTP edge's. One more number on the
