@@ -10,7 +10,6 @@ import {
   encryptPrivateKey,
   decryptPrivateKey,
   hashPassword,
-  getPublicCryptoKeyFromPrivate,
   encryptEmail,
 } from '@/crypto'
 import { keySession } from '@/keySession'

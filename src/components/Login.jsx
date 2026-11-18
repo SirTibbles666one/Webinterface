@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { debugLog } from '@/lib/debug'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -61,14 +62,14 @@ const Login = () => {
         setLoading(false)
         return
       }
-      if (looksLikeSetupToken) console.log('[Login] Presenting a one-time setup token')
-      console.log('[Login] Sending login request')
+      if (looksLikeSetupToken) debugLog('[Login] Presenting a one-time setup token')
+      debugLog('[Login] Sending login request')
       const response = await api.post('/auth/login', { username, password: presented })
 
       // Password accepted, second factor still owed: no token came back, and
       // nothing sensitive (salt, wrapped key, admin flag) was sent either.
       if (response.data?.two_factor_required) {
-        console.log('[Login] Second factor required')
+        debugLog('[Login] Second factor required')
         setChallenge(response.data.challenge || '')
         setMethods(response.data.two_factor_methods || [])
         setTwoFactorCode('')
@@ -102,7 +103,7 @@ const Login = () => {
     const { token, force_reset, username: name, public_key, salt, encrypted_private_key, is_admin } = data || {}
     if (!token) throw new Error('No session token returned')
       if (storage.getUsername() !== name) {
-        console.log('[Login] Username changed from', storage.getUsername(), '→', name, '— clearing key session')
+        debugLog('[Login] Username changed from', storage.getUsername(), '→', name, '— clearing key session')
         keySession.clear()
       }
 
@@ -116,12 +117,12 @@ const Login = () => {
       if (encrypted_private_key) storage.set({ encrypted_key: encrypted_private_key })
 
       if (force_reset) {
-        console.log('[Login] force_reset=true, switching to setup phase')
+        debugLog('[Login] force_reset=true, switching to setup phase')
         setPhase('setup')
       } else {
         if (encrypted_private_key && salt) {
           try {
-            console.log('[Login] Decrypting private key with salt:', salt)
+            debugLog('[Login] Decrypting private key with salt:', salt)
             const privateKey = await decryptPrivateKey(encrypted_private_key, passwordUsed, salt)
             await keySession.set(privateKey)
             // Same password, same salt: the post-quantum secret unlocks with the
@@ -141,7 +142,7 @@ const Login = () => {
               }),
             })
             if (!sig.ok) console.warn('[Login] signing key unavailable:', sig.reason)
-            console.log('[Login] ✅ Private key decrypted and loaded into session')
+            debugLog('[Login] ✅ Private key decrypted and loaded into session')
           } catch (keyErr) {
             console.error('[Login] ❌ Failed to decrypt private key:', keyErr)
           }
@@ -161,7 +162,7 @@ const Login = () => {
           const sync = await syncIdentityWithAccount(passwordUsed)
           // Always say what happened: a silent 'in-step' is indistinguishable from a
           // sync that never ran, which is exactly how this hid the first time.
-          console.log('[Login] OpenPGP sync:', sync?.action, sync?.error || '')
+          debugLog('[Login] OpenPGP sync:', sync?.action, sync?.error || '')
         } catch (pgpErr) {
           console.warn('[Login] OpenPGP sync skipped:', pgpErr.message)
         }
@@ -218,15 +219,13 @@ const Login = () => {
     setLoading(true)
     setError('')
     try {
-      const currentUsername = storage.getUsername()
       const serverSalt = keySession.getSalt()
-      console.log('[Setup] Starting key generation for user:', currentUsername, 'salt:', serverSalt)
       const keyPair = await generateKeyPair()
-      console.log('[Setup] RSA-4096 key pair generated')
+      debugLog('[Setup] RSA-4096 key pair generated')
       const publicKeyBase64 = await exportPublicKeyBase64(keyPair.publicKey)
-      console.log('[Setup] Public key exported, base64 length:', publicKeyBase64.length)
+      debugLog('[Setup] Public key exported, base64 length:', publicKeyBase64.length)
       const encryptedKey = await encryptPrivateKey(keyPair.privateKey, setupPassword, serverSalt)
-      console.log('[Setup] Private key encrypted, base64 length:', encryptedKey.length)
+      debugLog('[Setup] Private key encrypted, base64 length:', encryptedKey.length)
       const passwordHash = await hashPassword(setupPassword)
 
       let activeToken = storage.getToken()
@@ -245,14 +244,14 @@ const Login = () => {
       // can add the PQ half later.
       try {
         await enablePostQuantum(setupPassword, serverSalt)
-        console.log('[Setup] Post-quantum key created and uploaded')
+        debugLog('[Setup] Post-quantum key created and uploaded')
       } catch (pqErr) {
         console.warn('[Setup] Post-quantum key not created:', pqErr?.message || pqErr)
       }
 
-      console.log('[Setup] Loading private key into session')
+      debugLog('[Setup] Loading private key into session')
       await keySession.set(keyPair.privateKey)
-      console.log('[Setup] ✅ Private key in session, storing encrypted key to localStorage')
+      debugLog('[Setup] ✅ Private key in session, storing encrypted key to localStorage')
       storage.set({ encrypted_key: encryptedKey, public_key: publicKeyBase64, force_reset: false })
       setNewPrivateKey(keyPair.privateKey)
     } catch (err) {

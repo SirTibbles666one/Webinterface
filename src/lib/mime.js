@@ -29,6 +29,7 @@ export const MAX_TOTAL_ATTACHMENT_BYTES = 24 * 1024 * 1024
 export function headerSafe(value) {
   return String(value ?? '')
     .replace(/[\r\n]+/g, ' ')
+    // eslint-disable-next-line no-control-regex -- removing control characters is the job here
     .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
     .trim()
 }
@@ -38,6 +39,7 @@ export function encodeRfc2047Word(str) {
   // have passed them straight into a header line.
   const cleaned = headerSafe(str)
   if (!cleaned) return ''
+  // eslint-disable-next-line no-control-regex -- testing for non-ASCII is the job here
   if (!/[^\x00-\x7f]/.test(cleaned)) return cleaned
   return `=?UTF-8?B?${utf8ToBase64(cleaned)}?=`
 }

@@ -86,8 +86,6 @@ export function EmailListItem({
   const isInGroup = selectedFolder && selectedFolder !== 'inbox' && selectedFolder !== 'starred'
 
   const senderLabel = preview?.from?.name || preview?.from?.email || uid
-
-  const snippet = untilLabel
     ? undecryptable || !preview?.preview
       ? untilLabel
       : `${untilLabel} · ${preview.preview}`

@@ -103,7 +103,6 @@ const AuthorizedLayout = () => {
   const [setupDismissed, setSetupDismissed] = useState(false)
   // null = unknown (not fetched yet), false = no recovery key on file.
   const [recoveryKeySet, setRecoveryKeySet] = useState(null)
-  const [recoveryPromptDismissed, setRecoveryPromptDismissed] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -218,7 +217,9 @@ const AuthorizedLayout = () => {
       const token = storage.getToken()
       const res = await api.get('/group/list', { headers: { Authorization: `Bearer ${token}` } })
       setGroups(res.data.groups ?? [])
-    } catch {}
+    } catch {
+      // A folder list that cannot be read leaves the sidebar as it was; the inbox still loads.
+    }
   }, [])
 
   // Refresh reads the folder on screen. It used to read the inbox whatever was showing, so

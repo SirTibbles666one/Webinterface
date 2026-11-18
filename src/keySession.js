@@ -1,4 +1,5 @@
 import forge from 'node-forge'
+import { debugLog } from '@/lib/debug'
 import { hasSubtleCrypto } from './crypto'
 
 const SESSION_KEY = 'openneutron.private_key'
@@ -46,28 +47,28 @@ async function deserializeKey(stored) {
 
 export const keySession = {
   set: async (key) => {
-    console.log('[keySession] set() — storing key in memory + sessionStorage')
+    debugLog('[keySession] set() — storing key in memory + sessionStorage')
     privateKeyCache = key
     try {
       const serialized = await serializeKey(key)
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(serialized))
-      console.log('[keySession] ✅ Key persisted to sessionStorage (format:', serialized.format, ')')
+      debugLog('[keySession] ✅ Key persisted to sessionStorage (format:', serialized.format, ')')
     } catch (err) {
       sessionStorage.removeItem(SESSION_KEY)
-      console.error('[keySession] ❌ Failed to persist key:', err)
+      debugLog('[keySession] ❌ Failed to persist key:', err)
       throw err
     }
   },
 
   get: async () => {
     if (privateKeyCache) {
-      console.log('[keySession] get() — returning cached key')
+      debugLog('[keySession] get() — returning cached key')
       return privateKeyCache
     }
     const raw = sessionStorage.getItem(SESSION_KEY)
-    console.log('[keySession] get() — cache miss, sessionStorage has key:', !!raw)
+    debugLog('[keySession] get() — cache miss, sessionStorage has key:', !!raw)
     if (!raw) {
-      console.warn('[keySession] ⚠️ No key in sessionStorage — re-login required')
+      debugLog('[keySession] ⚠️ No key in sessionStorage — re-login required')
       return null
     }
     try {
@@ -82,22 +83,22 @@ export const keySession = {
       if (!stored.format) stored = { format: 'jwk', data: stored }
       const key = await deserializeKey(stored)
       if (!key) {
-        console.warn('[keySession] ⚠️ Cannot restore key without Web Crypto API — re-login required')
+        debugLog('[keySession] ⚠️ Cannot restore key without Web Crypto API — re-login required')
         sessionStorage.removeItem(SESSION_KEY)
         return null
       }
       privateKeyCache = key
-      console.log('[keySession] ✅ Key restored from sessionStorage')
+      debugLog('[keySession] ✅ Key restored from sessionStorage')
       return privateKeyCache
     } catch (err) {
-      console.error('[keySession] ❌ Failed to restore key:', err)
+      debugLog('[keySession] ❌ Failed to restore key:', err)
       sessionStorage.removeItem(SESSION_KEY)
       return null
     }
   },
 
   clear: () => {
-    console.log('[keySession] clear() — wiping memory + sessionStorage')
+    debugLog('[keySession] clear() — wiping memory + sessionStorage')
     privateKeyCache = null
     pqSecretCache = null
     sessionStorage.removeItem(SESSION_KEY)
@@ -111,12 +112,12 @@ export const keySession = {
   setPq: (base64Secret) => {
     if (!base64Secret) return
     pqSecretCache = base64Secret
-    try { sessionStorage.setItem(PQ_KEY, base64Secret) } catch (err) { console.warn('[keySession] pq key not persisted:', err) }
+    try { sessionStorage.setItem(PQ_KEY, base64Secret) } catch (err) { debugLog('[keySession] pq key not persisted:', err) }
   },
   getPq: () => pqSecretCache || sessionStorage.getItem(PQ_KEY),
 
   setSalt: (salt) => {
-    console.log('[keySession] setSalt():', salt)
+    debugLog('[keySession] setSalt():', salt)
     sessionStorage.setItem(SALT_KEY, salt)
   },
   getSalt: () => sessionStorage.getItem(SALT_KEY),

@@ -279,11 +279,6 @@ export function formatEmailDate(date) {
   return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}, ${time}`
 }
 
-export function getFaviconUrl(domain) {
-  if (!domain) return null
-  return `https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(domain)}`
-}
-
 export function extractPreview(text, maxLen = 160) {
   if (!text) return ''
   const lines = text
