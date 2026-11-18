@@ -423,6 +423,36 @@ export function buildReplyAttribution(email) {
   return `On ${dateStr}, ${senderStr} wrote:`
 }
 
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+/**
+ * The same quote as buildQuotedBody, but as the document the editor can style.
+ * A reply used to be plain text with "> " prefixes, which the composer could not
+ * make anything of: it read as a dump of angle brackets. The reader already parsed
+ * that shape, so the difference only showed in the one place people actually type.
+ */
+export function buildQuotedHtml(email) {
+  const attribution = buildReplyAttribution(email)
+  const text = email.textBody || (email.htmlBody ? stripHtml(email.htmlBody) : '')
+  const paragraphs = []
+  let buffer = []
+  for (const line of String(text).split('\n')) {
+    if (!line.trim()) {
+      if (buffer.length) { paragraphs.push(buffer.join(' ')); buffer = [] }
+    } else {
+      buffer.push(line.trim().replace(/^>\s?/, ''))
+    }
+  }
+  if (buffer.length) paragraphs.push(buffer.join(' '))
+  const quoted = paragraphs.map((para) => `<p>${escapeHtml(para)}</p>`).join('') || '<p></p>'
+  return `<p></p><p><em>${escapeHtml(attribution)}</em></p><blockquote>${quoted}</blockquote>`
+}
+
 export function buildQuotedBody(email) {
   const text = email.textBody || (email.htmlBody ? stripHtml(email.htmlBody) : '')
   const attribution = buildReplyAttribution(email)

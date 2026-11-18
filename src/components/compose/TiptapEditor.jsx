@@ -36,7 +36,7 @@ const EditorToolbar = ({ editor }) => {
   if (!editor) return null
 
   return (
-    <div className="flex flex-wrap items-center gap-1 border-b border-border p-2">
+    <div className="relative z-10 flex flex-wrap items-center gap-1 border-b border-border bg-card p-2">
       <TiptapButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         isActive={editor.isActive('bold')}
@@ -102,7 +102,7 @@ export const TiptapEditor = ({ value, onChange, placeholder, 'aria-label': ariaL
       StarterKit.configure({
         heading: false,
         codeBlock: false,
-        blockquote: false,
+        // A reply's quote is a blockquote; disabling it made quoted mail a plain dump.
       }),
       UnderlineExt,
       LinkExt.configure({

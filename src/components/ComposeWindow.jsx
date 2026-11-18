@@ -93,6 +93,10 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
   // Which of my addresses this goes out from. Empty means the real one. A reply
   // to mail that came through an alias starts on that alias.
   const [fromAlias, setFromAlias] = useState(() => replyData?.fromAlias ?? '')
+  // Two empty rows for Cc and Bcc cost a phone 106px before a single word is typed.
+  // They open when they already hold something, or when asked for.
+  const [showCc, setShowCc] = useState(() => (replyData?.cc?.length ?? 0) > 0)
+  const [showBcc, setShowBcc] = useState(() => (replyData?.bcc?.length ?? 0) > 0)
   const [myAliases, setMyAliases] = useState([])
   const [whenOpen, setWhenOpen] = useState(false)
   const ephemeralPayload = () => {
@@ -606,9 +610,25 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
           {/* Address + subject fields */}
           <div className="shrink-0 border-b border-border">
             <div className="px-3 pt-3">
-              <AddressField label="To:" chips={toChips} onChipsChange={setToChips} />
-              <AddressField label="Cc:" chips={ccChips} onChipsChange={setCcChips} />
-              <AddressField label="Bcc:" chips={bccChips} onChipsChange={setBccChips} />
+              <div className="flex items-start gap-1">
+                <div className="min-w-0 flex-1">
+                  <AddressField label="To:" chips={toChips} onChipsChange={setToChips} />
+                </div>
+                <div className="flex shrink-0 items-center gap-2 py-2 text-[11.5px] text-ink-3">
+                  {!showCc && (
+                    <button type="button" onClick={() => setShowCc(true)} className="transition-colors duration-120 hover:text-ink-1 max-sm:min-h-[44px] max-sm:px-1">
+                      Cc
+                    </button>
+                  )}
+                  {!showBcc && (
+                    <button type="button" onClick={() => setShowBcc(true)} className="transition-colors duration-120 hover:text-ink-1 max-sm:min-h-[44px] max-sm:px-1">
+                      Bcc
+                    </button>
+                  )}
+                </div>
+              </div>
+              {showCc && <AddressField label="Cc:" chips={ccChips} onChipsChange={setCcChips} />}
+              {showBcc && <AddressField label="Bcc:" chips={bccChips} onChipsChange={setBccChips} />}
               {myAliases.length > 0 && (
                 <div className="flex items-start gap-2 py-1">
                   <span className="text-sm font-semibold text-muted-foreground w-16 shrink-0 py-1.5">From:</span>
@@ -918,7 +938,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
               phone. On small screens the actions own a row and Send is pinned
               right, so it cannot be crowded out by text. */}
           {/* The home indicator is not a place for Send: the footer clears it on a phone. */}
-          <div className="shrink-0 border-t border-border" style={isPhone ? { paddingBottom: 'env(safe-area-inset-bottom)' } : undefined}>
+          <div className="shrink-0 border-t border-border bg-card" style={isPhone ? { paddingBottom: 'env(safe-area-inset-bottom)' } : undefined}>
             {encryptionLine && (
               <p
                 className={`px-3 pt-2 text-[11px] leading-snug ${

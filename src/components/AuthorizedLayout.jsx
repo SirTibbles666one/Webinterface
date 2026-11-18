@@ -25,7 +25,7 @@ import { useSnoozed, snoozeLabel, snoozePresets } from '@/hooks/useSnoozed'
 import { keySession } from '@/keySession'
 import { mergeServerFlags } from '@/lib/mailboxState'
 import { storage } from '@/storage'
-import { buildQuotedBody } from '@/emailParser'
+import { buildQuotedHtml } from '@/emailParser'
 import api, { userRecoveryKeyStatus } from '@/api'
 import useSearchShortcut from '@/hooks/useSearchShortcut'
 
@@ -724,7 +724,7 @@ const AuthorizedLayout = () => {
     setReplyData({
       to: out,
       subject: subj,
-      body: `\n\n${buildQuotedBody(email)}`,
+      body: buildQuotedHtml(email),
       inReplyTo: email.messageId ?? '',
       references: email.messageId ?? '',
       fromAlias: email.alias ?? '',
@@ -739,7 +739,7 @@ const AuthorizedLayout = () => {
     setReplyData({
       to: [],
       subject: subj,
-      body: `\n\n${buildQuotedBody(email)}`,
+      body: buildQuotedHtml(email),
       inReplyTo: '',
       references: '',
       fromAlias: email.alias ?? '',
@@ -754,7 +754,7 @@ const AuthorizedLayout = () => {
     setReplyData({
       to:        replyAddr ? [replyAddr] : [],
       subject:   subj,
-      body:      `\n\n${buildQuotedBody(email)}`,
+      body:      buildQuotedHtml(email),
       inReplyTo: email.messageId ?? '',
       references: email.messageId ?? '',
       // Answer from the address they wrote to, not from the real one.
