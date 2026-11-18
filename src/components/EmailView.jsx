@@ -38,6 +38,9 @@ import { decryptStored } from '@/lib/decryptStored'
 import { keySession } from '@/keySession'
 import { parseEmail, formatEmailDate } from '@/emailParser'
 import { downloadAttachment } from '@/lib/utils'
+import { unpack, verifyEnvelope, fromB64 } from '@/lib/msgSign'
+import { verifyBytes } from '@/lib/sigKey'
+import { signatureState } from '@/lib/verifyMessage'
 import { addressBook } from '@/addressBook'
 import { SenderAvatar } from '@/components/SenderAvatar'
 import { EmailBody } from '@/components/email/EmailBody'
@@ -181,13 +184,24 @@ const EmailView = ({
         // this browser holds and decrypted — that is a local fact. It still does not say
         // *who* sealed it; sender signatures are the next step, not this one.
         const arrivedSealed = !!res.data.message_key
+        const sigState = await signatureState({
+          payloadB64: res.data.data,
+          parsed,
+          deliveredTo: res.data.alias,
+          username: storage.getUsername(),
+          fetchKeys: (addresses) => api.post('/email/publickeys', { addresses }, {
+            headers: { Authorization: `Bearer ${token}` },
+          }).then((r) => r.data),
+        })
         addressBook.addAll(parsed?.from ? [parsed.from] : [])
         addressBook.addAll(parsed?.to ?? [])
         addressBook.addAll(parsed?.cc ?? [])
         const receivedAt = res.data.received_at
         setEmail({
           ...parsed,
-          e2ee: arrivedSealed,
+          e2ee: sigState === 'verified',
+          sigState,
+          arrivedSealed,
           date: parsed.date ?? (receivedAt ? new Date(receivedAt) : null),
         })
 
@@ -481,7 +495,10 @@ const EmailView = ({
             <h1 className="display mt-7 flex items-start gap-2 text-[22px] leading-snug text-ink-1 max-sm:mt-2 max-sm:text-[17.5px] max-sm:leading-[1.28]">
               <span className="min-w-0 line-clamp-2 max-sm:line-clamp-2">{email.subject || '(no subject)'}</span>
               {email.e2ee && (
-                <Lock className="mt-1.5 size-3.5 shrink-0 text-primary" aria-label="End-to-end encrypted" />
+                <Lock
+                  className="mt-1.5 size-3.5 shrink-0 text-primary"
+                  aria-label="Signed by the sender and verified"
+                />
               )}
             </h1>
 
@@ -587,7 +604,22 @@ const EmailView = ({
                 {sealedMsg && <p className="text-[11px] text-foreground/60">{sealedMsg}</p>}
               </div>
             )}
-            <EmailBody textBody={email.textBody} htmlBody={email.htmlBody} senderHint={email.from} />
+            {email.sigState === 'invalid' ? (
+              // A failed signature is not one of the states a message may render in. The
+              // body is withheld entirely: this is the one case an attacker wants shown.
+              <div className="mt-5 rounded-lg border border-danger/40 bg-danger-surface px-4 py-3">
+                <p className="text-[13px] font-medium text-danger-ink">
+                  This message failed its signature check.
+                </p>
+                <p className="mt-1 text-[12.5px] leading-relaxed text-ink-2">
+                  It claims to be from {email.from?.email || 'its sender'}, but the signature does not
+                  match the message. Nothing has been shown, because a message whose signature fails is
+                  exactly the one that should not be opened. Ask the sender to send it again.
+                </p>
+              </div>
+            ) : (
+              <EmailBody textBody={email.textBody} htmlBody={email.htmlBody} senderHint={email.from} />
+            )}
           </div>
 
           {email.attachments.length > 0 && (

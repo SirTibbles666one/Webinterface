@@ -8,7 +8,10 @@
 //
 // Layout, appended to the existing payload so no server field is needed:
 //
-//   SLW2 | 0x01 | iv(12) | ct_len(u32 BE) | ciphertext | sig_len(u16 BE) | signature
+//   SLW2 | 0x01 | sent_at(u64 BE) | pl_len(u32 BE) | payload | sig_len(u16 BE) | signature
+//
+// sent_at travels in the envelope because it is inside the signed bytes: the verifier
+// cannot know it otherwise, and carrying it unsigned would let anyone shift the clock.
 //
 // The signature covers, in order:
 //
@@ -86,10 +89,10 @@ export function signingInput({ iv, ciphertext, recipient, sender, sentAt }) {
 }
 
 /** Wrap a payload + signature into the v2 envelope. `payload` is the existing iv|ct. */
-export function packV2(payload, signature) {
+export function packV2(payload, signature, sentAt) {
   if (payload.length < 13) throw new Error('payload too short to be an envelope')
   return concat([
-    new Uint8Array(MAGIC), new Uint8Array([VERSION]),
+    new Uint8Array(MAGIC), new Uint8Array([VERSION]), u64be(sentAt || 0),
     u32be(payload.length), payload,
     u16be(signature.length), signature,
   ])
@@ -102,11 +105,13 @@ export function packV2(payload, signature) {
  */
 export function unpack(payload) {
   const startsV2 = MAGIC.every((byte, i) => payload[i] === byte)
-  if (!startsV2) return { payload, signature: null }
+  if (!startsV2) return { payload, signature: null, sentAt: null }
   if (payload[4] !== VERSION) throw new Error('unknown envelope version')
   const view = new DataView(payload.buffer, payload.byteOffset, payload.byteLength)
-  const payloadLen = view.getUint32(5)
-  const payloadStart = 9
+  let sentAt = 0n
+  for (let i = 0; i < 8; i += 1) sentAt = (sentAt << 8n) | BigInt(payload[5 + i])
+  const payloadLen = view.getUint32(13)
+  const payloadStart = 17
   const payloadEnd = payloadStart + payloadLen
   if (payloadEnd + 2 > payload.length) throw new Error('envelope is truncated')
   const sigLen = view.getUint16(payloadEnd)
@@ -115,7 +120,19 @@ export function unpack(payload) {
   return {
     payload: payload.slice(payloadStart, payloadEnd),
     signature: payload.slice(sigStart, sigStart + sigLen),
+    sentAt: Number(sentAt),
   }
+}
+
+/**
+ * The bytes a decryptor should be handed.
+ *
+ * A signed message is an SLW2 envelope around the original `iv|ct` payload, so anything
+ * that decrypts must unwrap first — handing the envelope to AES-GCM would fail on every
+ * signed message. Exported so both readers use one function rather than each remembering.
+ */
+export function payloadForDecryption(payload) {
+  return unpack(payload).payload
 }
 
 /** iv and ciphertext, split out of the existing `iv|ct` payload. */
@@ -132,7 +149,7 @@ export function splitPayload(payload) {
 export function signEnvelope({ payload, privateKey, sign, recipient, sender, sentAt }) {
   const { iv, ciphertext } = splitPayload(payload)
   const signature = sign(privateKey, signingInput({ iv, ciphertext, recipient, sender, sentAt }))
-  return packV2(payload, signature)
+  return packV2(payload, signature, sentAt)
 }
 
 /**
@@ -149,9 +166,12 @@ export function verifyEnvelope({ payload, publicKey, verify, recipient, sender, 
   }
   if (!envelope.signature) return 'unsigned'
   if (!publicKey) return 'unsigned'
+  // The envelope carries sent_at because it is signed; trusting a caller-supplied one
+  // would let a verifier be told a different clock than the signer used.
+  const stamp = sentAt ?? envelope.sentAt
   try {
     const { iv, ciphertext } = splitPayload(envelope.payload)
-    const ok = verify(publicKey, envelope.signature, signingInput({ iv, ciphertext, recipient, sender, sentAt }))
+    const ok = verify(publicKey, envelope.signature, signingInput({ iv, ciphertext, recipient, sender, sentAt: stamp }))
     return ok === true ? 'verified' : 'invalid'
   } catch {
     return 'invalid'

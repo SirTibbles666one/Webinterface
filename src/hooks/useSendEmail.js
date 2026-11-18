@@ -6,6 +6,8 @@ import { keySession } from '@/keySession'
 import { encryptEmail, getPublicCryptoKeyFromPrivate, hashPublicKey, sealForRecipient } from '@/crypto'
 import { buildEmail } from '@/lib/emailBuilder'
 import { loadProfile, formatSender } from '@/lib/profile'
+import { sessionSigningKey, signBytes } from '@/lib/sigKey'
+import { signEnvelope, toB64, fromB64 } from '@/lib/msgSign'
 import { utf8ToBase64 } from '@/lib/mime'
 import { isValidEmail } from '@/lib/utils'
 
@@ -188,6 +190,29 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
       // Sending from an alias has to change the header too — on the encrypted
       // path the server only sets the envelope, it never sees this text.
       const sendAs = fromAlias ? `${fromAlias}@${myEmail.split('@').slice(1).join('@')}` : myEmail
+
+      // Sign each copy, bound to the address it was sealed for. A missing signing key
+      // (an older session) leaves the message unsigned rather than blocking the send —
+      // the reader labels it "sender unverified", which is exactly true.
+      const sentAt = Math.floor(Date.now() / 1000)
+      const signingKey = sessionSigningKey()
+      const signedCopy = (payload, recipient) => {
+        if (!signingKey || !payload?.e2ee || !payload.data_encrypted) return payload
+        try {
+          const envelope = signEnvelope({
+            payload: fromB64(payload.data_encrypted),
+            privateKey: signingKey,
+            sign: signBytes,
+            recipient,
+            sender: sendAs,
+            sentAt,
+          })
+          return { ...payload, data_encrypted: toB64(envelope) }
+        } catch (error) {
+          console.warn('[send] could not sign the copy for', recipient, error?.message)
+          return payload
+        }
+      }
       const fromHeader = formatSender(sendAs, profile.displayName)
 
       // The signature is appended to the body, so it is inside the ciphertext
@@ -216,6 +241,7 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
       // Filled in below when a sealed note is created: the sender's own copy is
       // the only place the link — and a passphrase — is written down.
       let localCopy = await encryptEmail(rawEmail, myPublicKey)
+      localCopy = signedCopy(localCopy, sendAs)
 
       let publicKeyHash = ''
       const storedPubKey = storage.getPublicKey()
@@ -230,11 +256,11 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
         const lower = addr.toLowerCase()
         const recipientKeyB64 = keyMap[lower]
         if (recipientKeyB64) {
-          recipientsPayload[addr] = await sealForRecipient(
+          recipientsPayload[addr] = signedCopy(await sealForRecipient(
             rawEmail,
             { publicKeyBase64: recipientKeyB64, pqPublicKey: pqKeyMap[lower] },
             lower.split('@')[0],
-          )
+          ), addr)
         } else {
           recipientsPayload[addr] = { aes_encrypted: '', data_encrypted: utf8ToBase64(rawEmail), e2ee: false }
         }
@@ -280,11 +306,11 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
         const lower = addr.toLowerCase()
         const recipientKeyB64 = keyMap[lower]
         if (recipientKeyB64) {
-          recipientsPayload[addr] = await sealForRecipient(
+          recipientsPayload[addr] = signedCopy(await sealForRecipient(
             noticeEmail,
             { publicKeyBase64: recipientKeyB64, pqPublicKey: pqKeyMap[lower] },
             lower.split('@')[0],
-          )
+          ), addr)
         } else {
           recipientsPayload[addr] = { aes_encrypted: '', data_encrypted: utf8ToBase64(noticeEmail), e2ee: false }
         }
@@ -311,6 +337,7 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
           e2ee:        hasAnyKey,
         })
         localCopy = await encryptEmail(localRaw, myPublicKey)
+        localCopy = signedCopy(localCopy, sendAs)
       }
 
       setSendState('sending')
@@ -324,7 +351,7 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
         {
           localcopy: {
             to:              allRecipients,
-            timestamp:       Math.floor(Date.now() / 1000),
+            timestamp:       sentAt,
             public_key_hash: publicKeyHash,
             raw_data:        localCopy.data_encrypted,
             message_key:     localCopy.aes_encrypted,

@@ -98,6 +98,18 @@ describe('message signatures', () => {
     expect(Buffer.from(a).toString('hex')).toBe(Buffer.from(b).toString('hex'))
   })
 
+  it('reads sent_at from the envelope, so a verifier cannot be handed another clock', () => {
+    const sealed = signEnvelope(base)
+    // No sentAt passed: the verifier must use the signed one and still verify.
+    expect(verifyEnvelope({ ...base, payload: sealed, sentAt: undefined })).toBe('verified')
+    expect(unpack(sealed).sentAt).toBe(base.sentAt)
+
+    // Flipping the timestamp inside the envelope must break the signature.
+    const tampered = new Uint8Array(sealed)
+    tampered[12] ^= 0x01 // low byte of sent_at
+    expect(verifyEnvelope({ ...base, payload: tampered, sentAt: undefined })).toBe('invalid')
+  })
+
   it('a truncated envelope is invalid rather than an exception', () => {
     const sealed = signEnvelope(base)
     expect(verifyEnvelope({ ...base, payload: sealed.slice(0, sealed.length - 5) })).toBe('invalid')
