@@ -494,7 +494,7 @@ const EmailView = ({
           className={`custom-scrollbar overflow-y-auto overscroll-contain ${
             // 34vh, not 42: the bar now carries four verbs, and at 42 the bar itself fell
             // below the list viewport — the buttons were there, just not on screen.
-            inline ? 'max-h-[34vh]' : 'flex-1 min-h-0'
+            inline ? 'max-h-[34vh] max-sm:pb-16' : 'flex-1 min-h-0'
           }`}
         >
           {/* One measure for the whole message: a line of text that runs the
@@ -684,11 +684,12 @@ const EmailView = ({
       {email && (
         <div className={`shrink-0 border-t border-line bg-background/95 px-3 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] ${
             inline
-              // Inline, the bar sits at the bottom of a block inside a scrolling list, so it
-              // scrolls out of the viewport along with the block. Sticky keeps it pinned to
-              // the bottom of the scrollport for as long as its own block is on screen —
-              // which is the whole point of putting the verbs outside the body.
-              ? "max-sm:sticky max-sm:bottom-0 max-sm:z-20"
+              // Inline is inside a scrolling list, so a bar at the bottom of the block
+              // scrolls away with it. Sticky depended on its block being in view and still
+              // measured on screen while painting under the fold. Fixed cannot be scrolled
+              // out: the verbs float above the list, and the body carries padding so the
+              // last lines are not hidden underneath them.
+              ? "max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-30 max-sm:backdrop-blur-sm"
               : "max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-30 max-sm:backdrop-blur-sm"
           }`}>
           <div className="mx-auto flex w-full max-w-[720px] items-center gap-1.5 overflow-x-auto sm:gap-2">
