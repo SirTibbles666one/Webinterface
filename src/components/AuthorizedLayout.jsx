@@ -16,6 +16,7 @@ import { hasIdentity } from '@/lib/pgpRing'
 import { UnlockModal } from '@/components/UnlockModal'
 import { EmailToolbar } from '@/components/EmailToolbar'
 import { ThreadView } from '@/components/ThreadView'
+import { loadProfile } from '@/lib/profile'
 import { useEmailFetch } from '@/hooks/useEmailFetch'
 import { useSentEmails } from '@/hooks/useSentEmails'
 import { useTrash } from '@/hooks/useTrash'
@@ -704,6 +705,25 @@ const AuthorizedLayout = () => {
     fetchSentPreviews([uid])
   }, [fetchSentPreviews])
 
+  // The signature belongs in the body the composer *opens* with: the editor initialises its
+  // content once, so a body changed after it mounts is never rendered (which is why an
+  // effect that inserted it later appeared to do nothing).
+  const withSignature = (rest) => {
+    const text = (loadProfile().signature || '').trim()
+    if (!text) return rest
+    const html = text
+      .split('\n')
+      .map((line) => line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'))
+      .join('<br>')
+    return `<p><br></p><p>${html}</p>${rest}`
+  }
+
+  // A new message opens on the same empty box with the signature under it.
+  const openCompose = useCallback(() => {
+    setReplyData({ to: [], subject: '', body: withSignature('') })
+    setComposeOpen(true)
+  }, [])
+
   const handleComposeClose = useCallback((savedDraft) => {
     if (savedDraft) {
       storage.saveDraft(savedDraft)
@@ -785,7 +805,7 @@ const AuthorizedLayout = () => {
     setReplyData({
       to: out,
       subject: subj,
-      body: buildQuotedHtml(email),
+      body: withSignature(buildQuotedHtml(email)),
       inReplyTo: email.messageId ?? '',
       references: email.messageId ?? '',
       fromAlias: email.alias ?? '',
@@ -800,7 +820,7 @@ const AuthorizedLayout = () => {
     setReplyData({
       to: [],
       subject: subj,
-      body: buildQuotedHtml(email),
+      body: withSignature(buildQuotedHtml(email)),
       inReplyTo: '',
       references: '',
       fromAlias: email.alias ?? '',
@@ -817,7 +837,7 @@ const AuthorizedLayout = () => {
       subject:   subj,
       // An empty paragraph first: the quote alone left nowhere to type, which is what a
       // reply opening looked like — a page of someone else's words and no box.
-      body:      `<p><br></p>${buildQuotedHtml(email)}`,
+      body:      withSignature(buildQuotedHtml(email)),
       inReplyTo: email.messageId ?? '',
       references: email.messageId ?? '',
       // Answer from the address they wrote to, not from the real one.
@@ -952,7 +972,7 @@ const AuthorizedLayout = () => {
             draftsCount={drafts.length}
             trashCount={trash.items.length}
             snoozeCount={snoozed.count}
-            onCompose={() => setComposeOpen(true)}
+            onCompose={openCompose}
             onOpenSettings={() => navigate('/settings')}
           />
         </div>
@@ -1136,7 +1156,7 @@ const AuthorizedLayout = () => {
                 uids={pagedUids}
                 previews={allPreviews}
                 untilLabels={snoozedLabels}
-                onCompose={() => setComposeOpen(true)}
+                onCompose={openCompose}
                 onClearSearch={() => setSearchQuery('')}
                 onClearFilter={() => setFilterMode('all')}
                 inlineUid={null}

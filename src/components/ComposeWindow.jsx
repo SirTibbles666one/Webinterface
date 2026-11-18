@@ -122,33 +122,6 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
 
   // Only shown when there is something to choose from, so an account with no
   // aliases never sees a picker with one option.
-  // A signature, once, on an empty draft or above the quote of a reply.
-  //
-  // The signature was already here — stored on this device (lib/profile) and shown in
-  // Settings — but the only place it was ever applied was the body of a sealed note. An
-  // ordinary reply went out unsigned, which is the whole reason this effect exists.
-  //
-  // Never into a saved draft or into text someone has already typed: a signature that moves
-  // their words is worse than no signature at all.
-  useEffect(() => {
-    if (draftId) return
-    const text = (loadProfile().signature || '').trim()
-    if (!text) return
-    const html = text
-      .split('\n')
-      .map((line) => line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'))
-      .join('<br>')
-    setBody((prev) => {
-      const current = (prev || '').trim()
-      if (current.includes(html)) return prev
-      const block = `<p>${html}</p>`
-      if (current === '' || current === '<p><br></p>' || current === '<p></p>') return `<p><br></p>${block}`
-      if (current.startsWith('<p><br></p>')) return `<p><br></p>${block}${current.slice('<p><br></p>'.length)}`
-      return prev
-    })
-    // Runs once per composer: the body is the user's from here on.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
 
   useEffect(() => {
