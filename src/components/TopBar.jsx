@@ -77,7 +77,7 @@ export function TopBar({
               if (searchQuery) onSearchChange('')
               else e.currentTarget.blur()
             }}
-            className="h-9 w-full rounded-lg border border-line bg-secondary/50 pl-9 pr-14 text-[13px] text-ink-1 placeholder:text-ink-3 focus:border-line-strong focus:bg-secondary focus:outline-none max-sm:h-11"
+            className="h-9 w-full rounded-lg border border-line bg-secondary/50 pl-9 pr-14 text-[13px] text-ink-1 placeholder:text-ink-3 focus:border-line-strong focus:bg-secondary max-sm:h-11"
           />
           <kbd className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded border border-line px-1.5 py-0.5 mono text-[10px] text-ink-3 sm:block">
             {hint}

@@ -260,7 +260,7 @@ export function ChangePasswordModal({ isOpen, onClose }) {
                 />
               </div>
               {formError && (
-                <p className="text-xs text-destructive pt-1">{formError}</p>
+                <p className="text-xs text-destructive pt-1" role="alert" id="change-password-error">{formError}</p>
               )}
             </div>
           </ModalContent>

@@ -115,23 +115,22 @@ const Sidebar = ({
       {/* One house, two rooms. Mail is this app; the bot lives in its own dashboard,
           and both are the same account. The row is the whole of the cross-product
           navigation — a switcher, not a menu. */}
-      <div className="flex gap-1 px-2.5 pb-2.5" role="tablist" aria-label="Products">
+      {/* Two destinations, one of them current. `role="tab"` on a non-focusable span
+          announced a tab that a keyboard could never reach; aria-current says the truth. */}
+      <nav className="flex gap-1 px-2.5 pb-2.5" aria-label="Products">
         <span
-          role="tab"
-          aria-selected="true"
+          aria-current="page"
           className="flex h-6 items-center rounded-md bg-secondary px-2.5 text-[11px] font-medium text-ink-1 max-md:h-11 max-md:px-3"
         >
           Mail
         </span>
         <a
-          role="tab"
-          aria-selected="false"
           href="https://app.slothlee.xyz/"
           className="flex h-6 items-center rounded-md px-2.5 text-[11px] text-ink-3 transition-colors duration-120 hover:bg-secondary/60 hover:text-ink-1 max-md:h-11 max-md:px-3"
         >
           Bot
         </a>
-      </div>
+      </nav>
 
       <div className="px-2.5 pb-2">
         <button

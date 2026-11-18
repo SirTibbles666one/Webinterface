@@ -83,14 +83,16 @@ export function EmailToolbar({
           {!allChecked && <span className="mono text-ink-3 max-sm:hidden">{pagedUids.length}</span>}
         </button>
       )}
+      {/* These are three independent filters, not tabs: no tabpanel, no roving tabindex,
+          no arrow-key navigation. Claiming the tabs pattern made a screen reader announce
+          a widget that does not exist; aria-pressed says what they are. */}
       {selected === 0 ? (
-        <div className="flex items-center gap-1" role="tablist" aria-label="Filter messages">
+        <div className="flex items-center gap-1" role="group" aria-label="Filter messages">
           {FILTERS.map((f) => (
             <button
               key={f.id}
               type="button"
-              role="tab"
-              aria-selected={filterMode === f.id}
+              aria-pressed={filterMode === f.id}
               onClick={() => onFilterModeChange?.(f.id)}
               className={`rounded-full px-2.5 py-1 text-[11.5px] font-medium transition-colors duration-120 max-sm:min-h-11 max-sm:min-w-11 max-sm:px-3 ${
                 filterMode === f.id

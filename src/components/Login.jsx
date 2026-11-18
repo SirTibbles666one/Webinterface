@@ -287,7 +287,7 @@ const Login = () => {
                 />
               </Field>
 
-              {error && <p className="text-[12.5px] text-destructive">{error}</p>}
+              {error && <p className="text-[12.5px] text-destructive" role="alert">{error}</p>}
 
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Generating keys…' : 'Create keys and sign in'}
@@ -400,7 +400,7 @@ const Login = () => {
               />
             </Field>
 
-            {error && <p className="text-[12.5px] leading-relaxed text-destructive">{error}</p>}
+            {error && <p className="text-[12.5px] leading-relaxed text-destructive" role="alert">{error}</p>}
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Signing in…' : 'Sign in'}

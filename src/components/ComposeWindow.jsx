@@ -996,7 +996,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                 {sendState === 'error' && (
                   <span className="flex items-center gap-1.5 text-xs text-destructive min-w-0">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate" title={sendError}>{sendError}</span>
+                    <span className="truncate" role="alert" title={sendError}>{sendError}</span>
                   </span>
                 )}
                 {sendState === 'done' && sendResults.length > 0 && (
