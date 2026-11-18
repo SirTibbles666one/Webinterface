@@ -7,7 +7,7 @@
       "why": "The composer accepts 25 MB per file and all six caps agree.",
       "must": [
         "Max 25 MB per file",
-        "25 MB limit"
+        "24 MB per message"
       ]
     },
     {
