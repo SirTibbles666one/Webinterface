@@ -198,12 +198,25 @@ export const userSetCredentials = async (passwordHash, publicKey, encryptedPriva
   return response.data
 }
 
+// Every uid in the mailbox, not the first page of it.
+//
+// /email/list is paginated (DEFAULT_PAGE 200) and this used to post a null body, so
+// callers that treat the result as "the whole mailbox" — changing a password, exporting
+// an archive — silently acted on at most 200 messages. A short list here is a data-loss
+// bug, so it either pages to the end or throws; it never returns a plausible prefix.
 export const emailListAll = async () => {
   const token = storage.getToken()
-  const response = await api.post('/email/list', null, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-  return response.data.uids ?? []
+  const limit = 500
+  const all = []
+  for (let offset = 0; ; offset += limit) {
+    const response = await api.post('/email/list', { limit, offset }, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const page = response.data?.uids ?? []
+    all.push(...page)
+    if (page.length < limit) return all
+    if (offset > 200000) throw new Error('This mailbox is too large to page through here.')
+  }
 }
 
 export const emailGetRaw = async (uid) => {

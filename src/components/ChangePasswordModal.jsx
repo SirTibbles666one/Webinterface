@@ -81,7 +81,44 @@ export function ChangePasswordModal({ isOpen, onClose }) {
         }
       }
 
-      // 2. Generate new key pair
+      // 2. Read the whole mailbox and prove the old key can still read all of it, BEFORE
+      //    anything is changed. The list is paginated server-side, and the credentials
+      //    used to be pushed first: a short list, a failed page, or one unreadable message
+      //    then destroyed the old key with the rest of the mail sealed to it.
+      setStatus('Reading every message…')
+      const uids = await emailListAll()
+      const total = uids.length
+      setProgress({ done: 0, total, failed: 0 })
+
+      if (!forgot) {
+        setStatus('Checking every message can be read…')
+        const unreadable = []
+        for (const uid of uids) {
+          if (abortRef.current) break
+          try {
+            const { data: rawData, message_key: rawMsgKey } = await emailGetRaw(uid)
+            await decryptStored(rawData, rawMsgKey, oldPrivateKey)
+          } catch {
+            unreadable.push(uid)
+          }
+        }
+        if (abortRef.current) {
+          setPhase('form')
+          setStatus('')
+          return
+        }
+        if (unreadable.length) {
+          setProgress({ done: 0, total, failed: unreadable.length })
+          setPhase('done')
+          setStatus(
+            `Nothing was changed. ${unreadable.length} of ${total} messages cannot be read with your current key, ` +
+            `so changing the password would leave them unreadable forever. Restore your key (Settings → Recovery) and try again.`,
+          )
+          return
+        }
+      }
+
+      // 3. Generate new key pair
       setStatus('Generating new key pair…')
       const newKeyPair = await generateKeyPair()
       const newPublicKeyB64 = await exportPublicKeyBase64(newKeyPair.publicKey)
@@ -92,16 +129,10 @@ export function ChangePasswordModal({ isOpen, onClose }) {
       setStatus('Updating credentials on server…')
       await userSetCredentials(newPasswordHash, newPublicKeyB64, newEncryptedKey)
 
-      // 4. Update local storage and session key BEFORE re-encrypting so server
+      // 4. Update local storage and session key, then write the re-encrypted messages
       //    accepts future requests with the new token (token is unchanged here)
       storage.set({ encrypted_key: newEncryptedKey, public_key: newPublicKeyB64 })
       await keySession.set(newKeyPair.privateKey)
-
-      // 5. Gather all email UIDs
-      setStatus('Fetching email list…')
-      const uids = await emailListAll()
-      const total = uids.length
-      setProgress({ done: 0, total, failed: 0 })
 
       if (forgot) {
         // Without the old key the stored messages cannot be re-encrypted. Say how
