@@ -1,7 +1,9 @@
 import {
   Bold, Italic, Underline, Strikethrough, List, ListOrdered, Link, Link2Off
 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
+import { useIsPhone } from '@/hooks/useIsPhone'
 import StarterKit from '@tiptap/starter-kit'
 import UnderlineExt from '@tiptap/extension-underline'
 import LinkExt from '@tiptap/extension-link'
@@ -97,6 +99,11 @@ const EditorToolbar = ({ editor }) => {
 }
 
 export const TiptapEditor = ({ value, onChange, placeholder, autoFocus = false, clamped = false, 'aria-label': ariaLabel = 'Message body' }) => {
+  // A phone gives the formatting bar 61px of every reply, for tools most replies never use.
+  // It appears when the editor is being typed in, and the bar's own buttons do not steal the
+  // focus back (their pointerdown is cancelled), so it does not vanish mid-tap.
+  const isPhone = useIsPhone()
+  const [writing, setWriting] = useState(false)
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -127,12 +134,31 @@ export const TiptapEditor = ({ value, onChange, placeholder, autoFocus = false, 
     },
   })
 
+  useEffect(() => {
+    if (!editor) return undefined
+    // Typing, not focusing: a reply opens with the caret already in the box, so keying the
+    // bar to focus would show it before a single word and save nothing.
+    const onUpdate = () => setWriting(true)
+    editor.on('update', onUpdate)
+    return () => {
+      editor.off('update', onUpdate)
+    }
+  }, [editor])
+
+  const showToolbar = !isPhone || writing
+
   return (
     // `h-full` here resolved to the CONTENT height inside a flex parent, so a long draft
     // grew the wrapper past the composer and painted under its bottom bar. Taking the
     // parent's height with flex-1 + min-h-0 keeps the scroll area inside the composer.
     <div className="flex min-h-0 flex-1 flex-col">
-      <EditorToolbar editor={editor} />
+      {showToolbar && (
+        // Keeping the pointer on the editor means tapping Bold does not blur it and collapse
+        // the bar being tapped.
+        <div onPointerDown={(e) => e.preventDefault()}>
+          <EditorToolbar editor={editor} />
+        </div>
+      )}
       {/* Clicking anywhere in this area focuses the editor */}
       <div
         className="flex-1 overflow-y-auto cursor-text"

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { X, Minus, Send, ChevronUp, Loader2, AlertCircle, CheckCircle2, Paperclip, Trash2, Flame, Link2, Clock, ChevronDown } from 'lucide-react'
+import { X, Minus, Send, ChevronUp, Loader2, AlertCircle, CheckCircle2, Paperclip, Trash2, Flame, Link2, Clock, ChevronDown, SlidersHorizontal } from 'lucide-react'
 import { AddressField } from '@/components/compose/AddressField'
 import { AttachmentChip } from '@/components/compose/AttachmentChip'
 import { TiptapEditor } from '@/components/compose/TiptapEditor'
@@ -43,6 +43,11 @@ function formatWhen(when) {
 }
 
 /** The times people actually pick, in their own timezone. */
+/** The expiry in the width a phone's bar has. */
+function vanishShort(vanish) {
+  return { read: 'after read', '3600': '1h', '86400': '1 day', '604800': '7 days' }[vanish] || 'expiry'
+}
+
 function whenPresets() {
   const now = new Date()
   const out = [['In an hour', new Date(now.getTime() + 60 * 60 * 1000)]]
@@ -1073,64 +1078,69 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                 >
                   <Paperclip className="w-4 h-4" />
                 </button>
-                <label
-                  className="flex items-center gap-1 text-xs text-muted-foreground"
-                  title="The recipient's copy is deleted by the server. Works for mailboxes on this server; another provider keeps its own copy."
-                >
-                  <Flame className={`w-4 h-4 sm:w-3.5 sm:h-3.5 ${vanish === 'off' ? 'opacity-50' : 'text-primary'}`} />
-                  <select
-                    value={vanish}
-                    onChange={(e) => setVanish(e.target.value)}
-                    disabled={isSendBlocked}
-                    className="bg-transparent border border-border rounded px-1.5 py-1.5 sm:py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 max-sm:min-h-11 max-sm:w-[7.5rem]"
-                    aria-label="Disappearing message"
-                  >
-                    <option value="off">No expiry</option>
-                    <option value="read">Deletes after reading</option>
-                    <option value="3600">Deletes in 1 hour</option>
-                    <option value="86400">Deletes in 1 day</option>
-                    <option value="604800">Deletes in 7 days</option>
-                  </select>
-                </label>
-                {vanish !== 'off' && offServerRecipients.length > 0 && (
-                  <span
-                    className="hidden md:inline text-[10px] text-warn max-w-[130px] leading-tight"
-                    title={offServerRecipients.join(', ')}
-                  >
-                    {offServerRecipients.length} recipient{offServerRecipients.length === 1 ? ' is' : 's are'} elsewhere — {sealExternal ? 'sealed link, body stays here' : 'nothing to delete there'}
-                  </span>
-                )}
-                {/* A disabled button with no reason reads as a broken app. */}
-                {editNeedsTime && (
-                  <span
-                    title="This message is still held — pick a time to update it"
-                    className="text-[10px] text-warn"
-                  >
-                    Pick a time
-                  </span>
-                )}
+                {/* One control, not two: expiry and "hold until" are both answers to "what
+                    happens to this message", and side by side they took most of the bar —
+                    on a 320px phone the Send button was pushed onto its own row. */}
                 <div className="relative shrink-0">
                   <button
                     type="button"
                     onClick={() => setWhenOpen((v) => !v)}
-                    title={sendAt ? `Held until ${formatWhen(sendAt)} — change` : 'Hold this message until…'}
-                    className={`flex items-center gap-1 px-2 py-2 sm:py-1.5 rounded-md border text-xs ${
-                      sendAt ? 'border-primary/40 text-primary bg-primary/10' : 'border-border text-foreground/60'
+                    aria-expanded={whenOpen}
+                    aria-label="Message options: expiry and when to send"
+                    title={
+                      sendAt
+                        ? `Held until ${formatWhen(sendAt)} — change`
+                        : vanish !== 'off'
+                          ? 'Expiry and when to send'
+                          : 'Expiry and when to send'
+                    }
+                    className={`flex items-center gap-1.5 rounded-md border px-2 py-2 text-xs transition-colors sm:py-1.5 max-sm:min-h-11 ${
+                      sendAt || vanish !== 'off'
+                        ? 'border-primary/40 bg-primary/10 text-primary'
+                        : 'border-border text-foreground/60'
                     }`}
                   >
-                    <Clock className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-                    {/* On a phone this was icon-only, so once a message was held the one fact
-                        that matters — when it goes — was visible only on a desktop. */}
-                    {sendAt && (
+                    <SlidersHorizontal className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                    {/* The one fact that matters, in the width a phone has. */}
+                    {(sendAt || vanish !== 'off') && (
                       <span className="whitespace-nowrap">
-                        <span className="sm:hidden">{formatWhenShort(sendAt)}</span>
-                        <span className="max-sm:hidden">{formatWhen(sendAt)}</span>
+                        {sendAt ? (
+                          <>
+                            <span className="sm:hidden">{formatWhenShort(sendAt)}</span>
+                            <span className="max-sm:hidden">{formatWhen(sendAt)}</span>
+                          </>
+                        ) : (
+                          vanishShort(vanish)
+                        )}
                       </span>
                     )}
                   </button>
                   {whenOpen && (
-                    <div className="absolute bottom-full right-0 mb-2 w-56 rounded-lg border border-border bg-popover p-2 shadow-lg z-20">
-                      <p className="px-1 pb-1 text-[11px] text-foreground/55">Hold until…</p>
+                    <div className="absolute bottom-full right-0 z-20 mb-2 w-64 rounded-lg border border-border bg-popover p-2 shadow-lg">
+                      <p className="px-1 pb-1 text-[11px] text-foreground/55">Deletes</p>
+                      <select
+                        value={vanish}
+                        onChange={(e) => setVanish(e.target.value)}
+                        disabled={isSendBlocked}
+                        className="w-full rounded border border-border bg-transparent px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                        aria-label="Disappearing message"
+                      >
+                        <option value="off">No expiry</option>
+                        <option value="read">After reading</option>
+                        <option value="3600">In 1 hour</option>
+                        <option value="86400">In 1 day</option>
+                        <option value="604800">In 7 days</option>
+                      </select>
+                      <p className="mt-1 px-1 text-[10px] leading-tight text-foreground/45">
+                        The recipient's copy is deleted by this server; another provider keeps its own.
+                      </p>
+                      {vanish !== 'off' && offServerRecipients.length > 0 && (
+                        <p className="mt-1 px-1 text-[10px] leading-tight text-warn" title={offServerRecipients.join(', ')}>
+                          {offServerRecipients.length} recipient{offServerRecipients.length === 1 ? ' is' : 's are'} elsewhere — {sealExternal ? 'sealed link, body stays here' : 'nothing to delete there'}
+                        </p>
+                      )}
+
+                      <p className="mt-2 px-1 pb-1 text-[11px] text-foreground/55">Hold until…</p>
                       {whenPresets().map(([label, when]) => (
                         <button
                           key={label}
@@ -1143,6 +1153,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                       ))}
                       <input
                         type="datetime-local"
+                        aria-label="Hold until a specific time"
                         className="mt-1 w-full rounded border border-border bg-transparent px-2 py-1 text-xs"
                         onChange={(e) => {
                           const when = e.target.value ? new Date(e.target.value) : null
