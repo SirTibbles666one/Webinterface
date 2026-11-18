@@ -205,7 +205,14 @@ const AuthorizedLayout = () => {
         storage.set({ is_admin: admin })
       }
       setServerStatus('ok')
-    } catch {
+    } catch (err) {
+      // A revoked or expired token is not an unreachable server: retrying it every 30 seconds is
+      // how a session that was ended keeps hammering the API. Send the reader to sign in once.
+      if (err?.response?.status === 401) {
+        storage.clear?.()
+        window.location.assign('/login')
+        return
+      }
       setServerStatus('unreachable')
     }
   }, [])
