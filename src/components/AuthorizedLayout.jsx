@@ -48,6 +48,19 @@ const AuthorizedLayout = () => {
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
   }, [])
+  // Two panes need room for a sidebar, a list and a readable column. Below this the reader
+  // takes the whole screen instead of squeezing into a strip: at 768px it was 112px wide
+  // with a 64px body — present, but not readable.
+  const [wideForPane, setWideForPane] = useState(() => (
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 1200px)').matches : true
+  ))
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1200px)')
+    const onChange = () => setWideForPane(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
   const [searchQuery, setSearchQuery] = useState('')
   // Search used to read only the page that had been paged in, so a query for older
   // mail came back empty and looked broken. A query now pages the rest in.
@@ -1109,7 +1122,7 @@ const AuthorizedLayout = () => {
                 onSelect={handleSelect}
                 onCheck={handleCheck}
                 onCheckThread={handleCheckThread}
-                openThreadInPane={!isPhone}
+                openThreadInPane={wideForPane}
                 loading={loading}
                 hasMore={selectedFolder === 'inbox' && hasMore}
                 onLoadMore={loadMore}
@@ -1128,7 +1141,7 @@ const AuthorizedLayout = () => {
               />
             </div>
             {selectedUid && (
-              <div className="fixed inset-0 z-40 flex min-w-0 flex-1 flex-col bg-background md:static md:z-auto md:block">
+              <div className="fixed inset-0 z-40 flex min-w-0 flex-1 flex-col bg-background min-[1200px]:static min-[1200px]:z-auto min-[1200px]:block">
                 {renderReader(false)}
               </div>
             )}
