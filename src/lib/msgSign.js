@@ -12,12 +12,14 @@
 //
 // The signature covers, in order:
 //
-//   "slw/v2/message" | iv | ciphertext | recipient_set_hash(32) | sender_address | sent_at(u64)
+//   "slw/v2/message" | iv | ciphertext | recipient_address | sender_address | sent_at(u64)
 //
 // Signing the *ciphertext* is deliberate: it verifies before decryption, and it binds the
-// exact bytes a recipient will decrypt. recipient_set_hash stops a ciphertext being
-// replayed to a different group of recipients; sender_address is inside the signed bytes,
-// so a valid signature cannot be re-attributed to someone else.
+// exact bytes a recipient will decrypt. The recipient is the address this copy was sealed
+// for — each recipient gets its own ciphertext, so a copy cannot be replayed to someone
+// else, and a BCC'd recipient can still verify because their own address is what is bound
+// rather than a list they cannot see. sender_address is inside the signed bytes, so a
+// valid signature cannot be re-attributed.
 import { sha256 } from '@noble/hashes/sha2.js'
 
 const MAGIC = [0x53, 0x4c, 0x57, 0x32] // "SLW2"
@@ -65,14 +67,20 @@ export function recipientSetHash(addresses) {
   return sha256(new TextEncoder().encode(normalised.join('\n')))
 }
 
+const normaliseAddress = (value) => {
+  const raw = String(value || '')
+  const bracketed = raw.match(/<([^>]+)>/)
+  return (bracketed ? bracketed[1] : raw).trim().toLowerCase()
+}
+
 /** The bytes a sender signs. Exported so a verifier cannot drift from a signer. */
-export function signingInput({ iv, ciphertext, recipients, sender, sentAt }) {
+export function signingInput({ iv, ciphertext, recipient, sender, sentAt }) {
   return concat([
     LABEL,
     iv,
     ciphertext,
-    recipientSetHash(recipients),
-    new TextEncoder().encode(String(sender).trim().toLowerCase()),
+    new TextEncoder().encode(normaliseAddress(recipient)),
+    new TextEncoder().encode(normaliseAddress(sender)),
     u64be(sentAt),
   ])
 }
@@ -121,9 +129,9 @@ export function splitPayload(payload) {
  * algorithm (ML-DSA-65 today) without this module importing a post-quantum library into
  * every bundle that touches mail.
  */
-export function signEnvelope({ payload, privateKey, sign, recipients, sender, sentAt }) {
+export function signEnvelope({ payload, privateKey, sign, recipient, sender, sentAt }) {
   const { iv, ciphertext } = splitPayload(payload)
-  const signature = sign(privateKey, signingInput({ iv, ciphertext, recipients, sender, sentAt }))
+  const signature = sign(privateKey, signingInput({ iv, ciphertext, recipient, sender, sentAt }))
   return packV2(payload, signature)
 }
 
@@ -132,7 +140,7 @@ export function signEnvelope({ payload, privateKey, sign, recipients, sender, se
  * because "no signature" and "wrong signature" must look different to a reader: the
  * first is a v1 message, the second is the one case that must not be rendered.
  */
-export function verifyEnvelope({ payload, publicKey, verify, recipients, sender, sentAt }) {
+export function verifyEnvelope({ payload, publicKey, verify, recipient, sender, sentAt }) {
   let envelope
   try {
     envelope = unpack(payload)
@@ -143,7 +151,7 @@ export function verifyEnvelope({ payload, publicKey, verify, recipients, sender,
   if (!publicKey) return 'unsigned'
   try {
     const { iv, ciphertext } = splitPayload(envelope.payload)
-    const ok = verify(publicKey, envelope.signature, signingInput({ iv, ciphertext, recipients, sender, sentAt }))
+    const ok = verify(publicKey, envelope.signature, signingInput({ iv, ciphertext, recipient, sender, sentAt }))
     return ok === true ? 'verified' : 'invalid'
   } catch {
     return 'invalid'

@@ -24,7 +24,7 @@ const base = {
   publicKey: key,
   sign,
   verify,
-  recipients: ['Qa@slothlee.xyz', 'b@example.com'],
+  recipient: 'Qa@Slothlee.xyz',   // as typed by the sender; case and brackets are normalised
   sender: 'qa@slothlee.xyz',
   sentAt: 1_700_000_000,
 }
@@ -60,9 +60,21 @@ describe('message signatures', () => {
     expect(verifyEnvelope({ ...base, payload: rebuilt })).toBe('invalid')
   })
 
-  it('replaying the ciphertext to another recipient set is invalid', () => {
+  it('replaying the ciphertext to another recipient is invalid', () => {
     const sealed = signEnvelope(base)
-    expect(verifyEnvelope({ ...base, payload: sealed, recipients: ['mallory@example.com'] })).toBe('invalid')
+    expect(verifyEnvelope({ ...base, payload: sealed, recipient: 'mallory@example.com' })).toBe('invalid')
+  })
+
+  it('a BCC recipient can verify: the binding is their own address, not a list', () => {
+    // The reader of a BCC'd copy cannot see the other recipients, so a set hash would be
+    // unverifiable for them. Binding the recipient makes the common case work.
+    const bcc = signEnvelope({ ...base, recipient: 'hidden@example.com' })
+    expect(verifyEnvelope({ ...base, payload: bcc, recipient: 'hidden@example.com' })).toBe('verified')
+  })
+
+  it('a display-name address verifies against its bare mailbox', () => {
+    const sealed = signEnvelope({ ...base, recipient: 'Qa <qa@slothlee.xyz>' })
+    expect(verifyEnvelope({ ...base, payload: sealed, recipient: 'qa@slothlee.xyz' })).toBe('verified')
   })
 
   it('re-attributing the message to another sender is invalid', () => {
