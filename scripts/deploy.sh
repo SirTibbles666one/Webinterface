@@ -54,8 +54,11 @@ if ! node scripts/check-live-parity.mjs dist; then
 fi
 
 echo "== upload $entry ($stamp)"
-tar czf - -C dist . | ssh -i "$KEY" -o BatchMode=yes "$HOST" \
-  "rm -rf $STATIC/* && tar xzf - -C $STATIC && echo uploaded"
+# Files are written in beside the ones already served, assets first and index.html last. Emptying
+# the directory first (the old `rm -rf` then extract) serves 404 for the length of the extraction:
+# measured at 10 failures in 517 polls, which is the half-rendered page a reader sees if they
+# reload or fetch a chunk during a deploy.
+tar czf - -C dist . | ssh -i "$KEY" -o BatchMode=yes "$HOST" "bash /opt/on/deploy/static-swap.sh"
 
 echo "== verify what the server actually serves"
 served=$(curl -sS https://mail.slothlee.xyz/ | grep -o 'assets/index-[A-Za-z0-9_-]*\.js' | head -1)
