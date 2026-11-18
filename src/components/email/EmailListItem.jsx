@@ -94,7 +94,9 @@ export function EmailListItem({
   const senderLabel =
     [preview?.from?.name, preview?.from?.email, uid]
       .map((v) => (v == null ? '' : String(v).trim()))
-      .find((v) => v && v !== 'null' && v !== 'undefined') || 'Unknown'
+      .find((v) => v && v !== 'null' && v !== 'undefined') ||
+    // A draft with no recipient has no address to name: its id is not a name.
+    (String(uid).startsWith('draft_') ? 'Draft' : 'Unknown')
 
   const ground = isSelected
     ? 'bg-[color-mix(in_srgb,var(--color-primary)_9%,transparent)]'
