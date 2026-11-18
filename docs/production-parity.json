@@ -77,6 +77,15 @@
         "Searching the rest of the mailbox",
         "Search mail"
       ]
+    },
+    {
+      "id": "empty-state-actions",
+      "why": "Every empty state offers the action that ends it, and composer fields carry accessible names.",
+      "must": [
+        "Write a message",
+        "Clear the search",
+        "Show all mail"
+      ]
     }
   ]
 }

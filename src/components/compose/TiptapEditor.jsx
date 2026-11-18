@@ -96,7 +96,7 @@ const EditorToolbar = ({ editor }) => {
   )
 }
 
-export const TiptapEditor = ({ value, onChange, placeholder }) => {
+export const TiptapEditor = ({ value, onChange, placeholder, 'aria-label': ariaLabel = 'Message body' }) => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -117,6 +117,9 @@ export const TiptapEditor = ({ value, onChange, placeholder }) => {
     editorProps: {
       attributes: {
         class: 'outline-none w-full h-full text-sm text-foreground leading-relaxed',
+        'aria-label': ariaLabel,
+        role: 'textbox',
+        'aria-multiline': 'true',
       },
     },
   })

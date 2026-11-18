@@ -122,6 +122,7 @@ export function AddressField({ label, chips, onChipsChange }) {
         }}
         onPaste={handlePaste}
         className="flex-1 min-w-[80px] bg-transparent outline-none text-sm text-foreground placeholder:text-foreground/30 max-sm:min-h-11"
+        aria-label={(label || 'Recipient').replace(/:$/, '')}
         placeholder={chips.length === 0 ? 'Email address…' : ''}
       />
       {suggestions.length > 0 && (

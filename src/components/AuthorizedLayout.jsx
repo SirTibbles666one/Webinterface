@@ -979,6 +979,9 @@ const AuthorizedLayout = () => {
                 uids={pagedUids}
                 previews={allPreviews}
                 untilLabels={snoozedLabels}
+                onCompose={() => setComposeOpen(true)}
+                onClearSearch={() => setSearchQuery('')}
+                onClearFilter={() => setFilterMode('all')}
                 emailMeta={emailMeta}
                 selectedUid={selectedUid}
                 checkedUids={checkedUids}

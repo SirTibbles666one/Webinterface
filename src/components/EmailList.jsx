@@ -39,6 +39,10 @@ const EmailList = ({
   selectedFolder,
   // Pull down from the top of the list to refresh (touch screens).
   onRefresh = null,
+  // An empty state is a control: it names the one action that ends the emptiness.
+  onCompose = null,
+  onClearSearch = null,
+  onClearFilter = null,
 }) => {
   const scroller = useRef(null)
   const { pull, busy, ready } = usePullToRefresh(scroller, onRefresh)
@@ -373,11 +377,29 @@ const EmailList = ({
                 : selectedFolder === 'trash'
                   ? 'What you delete from any folder waits here, so a slip can be taken back.'
                   : 'Messages appear here once there are some. Nothing has been filed here yet.'
+          // Reason, then the action that ends it. Nothing here is decoration: the
+          // three emptinesses each have exactly one thing worth pressing.
+          const action = searching
+            ? onClearSearch && { label: 'Clear the search', run: onClearSearch }
+            : filtered
+              ? onClearFilter && { label: 'Show all mail', run: onClearFilter }
+              : selectedFolder === 'inbox'
+                ? onCompose && { label: 'Write a message', run: onCompose }
+                : null
           return (
             <div className="flex flex-col items-center px-8 py-14 text-center">
               <EmptyArt kind={art} className="h-14 w-[74px] text-ink-4" />
               <p className="display mt-4 text-[17px] text-ink-1">{heading}</p>
               <p className="mt-1.5 max-w-[36ch] text-[12.5px] leading-relaxed text-ink-3">{note}</p>
+              {action && (
+                <button
+                  type="button"
+                  onClick={action.run}
+                  className="mt-5 rounded-lg border border-line px-3.5 py-2 text-[12.5px] text-ink-1 transition-colors duration-120 hover:border-line-strong hover:bg-accent max-sm:min-h-[44px]"
+                >
+                  {action.label}
+                </button>
+              )}
             </div>
           )
         })()}

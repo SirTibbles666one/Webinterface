@@ -649,6 +649,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="Subject"
+                aria-label="Subject"
                 className="flex-1 py-1.5 bg-transparent outline-none text-sm text-card-foreground placeholder:text-muted-foreground/60 max-sm:min-h-11"
               />
             </div>
@@ -900,6 +901,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
               value={body}
               onChange={setBody}
               placeholder="Write your message… (or drag & drop files to attach)"
+              aria-label="Message body"
             />
 
             {attachments.length > 0 && (
