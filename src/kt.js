@@ -76,6 +76,16 @@ export function leafHash(leaf) {
   const name = enc.encode(leaf.account)
   const rsa = pad32(fromB64(leaf.rsa))
   const pq = leaf.pq ? pad32(fromB64(leaf.pq)) : new Uint8Array(32)
+  // A leaf that carries a signing-key hash is a v2 leaf and hashes under its own label.
+  // The label is what keeps this honest: leaves recorded before signing keys existed keep
+  // their original hash, so the roots every client has already pinned do not move. Only
+  // newly appended leaves look different.
+  if (leaf.sig) {
+    const sig = pad32(fromB64(leaf.sig))
+    return sha256(
+      concat(enc.encode('kt/v2/leaf'), u32be(leaf.seq), u16be(name.length), name, rsa, pq, sig),
+    )
+  }
   return sha256(concat(enc.encode('kt/v1/leaf'), u32be(leaf.seq), u16be(name.length), name, rsa, pq))
 }
 
