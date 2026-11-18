@@ -77,6 +77,9 @@ const EmailView = ({
   onReplyAll,
   onForward,
   arrivedAt = null,
+  // Set when this message is being read from the Junk view, where the useful action is
+  // the opposite one: take it back out of Junk.
+  inJunk = false,
   onComposeTo,
   onMessageDeleted,
   onBack,
@@ -723,10 +726,10 @@ const EmailView = ({
                     String(email.textBody || '').slice(0, 200000),
                   ].join('\r\n')
                   try {
-                    const result = await reportSpam(uid, 'spam', raw)
+                    const result = await reportSpam(uid, inJunk ? 'ham' : 'spam', raw)
                     // The server may file the message without being able to teach the
                     // filter (too short, already known). Say which happened.
-                    setSpamReport(result?.note || 'spam')
+                    setSpamReport(result?.note || (inJunk ? 'ham' : 'spam'))
                     setSpamError('')
                   } catch (err) {
                     // An honest failure beats a button that lies about having taught it.
@@ -735,16 +738,25 @@ const EmailView = ({
                 }}
                 variant="ghost"
                 className="gap-1.5 px-3 text-[13px] max-sm:min-h-11 text-ink-2"
-                title={spamError || 'Teach the filter: this is spam. The message text is sent to the server.'}
+                title={
+                  spamError ||
+                  (inJunk
+                    ? 'Not spam: move it back to the Inbox and teach the filter.'
+                    : 'Teach the filter: this is spam. The message text is sent to the server.')
+                }
               >
                 <ShieldAlert className="size-3.5" />
-                <span className="max-sm:hidden">Report spam</span>
-                <span className="sm:hidden">Spam</span>
+                <span className="max-sm:hidden">{inJunk ? 'Not spam' : 'Report spam'}</span>
+                <span className="sm:hidden">{inJunk ? 'Not spam' : 'Spam'}</span>
               </Button>
             )}
             {spamReport && (
               <span className="px-2 text-[12.5px] text-ink-3" role="status">
-                {spamReport === 'spam' ? 'Reported — the filter will learn from it' : `Moved to Junk — ${spamReport}`}
+                {spamReport === 'ham'
+                  ? 'Moved back to the Inbox'
+                  : spamReport === 'spam'
+                    ? 'Reported — the filter will learn from it'
+                    : `Moved to Junk — ${spamReport}`}
               </span>
             )}
             {spamError && !spamReport && (

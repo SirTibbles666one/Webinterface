@@ -840,6 +840,7 @@ const AuthorizedLayout = () => {
                 onRequestUnlock={() => setUnlockDismissed(false)}
                 emailMeta={selectedUid ? (emailMeta[selectedUid] ?? {}) : null}
                 arrivedAt={selectedUid ? (previews[selectedUid]?.alias ?? null) : null}
+                inJunk={selectedFolder === 'junk'}
                 onToggleStar={toggleStar}
                 onMarkRead={markRead}
                 onMarkUnread={markUnread}
