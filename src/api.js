@@ -593,11 +593,11 @@ export const deleteMailbox = async (name) => {
 }
 
 // Switching an account off is a reversible deny: the mail stays, sign-in stops.
-export const adminSetSuspended = async (username, suspended, reason = '') => {
+export const adminSetSuspended = async (username, suspended, reason = '', hours = null) => {
   const token = storage.getToken()
   const response = await api.post(
     '/admin/users/suspend',
-    { username, suspended, reason },
+    { username, suspended, reason, ...(hours ? { hours } : {}) },
     { headers: { Authorization: `Bearer ${token}` } },
   )
   return response.data

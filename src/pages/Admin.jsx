@@ -8,7 +8,7 @@ import {
 import EmptyArt from '@/components/EmptyArt'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ConfirmModal, InputModal } from '@/components/ui/Modal'
+import { ConfirmModal, InputModal, Modal, ModalHeader, ModalContent, ModalFooter } from '@/components/ui/Modal'
 import {
   adminGetUsers, adminCreateUser, adminDeleteUser, adminSetAdminStatus, adminSetSuspended,
   adminGetWaitlist, adminApproveWaitlist, adminGetPending, adminApprovePending,
@@ -282,11 +282,39 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
   // Suspending is reversible: the mailbox and its mail stay, sign-in stops.
   // The server refuses to suspend the caller, so the button is disabled for
   // the signed-in admin instead of round-tripping into a 409.
+  const [suspendTarget, setSuspendTarget] = useState(null)
+  const [suspendReason, setSuspendReason] = useState('')
+  const [suspendHours, setSuspendHours] = useState(0)
+
   const toggleSuspended = async (user, suspended) => {
+    // Switching an account ON is immediate. Switching it OFF asks first — why, and for how
+    // long — because that is the decision the person on the other side will ask about.
+    if (suspended) {
+      setSuspendReason('')
+      setSuspendHours(0)
+      setSuspendTarget(user)
+      return
+    }
     setBusy(user.username)
     setError('')
     try {
-      await adminSetSuspended(user.username, suspended, 'switched off from the admin panel')
+      await adminSetSuspended(user.username, false, 'switched back on from the admin panel')
+      await fetchUsers()
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Could not change that account')
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const confirmSuspend = async () => {
+    const user = suspendTarget
+    if (!user) return
+    setSuspendTarget(null)
+    setBusy(user.username)
+    setError('')
+    try {
+      await adminSetSuspended(user.username, true, suspendReason.trim(), suspendHours || null)
       await fetchUsers()
     } catch (err) {
       setError(err?.response?.data?.error || 'Could not change that account')
@@ -907,6 +935,42 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
         confirmText="Create"
         onConfirm={createUser}
       />
+
+      <Modal isOpen={Boolean(suspendTarget)} onClose={() => setSuspendTarget(null)}>
+        <ModalHeader title={`Switch off ${suspendTarget?.username ?? ''}`} onClose={() => setSuspendTarget(null)} />
+        <ModalContent>
+          <label className="label" htmlFor="suspend-reason">Reason (shown to the account holder)</label>
+          <textarea
+            id="suspend-reason"
+            value={suspendReason}
+            onChange={(e) => setSuspendReason(e.target.value)}
+            rows={3}
+            placeholder="abuse report, payment, requested by the owner…"
+            className="mt-1 w-full resize-y rounded-md border border-border bg-input px-3 py-2 text-[13px] text-foreground outline-none focus:ring-2 focus:ring-ring/50"
+          />
+          <label className="label mt-3 block" htmlFor="suspend-for">For how long</label>
+          <select
+            id="suspend-for"
+            value={suspendHours}
+            onChange={(e) => setSuspendHours(Number(e.target.value))}
+            className="mt-1 w-full rounded-md border border-border bg-input px-3 py-2 text-[13px] text-foreground"
+          >
+            <option value={0}>Until someone switches it back on</option>
+            <option value={1}>1 hour</option>
+            <option value={24}>24 hours</option>
+            <option value={168}>7 days</option>
+            <option value={720}>30 days</option>
+          </select>
+          <p className="mt-3 text-[12px] leading-relaxed text-ink-3">
+            The mailbox, its key and every message stay where they are; the account is refused
+            at sign-in and at SMTP. A timed suspension lifts by itself.
+          </p>
+        </ModalContent>
+        <ModalFooter>
+          <Button variant="ghost" onClick={() => setSuspendTarget(null)}>Cancel</Button>
+          <Button onClick={confirmSuspend}>Switch off</Button>
+        </ModalFooter>
+      </Modal>
 
       <ConfirmModal
         isOpen={modalState.type === 'delete'}
