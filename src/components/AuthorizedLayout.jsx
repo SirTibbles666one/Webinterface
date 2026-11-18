@@ -1088,6 +1088,10 @@ const AuthorizedLayout = () => {
                   version={scheduledVersion}
                 />
               )}
+              {/* Opening a message used to expand it inside its own row, which left the rest
+                  of the list above and below and gave the body a ~250px window — the mail
+                  was cut off mid-sentence. The reader now takes the screen on a phone
+                  exactly as it does in the desktop pane. */}
               <EmailList
                 searchQuery={searchQuery}
                 filterMode={filterMode}
@@ -1097,17 +1101,8 @@ const AuthorizedLayout = () => {
                 onCompose={() => setComposeOpen(true)}
                 onClearSearch={() => setSearchQuery('')}
                 onClearFilter={() => setFilterMode('all')}
-                inlineUid={isPhone ? selectedUid : null}
-                inlineSlot={isPhone && selectedUid ? (
-                  <div
-                    key={selectedUid}
-                    role="region"
-                    aria-label="Opened message"
-                    className="border-b border-line bg-card"
-                  >
-                    {renderReader(true)}
-                  </div>
-                ) : null}
+                inlineUid={null}
+                inlineSlot={null}
                 emailMeta={emailMeta}
                 selectedUid={selectedUid}
                 checkedUids={checkedUids}
@@ -1131,7 +1126,7 @@ const AuthorizedLayout = () => {
                 onRefresh={handleRefresh}
               />
             </div>
-            {selectedUid && !isPhone && (
+            {selectedUid && (
               <div className="fixed inset-0 z-40 flex min-w-0 flex-1 flex-col bg-background md:static md:z-auto md:block">
                 {renderReader(false)}
               </div>
