@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import { X } from 'lucide-react'
+import { useIsPhone } from '@/hooks/useIsPhone'
 import { isValidEmail } from '@/lib/utils'
 import { addressBook } from '@/addressBook'
 
@@ -31,6 +32,10 @@ function Chip({ addr, onRemove }) {
 }
 
 export function AddressField({ label, chips, onChipsChange }) {
+  // A phone shows a filled recipient as one line — tap to edit. Chips plus an input row cost
+  // 182px for a single address, which is most of a reply's screen before a word is typed.
+  const isPhone = useIsPhone()
+  const [editing, setEditing] = useState(false)
   const [inputVal, setInputVal] = useState('')
   const [suggestions, setSuggestions] = useState([])
   const [activeSuggestion, setActiveSuggestion] = useState(-1)
@@ -95,6 +100,28 @@ export function AddressField({ label, chips, onChipsChange }) {
     }
   }
 
+  if (isPhone && chips.length > 0 && !editing) {
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={`${(label || 'Recipient').replace(/:$/, '')}: ${chips.join(', ')}. Tap to change.`}
+        onClick={() => setEditing(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setEditing(true)
+          }
+        }}
+        className="relative flex min-h-11 items-center gap-1 border-b border-border/60 px-3 py-1.5 cursor-text"
+      >
+        <span className="text-xs font-semibold text-foreground/40 w-7 shrink-0">{label}</span>
+        <span className="min-w-0 flex-1 truncate text-sm text-foreground/90">{chips.join(', ')}</span>
+        <span className="shrink-0 text-[11px] text-ink-3" aria-hidden="true">edit</span>
+      </div>
+    )
+  }
+
   return (
     <div
       className="relative flex flex-wrap items-center gap-1 px-3 py-1.5 min-h-[34px] border-b border-border/60 cursor-text"
@@ -122,7 +149,11 @@ export function AddressField({ label, chips, onChipsChange }) {
         onKeyDown={handleKeyDown}
         onBlur={() => {
           commit(inputVal)
-          setTimeout(() => { setSuggestions([]); setActiveSuggestion(-1) }, 150)
+          setTimeout(() => {
+            setSuggestions([])
+            setActiveSuggestion(-1)
+            setEditing(false)
+          }, 150)
         }}
         onPaste={handlePaste}
         className="flex-1 min-w-[80px] bg-transparent outline-none text-sm text-foreground placeholder:text-foreground/30 max-sm:min-h-11"

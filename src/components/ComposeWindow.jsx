@@ -629,7 +629,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
               </div>
               {showCc && <AddressField label="Cc:" chips={ccChips} onChipsChange={setCcChips} />}
               {showBcc && <AddressField label="Bcc:" chips={bccChips} onChipsChange={setBccChips} />}
-              {myAliases.length > 0 && (
+              {myAliases.length > 1 && (
                 <div className="flex items-start gap-2 py-1">
                   <span className="text-sm font-semibold text-muted-foreground w-16 shrink-0 py-1.5">From:</span>
                   {/* Phones get one row showing the chosen identity. Three wrapped rows of
@@ -728,7 +728,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
               </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-2 px-3 py-1.5 border-b border-border/60 text-xs">
+            <div className="flex flex-wrap items-center gap-2 px-3 py-0.5 border-b border-border/60 text-xs">
               {/* A toggle whose label never changes and whose "off" state has no border reads
                   as text, not as something you can press. Say the state. */}
               <button
