@@ -188,6 +188,7 @@ function Admin() {
 
   useEffect(() => {
     if (tab === 'deliverability' && health === null) { fetchHealth(); fetchDmarc() }
+    if (tab === 'system' && health === null) fetchHealth()
   }, [tab, health, fetchHealth, fetchDmarc])
 
   useEffect(() => {
@@ -207,6 +208,7 @@ function Admin() {
     if (which === 'people') fetchUsers()
     if (which === 'access') { fetchPending(); fetchInvites() }
     if (which === 'deliverability') { fetchHealth(); fetchDmarc() }
+    if (which === 'system') fetchHealth()
     if (which === 'deliverability' || which === 'system') fetchDelivery()
   }
 
@@ -1060,6 +1062,36 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
         )}
 
         {/* ── System ─────────────────────────────────────────────────────── */}
+        {tab === 'system' && (
+          <Panel
+            title="Off-site backup"
+            note="The nightly encrypted snapshot, as the host last reported it. A backup you believe in but that stopped days ago is worse than none, because you would restore from it."
+          >
+            {!health ? (
+              <Empty>Backup status could not be read.</Empty>
+            ) : !health.backup ? (
+              <Empty>No successful backup is recorded yet.</Empty>
+            ) : (
+              <div className="px-4 py-3">
+                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                  <span className={`mono text-[15px] ${health.backup.stale ? 'text-destructive' : 'text-ink-1'}`}>
+                    {health.backup.age_hours}h ago
+                  </span>
+                  <span className="text-[12.5px] text-ink-3">
+                    {(health.backup.size / 1e6).toFixed(1)} MB · {health.backup.parts} part
+                    {health.backup.parts === 1 ? '' : 's'} · {health.backup.name}
+                  </span>
+                </div>
+                {health.backup.stale && (
+                  <p className="mt-1 text-[12.5px] text-destructive" role="alert">
+                    Older than 36 hours — the nightly job is not completing.
+                  </p>
+                )}
+              </div>
+            )}
+          </Panel>
+        )}
+
         {tab === 'system' && (
           <Panel title="Storage" note="Where the disk goes, per mailbox. Messages are counted from the mail index; sizes are what those messages occupy on disk.">
             {disk === null ? (
