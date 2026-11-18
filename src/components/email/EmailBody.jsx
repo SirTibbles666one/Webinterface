@@ -543,10 +543,10 @@ export function EmailBody({ textBody, htmlBody, senderHint }) {
             </blockquote>
           )
         }
-        // Mail is prose, and 14px is a desktop size. A phone gets 15.5px with the same line
-        // height ratio; the desktop column is unchanged.
+        // Mail is prose. Anything reading full screen — phone or tablet — gets 15.5px; only
+        // the side-by-side desktop column keeps 14px, where the column sets the measure.
         return (
-          <pre key={i} className="whitespace-pre-wrap break-words font-sans text-[15.5px] leading-[1.65] sm:text-sm/relaxed">
+          <pre key={i} className="whitespace-pre-wrap break-words font-sans text-[15.5px] leading-[1.65] min-[1200px]:text-[14px] min-[1200px]:leading-relaxed">
             <TextWithLinks text={block.content} />
           </pre>
         )
