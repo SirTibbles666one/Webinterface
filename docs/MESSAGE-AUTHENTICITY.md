@@ -135,3 +135,32 @@ The lock is no longer read from a body header; it is derived from a decryption t
 performed. That closes the "set a header on plaintext and get a lock" trick. It does **not**
 make the lock a statement about the sender, because the server seals inbound mail itself —
 so the label stays unchanged until signatures exist, and this document is the record of why.
+
+## Appendix — server groundwork, started and deliberately not deployed
+
+The design says the server field lands first. Working through it revealed that the leaf hash
+is only a third of the job:
+
+1. **`Leaf` gains `sig: Option<String>`** and hashes under `kt/v2/leaf` only when present.
+   Written and staged: existing leaves keep the v1 label, so no recorded history moves and
+   every pinned head stays valid. A leaf that gains a signing key becomes v2, which is an
+   append like any other.
+2. **`record()` must carry `sig` forward.** Today it appends a fresh leaf whenever the
+   encryption or PQ key changes; without carrying the field, a password change would silently
+   drop the account's signing key from the log.
+3. **A new `record_signing_key(account, sig_key)`** appends a leaf reusing the current
+   rsa/pq hashes, so publishing a signing key needs no encryption key at hand.
+4. **The full signing key has to be servable.** The leaf stores hashes (that is what the tree
+   commits to), so the *key itself* belongs on the user record and in `/api/email/publickeys`
+   the way the RSA key already is — otherwise a recipient can verify nothing.
+5. **A route to publish it** (`POST /api/user/sigkey`), plus the DTO change on publickeys.
+
+None of this is deployed. The reason is not effort, it is sequencing: a KT change is the one
+change in this system that can make every user's sends fail closed, the host has no Rust
+toolchain (builds go through Docker), and shipping it requires a mail-server restart. Doing it
+as one deliberate unit — with a `cargo test` run inside the builder image, a tagged previous
+image for rollback, and the client's `kt/v2/leaf` support released in the same window — is the
+responsible shape. A partial deploy would leave the server accepting a field no client can use
+and no test covering the hash switch.
+
+Staged patch: `/data/cache/scratch/kt/keylog.rs` (leaf field + v2 label + versioned hash).
