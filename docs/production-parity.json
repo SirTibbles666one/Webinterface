@@ -69,6 +69,14 @@
         "Not now",
         "This message is locked"
       ]
+    },
+    {
+      "id": "search-whole-mailbox",
+      "why": "A query reaches beyond the loaded page, and the bar answers the shortcut it prints.",
+      "must": [
+        "Searching the rest of the mailbox",
+        "Search mail"
+      ]
     }
   ]
 }

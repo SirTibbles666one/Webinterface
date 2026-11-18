@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, Suspense, lazy } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef, Suspense, lazy } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Inbox, PenLine, X } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
@@ -38,6 +38,11 @@ const AuthorizedLayout = () => {
   const [selectedFolder, setSelectedFolder] = useState('inbox')
   useSearchShortcut()
   const [searchQuery, setSearchQuery] = useState('')
+  // Search used to read only the page that had been paged in, so a query for older
+  // mail came back empty and looked broken. A query now pages the rest in.
+  const [searchLoadingMore, setSearchLoadingMore] = useState(false)
+  const searchExpandRef = useRef(false)
+  const uidsRef = useRef([])
   const [filterMode, setFilterMode] = useState('all')
   const [emailMeta, setEmailMeta] = useState(() => storage.getEmailMeta())
   const [groups, setGroups] = useState([])
@@ -318,6 +323,40 @@ const AuthorizedLayout = () => {
   }, [snoozed.items, selectedFolder])
 
   const allPreviews = selectedFolder === 'drafts' ? draftPreviews : previews
+
+  useEffect(() => { uidsRef.current = uids }, [uids])
+
+  // While a query is live, walk the remaining pages so the result covers the mailbox
+  // rather than the first screen of it. Bounded, cancellable, and silent when there is
+  // nothing left to fetch.
+  useEffect(() => {
+    const q = searchQuery.trim()
+    if (q.length < 2 || selectedFolder !== 'inbox' || !hasMore) {
+      setSearchLoadingMore(false)
+      searchExpandRef.current = false
+      return undefined
+    }
+    if (searchExpandRef.current) return undefined
+    searchExpandRef.current = true
+    let cancelled = false
+    setSearchLoadingMore(true)
+    ;(async () => {
+      let seen = -1
+      for (let page = 0; page < 12 && !cancelled; page += 1) {
+        if (uidsRef.current.length === seen) break
+        seen = uidsRef.current.length
+        loadMore()
+        await new Promise((resolve) => setTimeout(resolve, 400))
+      }
+      if (!cancelled) setSearchLoadingMore(false)
+      searchExpandRef.current = false
+    })()
+    return () => {
+      cancelled = true
+      searchExpandRef.current = false
+      setSearchLoadingMore(false)
+    }
+  }, [searchQuery, selectedFolder, hasMore, loadMore])
 
   const filteredUids = useMemo(() => {
     if (selectedFolder === 'drafts') return visibleUids
@@ -838,6 +877,12 @@ const AuthorizedLayout = () => {
             onOpen={(href) => navigate(href || '/settings')}
             onDismiss={dismissSetup}
           />
+          {searchLoadingMore && (
+            <div className="flex items-center gap-2 border-b border-line bg-secondary/30 px-4 py-1.5 text-[12px] text-ink-3">
+              <span className="size-3 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-hidden="true" />
+              Searching the rest of the mailbox…
+            </div>
+          )}
           {needsUnlock && unlockDismissed && (
             <div className="flex items-center gap-2 border-b border-line bg-secondary/40 px-4 py-1.5">
               <span className="min-w-0 flex-1 text-[12.5px] text-ink-2">

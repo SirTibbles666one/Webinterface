@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { Search, ShieldCheck, Menu, Settings, LogOut, ChevronDown } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import {
@@ -24,6 +25,31 @@ export function TopBar({
   onRetryServer,
   onOpenNav,
 }) {
+  const searchRef = useRef(null)
+  // The bar advertises a shortcut, so it has to answer it. Cmd on a Mac, Ctrl elsewhere;
+  // the printed hint follows the platform for the same reason.
+  const [hint] = useState(() => {
+    try {
+      return /mac|iphone|ipad/i.test(navigator.platform || navigator.userAgent) ? '\u2318K' : 'Ctrl K'
+    } catch {
+      return '\u2318K'
+    }
+  })
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault()
+        const input = searchRef.current
+        if (!input) return
+        input.focus()
+        input.select?.()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   return (
     <>
       <div className="flex h-14 shrink-0 items-center gap-3 border-b border-line px-3 md:px-4">
@@ -38,14 +64,23 @@ export function TopBar({
         <div className="relative w-full max-w-lg">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-3" />
           <input
+            ref={searchRef}
             type="search"
             placeholder="Search mail"
+            aria-label="Search mail"
+            aria-keyshortcuts="Control+K Meta+K"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key !== 'Escape') return
+              // Escape empties the search first; a second press leaves the field.
+              if (searchQuery) onSearchChange('')
+              else e.currentTarget.blur()
+            }}
             className="h-9 w-full rounded-lg border border-line bg-secondary/50 pl-9 pr-14 text-[13px] text-ink-1 placeholder:text-ink-3 focus:border-line-strong focus:bg-secondary focus:outline-none max-sm:h-11"
           />
           <kbd className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded border border-line px-1.5 py-0.5 mono text-[10px] text-ink-3 sm:block">
-            ⌘K
+            {hint}
           </kbd>
         </div>
 
