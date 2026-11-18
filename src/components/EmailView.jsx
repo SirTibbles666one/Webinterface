@@ -85,6 +85,10 @@ const EmailView = ({
   onWake = null,
   // Locked mail is not an error: the reader asks the shell to open the unlock prompt.
   onRequestUnlock = null,
+  // 'inline' renders the message inside the list (phone), not as a full-height pane:
+  // no back control, no page-level scroll container, and the action row stays inside
+  // the block instead of pinning itself to the bottom edge.
+  inline = false,
   snoozedUntil = null,
   snoozeOptions = [],
 }) => {
@@ -242,7 +246,7 @@ const EmailView = ({
       {/* The bar carries actions only. What the message is, and who sent it,
           belongs in the reading column below, where the eye already is. */}
       <div className="flex h-14 shrink-0 items-center gap-1 border-b border-line px-3 max-sm:h-12 max-sm:px-2">
-        {onBack && (
+        {onBack && !inline && (
           <button
             type="button"
             onClick={onBack}
@@ -445,7 +449,7 @@ const EmailView = ({
           </div>
         </div>
       ) : email ? (
-        <ScrollArea className="flex-1 min-h-0">
+        <ScrollArea className={inline ? 'max-h-[62vh] overscroll-contain' : 'flex-1 min-h-0'}>
           {/* One measure for the whole message: a line of text that runs the
               width of a wide window is unreadable, and the header has to sit in
               the same column as the body it introduces. */}
@@ -613,7 +617,7 @@ const EmailView = ({
           and it lifts above the iPhone home indicator. "Reply" carries the word as well
           as the arrow: an arrow alone next to a back arrow is a guess. */}
       {email && (
-        <div className="shrink-0 border-t border-line bg-background/95 px-3 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-30 max-sm:backdrop-blur-sm">
+        <div className={`shrink-0 border-t border-line bg-background/95 px-3 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] ${inline ? "" : "max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-30 max-sm:backdrop-blur-sm"}`}>
           <div className="mx-auto flex w-full max-w-[720px] items-center gap-2">
             <Button
               onClick={() => onReply?.({ ...email, alias: arrivedAt })}

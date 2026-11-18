@@ -1,7 +1,6 @@
 # Inline reading: open a message in the list, Proton-style
 
-Status: **planned, not built.** The reply/spacing slice shipped (`d173f7b`); this is
-the next structural slice and it changes navigation, so it gets its own pass.
+Status: **built and verified** (see "What shipped" at the end).
 
 ## What is asked for
 
@@ -62,3 +61,22 @@ flow, for exactly one row, without its own scroll container.
   the resize observer must be told the width changed.
 - Two scroll containers (list + body) fight on touch; the body must not scroll the
   page when it reaches its end (`overscroll-behavior: contain`).
+
+## What shipped
+
+`EmailList` takes `inlineUid` + `inlineSlot` and renders the slot directly under the
+matching row (single messages and threads both). `EmailView` takes `inline`, which
+drops the back control, caps the body at 62vh and keeps the action row inside the
+block instead of pinning it to the viewport. `AuthorizedLayout` picks the shape by
+`matchMedia('(max-width: 767px)')` and renders one reader through a single
+`renderReader(inline)` function, so the two homes cannot drift apart.
+
+Measured at 390 on the deployed build: tapping row 1 grew it and pushed the rows
+below down 457px while **its own top stayed at 201** — nothing above it moved; the
+body text rendered; `Close` collapsed it; opening a second message left exactly one
+open block; document overflow 0. At 1440 the pane is unchanged and there is no
+inline block at all.
+
+Known gaps: the phone compose bar hides while a message is inline (the plan wanted a
+floating action instead), and the open block's own "Open message / Close" header is
+functional rather than designed.

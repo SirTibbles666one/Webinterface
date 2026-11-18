@@ -37,6 +37,16 @@ const AuthorizedLayout = () => {
   const [navOpen, setNavOpen] = useState(false)
   const [selectedFolder, setSelectedFolder] = useState('inbox')
   useSearchShortcut()
+  // Inline reading is a phone shape: the desktop keeps its two panes.
+  const [isPhone, setIsPhone] = useState(() => (
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 767px)').matches : false
+  ))
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const onChange = () => setIsPhone(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
   const [searchQuery, setSearchQuery] = useState('')
   // Search used to read only the page that had been paged in, so a query for older
   // mail came back empty and looked broken. A query now pages the rest in.
@@ -71,7 +81,8 @@ const AuthorizedLayout = () => {
     userRecoveryKeyStatus()
       .then((data) => { if (!cancelled) setRecoveryKeySet(!!data.set) })
       .catch(() => { if (!cancelled) setRecoveryKeySet(null) })
-    return () => { cancelled = true }
+
+  return () => { cancelled = true }
   }, [])
   const [hasOwnKey, setHasOwnKey] = useState(true)
   // null = not known yet. An unanswered request must not be drawn as a gap.
@@ -792,6 +803,50 @@ const AuthorizedLayout = () => {
     toast('Back in the inbox')
   }
 
+  // One reader, two homes: the desktop pane and (on a phone) the row that was tapped.
+  const renderReader = (inline) => (
+    <EmailView
+                key={selectedUid}
+                uid={selectedUid}
+                onBack={() => setSelectedUid(null)}
+                myEmail={userEmail}
+                onRequestUnlock={() => setUnlockDismissed(false)}
+                emailMeta={selectedUid ? (emailMeta[selectedUid] ?? {}) : null}
+                arrivedAt={selectedUid ? (previews[selectedUid]?.alias ?? null) : null}
+                onToggleStar={toggleStar}
+                onMarkRead={markRead}
+                onMarkUnread={markUnread}
+                onDeleteEmail={deleteOne}
+                onRestore={selectedFolder === 'trash' ? (uid) => trash.restore([uid]).then(() => setSelectedUid(null)) : null}
+                onMessageDeleted={(uid) => {
+                  // The server already deleted it, so drop the row without asking
+                  // the delete endpoint again. The open message stays on screen:
+                  // it is the last time it can be read.
+                  setUids((prev) => prev.filter((u) => u !== uid))
+                  setPreviews((prev) => {
+                    const next = { ...prev }
+                    delete next[uid]
+                    return next
+                  })
+                }}
+                onMoveToGroup={moveToGroup}
+                onRemoveFromGroup={handleRemoveFromGroup}
+                groups={groups}
+                selectedFolder={selectedFolder}
+                onReply={handleReply}
+                onReplyAll={handleReplyAll}
+                onForward={handleForward}
+                onComposeTo={handleComposeTo}
+                onFileSender={selectedFolder === 'trash' || selectedFolder === 'sent' ? null : fileSender}
+                onDeleteFromSender={selectedFolder === 'trash' ? null : deleteFromSender}
+                countFromSender={(address) => uidsFromSender(address).length}
+                onSnooze={snoozeMessage}
+                onWake={wakeMessage}
+                snoozedUntil={selectedUid ? snoozed.untilFor(selectedUid) : null}
+                snoozeOptions={snoozeOptions}
+    inline={inline}
+    />
+  )
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <div className="flex flex-1 overflow-hidden">
@@ -982,6 +1037,22 @@ const AuthorizedLayout = () => {
                 onCompose={() => setComposeOpen(true)}
                 onClearSearch={() => setSearchQuery('')}
                 onClearFilter={() => setFilterMode('all')}
+                inlineUid={isPhone ? selectedUid : null}
+                inlineSlot={isPhone && selectedUid ? (
+                  <div key={selectedUid} className="border-b border-line bg-card">
+                    <div className="flex items-center justify-between gap-3 px-3 py-0.5">
+                      <span className="text-[10.5px] uppercase tracking-[0.08em] text-ink-3">Open message</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedUid(null)}
+                        className="min-h-11 px-2 text-[12.5px] text-ink-2 transition-colors duration-120 active:text-ink-1"
+                      >
+                        Close
+                      </button>
+                    </div>
+                    {renderReader(true)}
+                  </div>
+                ) : null}
                 emailMeta={emailMeta}
                 selectedUid={selectedUid}
                 checkedUids={checkedUids}
@@ -1005,57 +1076,10 @@ const AuthorizedLayout = () => {
                 onRefresh={handleRefresh}
               />
             </div>
-            {selectedUid && (
-            <div className="fixed inset-0 z-40 flex min-w-0 flex-1 flex-col bg-background md:static md:z-auto md:block">
-              {/* On a phone the back control lives in the reader's own action bar: two
-                  stacked bars cost 100px of a 700px screen, and the message is the point. */}
-              <button
-                onClick={() => setSelectedUid(null)}
-                  className="hidden min-h-11 items-center gap-1.5 px-3 py-2 border-b border-border text-sm text-foreground/70"
-                >
-                <span aria-hidden="true">←</span> Back to inbox
-              </button>
-              <EmailView
-                key={selectedUid}
-                uid={selectedUid}
-                onBack={() => setSelectedUid(null)}
-                myEmail={userEmail}
-                onRequestUnlock={() => setUnlockDismissed(false)}
-                emailMeta={selectedUid ? (emailMeta[selectedUid] ?? {}) : null}
-                arrivedAt={selectedUid ? (previews[selectedUid]?.alias ?? null) : null}
-                onToggleStar={toggleStar}
-                onMarkRead={markRead}
-                onMarkUnread={markUnread}
-                onDeleteEmail={deleteOne}
-                onRestore={selectedFolder === 'trash' ? (uid) => trash.restore([uid]).then(() => setSelectedUid(null)) : null}
-                onMessageDeleted={(uid) => {
-                  // The server already deleted it, so drop the row without asking
-                  // the delete endpoint again. The open message stays on screen:
-                  // it is the last time it can be read.
-                  setUids((prev) => prev.filter((u) => u !== uid))
-                  setPreviews((prev) => {
-                    const next = { ...prev }
-                    delete next[uid]
-                    return next
-                  })
-                }}
-                onMoveToGroup={moveToGroup}
-                onRemoveFromGroup={handleRemoveFromGroup}
-                groups={groups}
-                selectedFolder={selectedFolder}
-                onReply={handleReply}
-                onReplyAll={handleReplyAll}
-                onForward={handleForward}
-                onComposeTo={handleComposeTo}
-                onFileSender={selectedFolder === 'trash' || selectedFolder === 'sent' ? null : fileSender}
-                onDeleteFromSender={selectedFolder === 'trash' ? null : deleteFromSender}
-                countFromSender={(address) => uidsFromSender(address).length}
-                onSnooze={snoozeMessage}
-                onWake={wakeMessage}
-                snoozedUntil={selectedUid ? snoozed.untilFor(selectedUid) : null}
-                snoozeOptions={snoozeOptions}
-              />
-            </div>
+            {selectedUid && !isPhone && (
+              <div className="fixed inset-0 z-40 flex min-w-0 flex-1 flex-col bg-background md:static md:z-auto md:block">
+                {renderReader(false)}
+              </div>
             )}
           </div>
         </div>

@@ -86,6 +86,14 @@
         "Clear the search",
         "Show all mail"
       ]
+    },
+    {
+      "id": "inline-reading",
+      "why": "On a phone a message opens in place under its row, and the list stays.",
+      "must": [
+        "Open message",
+        "Close"
+      ]
     }
   ]
 }

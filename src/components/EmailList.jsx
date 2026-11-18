@@ -6,6 +6,7 @@ import { buildThreads } from '@/lib/threads'
 import { SenderAvatar } from '@/components/SenderAvatar'
 import { SwipeRow } from '@/components/email/SwipeRow'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
+import { Fragment } from 'react'
 
 const EmailList = ({
   searchQuery = '',
@@ -39,6 +40,10 @@ const EmailList = ({
   selectedFolder,
   // Pull down from the top of the list to refresh (touch screens).
   onRefresh = null,
+  // The open message rendered inside the list (phone): `inlineSlot` appears directly
+  // under the row whose uid matches, and nowhere else.
+  inlineUid = null,
+  inlineSlot = null,
   // An empty state is a control: it names the one action that ends the emptiness.
   onCompose = null,
   onClearSearch = null,
@@ -205,15 +210,17 @@ const EmailList = ({
             {group.items.map((thread) => {
               if (thread.count === 1) {
                 return (
-                  <SwipeRow
-                    key={thread.latestUid}
-                    className="border-b border-line/70"
-                    label={swipeLabel}
-                    onSwipe={() => onDeleteEmail(thread.latestUid)}
-                    onLongPress={() => onCheck(thread.latestUid)}
-                  >
-                    <EmailListItem {...rowProps(thread.latestUid)} isFresh={fresh.has(thread.latestUid)} />
-                  </SwipeRow>
+                  <Fragment key={thread.latestUid}>
+                    <SwipeRow
+                      className="border-b border-line/70"
+                      label={swipeLabel}
+                      onSwipe={() => onDeleteEmail(thread.latestUid)}
+                      onLongPress={() => onCheck(thread.latestUid)}
+                    >
+                      <EmailListItem {...rowProps(thread.latestUid)} isFresh={fresh.has(thread.latestUid)} />
+                    </SwipeRow>
+                    {inlineUid != null && String(thread.latestUid) === String(inlineUid) && inlineSlot}
+                  </Fragment>
                 )
               }
 
@@ -234,7 +241,8 @@ const EmailList = ({
               }
 
               return (
-                <div key={thread.key} data-testid="thread-group" className="group/thread relative border-b border-line/70">
+                <Fragment key={thread.key}>
+                <div data-testid="thread-group" className="group/thread relative border-b border-line/70">
                   <SwipeRow
                     label={swipeLabel}
                     onSwipe={onDeleteThread ? () => onDeleteThread(thread.uids) : null}
@@ -349,6 +357,8 @@ const EmailList = ({
                     </div>
                   )}
                 </div>
+                {inlineUid != null && thread.uids.some((u) => String(u) === String(inlineUid)) && inlineSlot}
+                </Fragment>
               )
             })}
           </div>
