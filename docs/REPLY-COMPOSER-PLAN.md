@@ -12,20 +12,18 @@ it opened with "no box ready for a reply". Both were measured at 390px, not gues
 | A reply opens on an empty paragraph with the caret in it | first child is an empty `p`, `caretAtStart: true` |
 | The quote is hidden behind **Show quoted text** — still in the document, so still sent | `quoteInDocument: true`, `quoteVisible: false`, toggling restores it |
 | Tighter OpenPGP row | 57px → 49px |
+| Formatting bar appears when you start typing, not before | −61px on every reply that is a sentence |
+| Expiry and "hold until" are one Options panel | Send no longer wraps to its own row at 320px; the panel is a bottom sheet on a phone |
+| Signature in the body the composer opens with | a reply now leaves signed (it never did) |
 
-Net: chrome above the message 348px → 275px, writing area 404px → 477px.
+Net, all measured at 390px: **chrome above the message 348px → 214px, writing area 404px → 490px.**
+At 320px the bar holds one row: options, attach and Send together.
 
 ## Phase 1 — the last of the chrome (est. 100px, ~half a day)
 
-1. **Formatting toolbar on demand.** It costs 61px on every reply for tools most replies never
-   use. Show it once the editor has focus, or behind a "Formatting" toggle, and it disappears from
-   a reply that is just a sentence.
-2. **One options control instead of two.** "No expiry" (a select) and the clock (a popover) are
-   two controls for one idea on the phone's bottom bar — ~40px. Fold both into a single "Options"
-   sheet: expiry, scheduled send.
-3. **Signature.** There is none. Replies should start `— Tibs` above the quote, per identity, and
-   it must be editable in Settings and excluded from the empty-box rule (the box comes first, the
-   signature under it).
+1. ~~Formatting toolbar on demand~~ — shipped.
+2. ~~One options control instead of two~~ — shipped.
+3. ~~Signature~~ — shipped (it existed in Settings but was applied only to sealed notes).
 
 Done when: chrome ≤ 200px at 390px, and a reply typed, sent and re-read shows the signature in the
 right place and the quote still attached.
