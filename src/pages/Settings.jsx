@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, LogOut } from 'lucide-react'
 import { storage } from '@/storage'
-import api from '@/api'
+import api, { userTwoFactorStatus, userSecurityKeys } from '@/api'
+import { fetchPostQuantumStatus } from '@/lib/pqSetup'
 import ProfileSection from '@/components/ProfileSection'
 import PasswordSection from '@/components/PasswordSection'
 import TwoFactorSection from '@/components/TwoFactorSection'
@@ -79,6 +80,40 @@ const GROUPS = [
 export default function Settings() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
+  // What each tile is actually set to. A settings screen that shows a grid of identical
+  // buttons makes the reader open four of them to answer "is my account protected?" — the one
+  // question this page exists to answer. Unknown stays blank rather than claiming "off".
+  const [state, setState] = useState({})
+  useEffect(() => {
+    let alive = true
+    userTwoFactorStatus()
+      .then((d) => alive && setState((s) => ({ ...s, twofactor: !!d.enabled })))
+      .catch(() => {})
+    userSecurityKeys()
+      .then((d) => alive && setState((s) => ({ ...s, keys: (d.keys || []).length })))
+      .catch(() => {})
+    fetchPostQuantumStatus()
+      .then((d) => alive && setState((s) => ({ ...s, pq: !!d.enabled })))
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const tileState = (id) => {
+    if (id === 'two-factor') {
+      return state.twofactor === undefined ? '' : state.twofactor ? 'On' : 'Off'
+    }
+    if (id === 'security-keys') {
+      if (state.keys === undefined) return ''
+      return state.keys === 0 ? 'None yet' : `${state.keys} key${state.keys === 1 ? '' : 's'}`
+    }
+    if (id === 'post-quantum') {
+      return state.pq === undefined ? '' : state.pq ? 'Active' : 'Not enabled'
+    }
+    return ''
+  }
+
   const [active, setActive] = useState('profile')
   // On a phone the section list is an index, not a strip: one tap opens a section,
   // and "All settings" comes back. The strip scrolled horizontally and highlighted
@@ -276,12 +311,19 @@ export default function Settings() {
                       {/* No description here: two columns truncate every one of them to an
                           ellipsis, which reads as broken. The opened section carries the
                           full note, above its controls. */}
-                      <span
-                        className={`text-[13.5px] leading-snug ${
-                          item.destructive ? 'text-destructive' : 'text-ink-1'
-                        }`}
-                      >
-                        {item.label}
+                      <span className="flex flex-col">
+                        <span
+                          className={`text-[13.5px] leading-snug ${
+                            item.destructive ? 'text-destructive' : 'text-ink-1'
+                          }`}
+                        >
+                          {item.label}
+                        </span>
+                        {tileState(item.id) && (
+                          <span className="mt-0.5 text-[11.5px] leading-snug text-ink-3">
+                            {tileState(item.id)}
+                          </span>
+                        )}
                       </span>
                     </button>
                   ))}
