@@ -1,0 +1,137 @@
+# Message authenticity — design
+
+Status: **proposed, not built.** This changes what a sealed message contains, so it is
+written down before any code moves. Everything here was measured against production on
+2026-11-18.
+
+## The problem, precisely
+
+The reader shows a lock labelled "End-to-end encrypted". Three separate things are being
+claimed by that one icon, and only the first is currently true:
+
+1. **The body was encrypted to my key.** True, but not by the sender: the server seals
+   inbound mail to the recipient on delivery. Verified today — a plaintext message posted to
+   `qa@slothlee.xyz` arrives with a `message_key` and a ciphertext body. So "it is encrypted"
+   says something about the server's storage, not about the sender.
+2. **The sender is who the headers say.** Not established at all. There is no signature on
+   the sealed payload anywhere in the client.
+3. **Nobody altered it in transit.** Not established. AES-GCM authenticates the ciphertext
+   against *the key it was encrypted with*, and the server holds that path end to end.
+
+Until 2026-11-18 the lock was read from an `OpenNeutron-E2EE` header **inside the parsed
+body**, so any server could render arbitrary plaintext with a lock on it. That is now derived
+from "this arrived with a message_key we decrypted" — a local fact, which is better, and
+still not a statement about the sender for the reason in (1).
+
+## What has to be true for the lock to mean something
+
+The recipient's client must verify, locally, that **the bytes it decrypted were sealed by the
+holder of a key that key transparency says belongs to the sender**, and that those bytes have
+not changed since. That requires three things this system does not have:
+
+- a **signing key per identity**, published where key transparency can vouch for it;
+- a **signature inside the envelope**, over the ciphertext (not over the plaintext, which the
+  reader only gets after decryption);
+- a **rule the reader applies**: no verified signature → no lock.
+
+## Design
+
+### 1. Identity gets a signing key, published in KT
+
+Each account gets an ML-DSA-65 signing keypair alongside its RSA-OAEP encryption key. ML-DSA
+is the right choice here for three reasons: the client already vendors `@noble/post-quantum`
+(it is what signs KT heads), the KT head algorithm is already `ml-dsa-65` so verification is
+the same code path, and it is post-quantum — a signature scheme with a 20-year horizon is
+worth having in a mailbox.
+
+Cost: ~1.9 KB public key and ~3.3 KB signature per message, both base64'd in the envelope.
+On a 3 KB message that roughly triples the stored size. Acceptable; worth measuring once real
+traffic exists.
+
+The KT leaf grows a second field (`leaf.sig_key`, base64) beside `leaf.key`. **This is the
+one server change**: the leaf is currently built from the user's encryption key only, so
+publishing a signing key means the server stores and serves one more field per identity and
+includes it in the leaf hash. The server never verifies signatures — clients do.
+
+### 2. Envelope v2
+
+```
+SLW2 | 0x02 | iv(12) | ct_len(u32 BE) | ciphertext | sig(3.3 KB ml-dsa-65)
+```
+
+The signature covers, in order:
+
+```
+"slw/v2/message" | iv | ciphertext | recipient_set_hash | sender_address | sent_at(u64)
+```
+
+Signing the **ciphertext** rather than the plaintext is deliberate: the recipient can verify
+it before decrypting, with no key material of theirs involved, and a re-encryption by anyone
+else invalidates it immediately. `recipient_set_hash` binds the envelope to the group it was
+sealed for, so a ciphertext cannot be replayed to a different set of recipients.
+`sender_address` is inside the signed bytes, so a valid signature cannot be re-attributed.
+
+`SLW1` stays readable. A `SLW1` message renders with the weaker label (below).
+
+### 3. Three states in the reader, not one icon
+
+| State | Condition | Copy |
+|---|---|---|
+| **Verified sender** | v2 envelope, signature valid against the sender's KT leaf, and that leaf's proof verified under the pinned KT signer | lock, "Sealed by *name* — signed and verified" |
+| **Sealed, sender unverified** | decrypted successfully, but no signature (v1) or the sender has no published signing key | open-lock outline, "Sealed to you — the sender is not verified" |
+| **Not encrypted** | plaintext body | no icon |
+
+A **failed** signature is not one of these: it is a refusal. The reader opens a warning card
+("This message claims to be from X but the signature does not match. It has not been
+rendered.") with the body withheld, because a message whose signature fails is precisely the
+one an attacker wants rendered.
+
+### 4. Sending
+
+- Sign after encrypting, before upload. The existing send path already has the ciphertext and
+  the recipient set in hand at that point.
+- Send v2 **only if** every recipient's KT leaf carries a `sig_key`. Mixed recipients fall
+  back to v1 with a note in the composer ("one recipient cannot receive signed mail yet").
+  Sending v2 to someone who cannot verify it is worse than v1: it would show as unverified
+  and look like a downgrade attack.
+- The sender's own signing key is wrapped with the same password KDF as the encryption key and
+  published at setup, so a new device can sign without a separate ceremony.
+
+### 5. Migration
+
+No re-encryption of stored mail. v1 messages keep working and are labelled honestly ("sender
+unverified"), which is *true* for every message in every mailbox today. New messages become
+v2 as recipients publish signing keys. Signing keys are generated on next unlock, so the
+rollout needs no action from users.
+
+### 6. What this does and does not fix
+
+**Fixes:** sender substitution by the server, tampering with stored ciphertext, a lock shown
+on plaintext, and re-attribution of a message to a different sender. After this, the lock
+means something a hostile server cannot forge.
+
+**Does not fix:** metadata (who mails whom, when, subject in clear — see the audit's P2 on
+`/note/create`), and denial of service (a server can still refuse to deliver). Neither is a
+signature problem.
+
+## Effort
+
+| Piece | Work |
+|---|---|
+| Server: `sig_key` on the KT leaf, included in the leaf hash | ~1 day, plus a proof-format version note |
+| Client: keygen, wrap, publish on unlock | ~1 day |
+| Client: envelope v2 sign/verify, three reader states, composer fallback | ~2 days |
+| Tests: sign→verify round trip, tampered ciphertext, replayed recipient set, wrong sender, v1 fallback | ~1 day |
+
+## Recommendation
+
+Do it, in that order, and land the server field first: the client cannot verify a signature
+against a key that is not published, and shipping the client half first would put locked
+mailboxes in front of users for no benefit.
+
+## Interim state (shipped today)
+
+The lock is no longer read from a body header; it is derived from a decryption this client
+performed. That closes the "set a header on plaintext and get a lock" trick. It does **not**
+make the lock a statement about the sender, because the server seals inbound mail itself —
+so the label stays unchanged until signatures exist, and this document is the record of why.
