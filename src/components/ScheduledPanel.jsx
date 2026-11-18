@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Clock, Pencil, X, AlertCircle } from 'lucide-react'
 import { listScheduled, cancelScheduled } from '@/api'
+import { keySession } from '@/keySession'
+import { decryptEmail } from '@/crypto'
 
 function whenLabel(seconds, now) {
   if (!seconds) return ''
@@ -60,6 +62,32 @@ export function ScheduledPanel({ onCount, onEdit, editableIds, onItems, onCancel
     }
   }
 
+  // The server stores the subject sealed to this account's own key, so it can return the blob but
+  // never read it. Decrypt here, where the key is.
+  const [sealedSubjects, setSealedSubjects] = useState({})
+  useEffect(() => {
+    let alive = true
+    const itemsWithSealed = items.filter((i) => i.subject_enc && !i.subject)
+    if (!itemsWithSealed.length) return () => { alive = false }
+    ;(async () => {
+      const key = await keySession.get()
+      if (!key) return
+      const out = {}
+      for (const item of itemsWithSealed) {
+        try {
+          const { aes_encrypted, data_encrypted } = JSON.parse(item.subject_enc)
+          out[item.id] = await decryptEmail(data_encrypted, aes_encrypted, key)
+        } catch {
+          out[item.id] = ''
+        }
+      }
+      if (alive) setSealedSubjects(out)
+    })()
+    return () => { alive = false }
+  }, [items])
+
+  const subjectOf = (item) => item.subject || sealedSubjects[item.id] || ''
+
   const live = items.filter((i) => i.status === 'pending' || i.status === 'failed')
   if (live.length === 0) return null
 
@@ -79,7 +107,7 @@ export function ScheduledPanel({ onCount, onEdit, editableIds, onItems, onCancel
               <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
             )}
             <span className="min-w-0 flex-1 truncate">
-              {item.subject || '(no subject)'}
+              {subjectOf(item) || '(held message)'}
               <span className="text-foreground/45"> · {item.to.join(', ')}</span>
             </span>
             <span className={item.status === 'failed' ? 'text-destructive shrink-0' : 'text-foreground/50 shrink-0'}>

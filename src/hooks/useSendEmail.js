@@ -363,7 +363,16 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
           ...(ephemeral && (ephemeral.deletes_on_read || ephemeral.expires_in_seconds)
             ? { ephemeral }
             : {}),
-          ...(sendAt > 0 ? { send_at: sendAt, subject } : {}),
+          // A held message is the one place the subject used to travel in the clear, because the
+          // server shows you what is waiting. Seal it to your own key instead: the server hands
+          // the blob back and the held list decrypts it, so the subject stays unreadable here.
+          ...(sendAt > 0
+            ? {
+                send_at: sendAt,
+                subject: '',
+                subject_enc: JSON.stringify(await encryptEmail(subject, myPublicKey)),
+              }
+            : {}),
           // Editing a held message: the server replaces it in place and keeps the
           // id, so this is the same request shape as a first scheduling.
           // Always named when editing, even if no time was chosen: the server must
