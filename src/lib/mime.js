@@ -1,6 +1,23 @@
 
 export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
 
+// Measured, not assumed. A 10 MB file left the browser as a 36,490,000-byte request: the bytes are
+// base64'd into the MIME, base64'd again inside the JSON envelope, and sealed once per recipient.
+// So the size a reader picks and the size the server receives differ by 3.65x, and a limit written
+// in file bytes is a lie unless it is divided by this.
+export const WIRE_MULTIPLIER = 3.65
+
+// server.max_request_body_bytes, with Cloudflare's 100 MB request ceiling as the harder wall.
+export const MAX_REQUEST_BYTES = 96 * 1024 * 1024
+
+/** What a set of attachments weighs once encrypted, encoded and addressed. */
+export function wireBytesFor(plainBytes) {
+  return Math.ceil(plainBytes * WIRE_MULTIPLIER)
+}
+
+/** The most attachments one message can carry, chosen to stay clear of the request cap. */
+export const MAX_TOTAL_ATTACHMENT_BYTES = 24 * 1024 * 1024
+
 export function utf8ToBase64(str) {
   const bytes = new TextEncoder().encode(str)
   let bin = ''

@@ -25,7 +25,10 @@ describe('userFacingError', () => {
     expect(userFacingError(withStatus(401))).toMatch(/session has expired/i)
     expect(userFacingError(withStatus(403))).toMatch(/permission/i)
     expect(userFacingError(withStatus(429))).toMatch(/too many attempts/i)
-    expect(userFacingError(withStatus(413))).toMatch(/too large/i)
+    // A size refusal has to name a number the reader can act on, and must not sound retryable.
+    const tooBig = userFacingError(withStatus(413))
+    expect(tooBig).toMatch(/24 MB/)
+    expect(tooBig).toMatch(/remove the largest one|share a link/i)
   })
 
   it('lets a call site override a status where the generic sentence is wrong', () => {

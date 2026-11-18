@@ -1070,19 +1070,24 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                   </span>
                 )}
                 {sendState === 'error' && (
-                  <span className="flex min-w-0 items-start gap-1.5 text-xs text-destructive">
-                    <AlertCircle className="mt-0.5 w-3.5 h-3.5 shrink-0" />
-                    {/* Cut to one ellipsised line, the reason for a failed send was unreadable —
-                        and the only way to retry was to work out that Send does it again. */}
-                    <span className="min-w-0 line-clamp-2" role="alert" title={sendError}>{sendError}</span>
-                    <button
-                      type="button"
-                      onClick={sendWithPgpIfNeeded}
-                      className="shrink-0 underline underline-offset-2 text-destructive/90 max-sm:min-h-11"
+                  <div className="flex w-full min-w-0 flex-col gap-0.5 text-xs text-destructive">
+                    <span className="flex items-start gap-1.5">
+                      <AlertCircle className="mt-0.5 w-3.5 h-3.5 shrink-0" />
+                      {/* Cut to one ellipsised line, the reason for a failed send was unreadable — and
+                          on a phone the retry button broke onto its own centred line. */}
+                      <span className="min-w-0 line-clamp-3" role="alert" title={sendError}>{sendError}</span>
+                    </span>
+                    {/* A message refused for size is not fixed by sending it again. */}
+                    {!/size|too large/i.test(sendError || '') && (
+                      <button
+                        type="button"
+                        onClick={sendWithPgpIfNeeded}
+                        className="self-start underline underline-offset-2 text-destructive/90 max-sm:min-h-11"
                     >
                       Try again
                     </button>
-                  </span>
+                    )}
+                  </div>
                 )}
                 {sendState === 'done' && sendResults.length > 0 && (
                   <div className="flex items-center gap-1.5 text-xs ml-2 shrink-0">

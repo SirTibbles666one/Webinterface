@@ -27,7 +27,11 @@ export function userFacingError(error, options = {}) {
   if (status === 403) return "You don't have permission to do that."
   if (status === 404) return 'That item no longer exists.'
   if (status === 409) return 'That conflicts with something that already exists.'
-  if (status === 413) return 'That is too large to send.'
+  if (status === 413) {
+    // "That is too large to send" told a reader nothing they could act on: not how large, not
+    // what the ceiling was, and Try again was shown as if it might work.
+    return 'This message is past the size the server accepts. Encrypted mail carries about 24 MB of attachments — remove the largest one, or share a link to it instead.'
+  }
   if (status === 429) return 'Too many attempts. Wait a moment and try again.'
   if (status >= 500) return 'The server had a problem. Nothing was lost — try again in a moment.'
 
