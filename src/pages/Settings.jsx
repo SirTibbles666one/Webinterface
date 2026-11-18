@@ -49,7 +49,7 @@ const GROUPS = [
       // material, the other is how it is grouped.
       { id: 'mailboxes', label: 'Mailboxes', title: 'Mailboxes', note: 'Name a set of your addresses so the inbox can be read one mailbox at a time, on every device.', Component: MailboxesSection },
       { id: 'notifications', label: 'Notifications', title: 'New mail notifications', note: 'How this browser tells you mail arrived while the app is closed.', Component: NotificationsSection },
-      { id: 'appearance', label: 'Appearance', title: 'Appearance', note: 'Theme and row density, stored on this device only.', Component: AppearanceSection },
+      { id: 'appearance', label: 'Appearance', title: 'Appearance', note: 'Theme, row density and clock, stored on this device only.', Component: AppearanceSection },
     ],
   },
   {
