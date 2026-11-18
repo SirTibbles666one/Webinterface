@@ -464,9 +464,9 @@
 }
 
 
-/* A reply's quote stays in the document (it is sent) but out of the way, so the first thing
-   on screen is somewhere to write. The "On … wrote:" line goes with it. */
-.compose-quote-clamped .ProseMirror blockquote,
-.compose-quote-clamped .ProseMirror p:has(+ blockquote) {
+/* The quote card reads the "On … wrote:" line above it and shows it as the card's own header,
+   so the paragraph must not also appear in the body. The quote itself is not hidden: the card
+   owns it and renders the content when opened. */
+.ProseMirror p:has(+ blockquote) {
   display: none;
 }

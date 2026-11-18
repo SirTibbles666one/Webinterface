@@ -2,7 +2,9 @@ import {
   Bold, Italic, Underline, Strikethrough, List, ListOrdered, Link, Link2Off
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, EditorContent, ReactNodeViewRenderer } from '@tiptap/react'
+import { Node, mergeAttributes } from '@tiptap/core'
+import { QuoteCard } from '@/components/compose/QuoteCard'
 import { useIsPhone } from '@/hooks/useIsPhone'
 import StarterKit from '@tiptap/starter-kit'
 import UnderlineExt from '@tiptap/extension-underline'
@@ -98,7 +100,25 @@ const EditorToolbar = ({ editor }) => {
   )
 }
 
-export const TiptapEditor = ({ value, onChange, placeholder, autoFocus = false, clamped = false, 'aria-label': ariaLabel = 'Message body' }) => {
+// The same `blockquote` element on the wire, with a card in the editor. Declaring it here and
+// switching StarterKit's own off keeps one node for quoting rather than two that disagree.
+const QuoteCardNode = Node.create({
+  name: 'blockquote',
+  group: 'block',
+  content: 'block+',
+  defining: true,
+  parseHTML() {
+    return [{ tag: 'blockquote' }]
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['blockquote', mergeAttributes(HTMLAttributes), 0]
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(QuoteCard)
+  },
+})
+
+export const TiptapEditor = ({ value, onChange, placeholder, autoFocus = false, 'aria-label': ariaLabel = 'Message body' }) => {
   // A phone gives the formatting bar 61px of every reply, for tools most replies never use.
   // It appears when the editor is being typed in, and the bar's own buttons do not steal the
   // focus back (their pointerdown is cancelled), so it does not vanish mid-tap.
@@ -109,8 +129,11 @@ export const TiptapEditor = ({ value, onChange, placeholder, autoFocus = false, 
       StarterKit.configure({
         heading: false,
         codeBlock: false,
+        // Replaced by QuoteCardNode below: a card in the editor, a blockquote on the wire.
+        blockquote: false,
         // A reply's quote is a blockquote; disabling it made quoted mail a plain dump.
       }),
+      QuoteCardNode,
       UnderlineExt,
       LinkExt.configure({
         openOnClick: false,
@@ -166,9 +189,7 @@ export const TiptapEditor = ({ value, onChange, placeholder, autoFocus = false, 
       >
         <EditorContent
           editor={editor}
-          className={`h-full [&_.ProseMirror]:p-3 [&_.ProseMirror]:min-h-full [&_.ProseMirror]:outline-none ${
-            clamped ? 'compose-quote-clamped' : ''
-          }`}
+          className="h-full [&_.ProseMirror]:p-3 [&_.ProseMirror]:min-h-full [&_.ProseMirror]:outline-none"
         />
       </div>
     </div>
