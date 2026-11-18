@@ -7,14 +7,16 @@ function Chip({ addr, onRemove }) {
   const valid = isValidEmail(addr)
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-sm max-w-[220px] truncate border ${
+      // A phone cannot hover, so `title` never shows the full address. On small screens the
+      // chip wraps to at most two lines instead of clipping the domain off mid-word.
+      className={`inline-flex items-center gap-1 rounded border text-sm max-w-[220px] truncate px-2 py-0.5 max-sm:max-w-full max-sm:items-start max-sm:whitespace-normal max-sm:break-all max-sm:line-clamp-2 ${
         valid
           ? 'bg-primary/10 border-primary/25 text-foreground/90'
           : 'bg-destructive/10 border-destructive/30 text-destructive'
       }`}
       title={addr}
     >
-      <span className="truncate">{addr}</span>
+      <span className="truncate max-sm:whitespace-normal max-sm:break-all">{addr}</span>
       <button
         type="button"
         onClick={onRemove}

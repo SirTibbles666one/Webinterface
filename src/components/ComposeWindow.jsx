@@ -1,18 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import {
-  X,
-  Minus,
-  Send,
-  ChevronUp,
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-  Paperclip,
-  Trash2,
-  Flame,
-  Link2,
-  Clock,
-} from 'lucide-react'
+import { X, Minus, Send, ChevronUp, Loader2, AlertCircle, CheckCircle2, Paperclip, Trash2, Flame, Link2, Clock, ChevronDown } from 'lucide-react'
 import { AddressField } from '@/components/compose/AddressField'
 import { AttachmentChip } from '@/components/compose/AttachmentChip'
 import { TiptapEditor } from '@/components/compose/TiptapEditor'
@@ -93,6 +80,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
   // Which of my addresses this goes out from. Empty means the real one. A reply
   // to mail that came through an alias starts on that alias.
   const [fromAlias, setFromAlias] = useState(() => replyData?.fromAlias ?? '')
+  const [fromOpen, setFromOpen] = useState(false)
   // Two empty rows for Cc and Bcc cost a phone 106px before a single word is typed.
   // They open when they already hold something, or when asked for.
   const [showCc, setShowCc] = useState(() => (replyData?.cc?.length ?? 0) > 0)
@@ -632,7 +620,9 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
               {myAliases.length > 0 && (
                 <div className="flex items-start gap-2 py-1">
                   <span className="text-sm font-semibold text-muted-foreground w-16 shrink-0 py-1.5">From:</span>
-                  <div className="flex flex-wrap gap-1.5 py-1">
+                  {/* Phones get one row showing the chosen identity. Three wrapped rows of
+                      chips cost ~100px of a composer that already fights the keyboard. */}
+                  <div className="hidden flex-wrap gap-1.5 py-1 sm:flex">
                     <button
                       type="button"
                       onClick={() => setFromAlias('')}
@@ -658,6 +648,36 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                         {a.address}
                       </button>
                     ))}
+                  </div>
+                  <div className="flex-1 min-w-0 py-1 sm:hidden">
+                    <button
+                      type="button"
+                      onClick={() => setFromOpen((open) => !open)}
+                      aria-expanded={fromOpen}
+                      className="flex min-h-11 w-full items-center justify-between gap-2 rounded-md border border-border/70 px-3 text-[13px] text-ink-1"
+                    >
+                      <span className="truncate">
+                        {fromAlias ? `${fromAlias}@${myEmail.split('@').slice(1).join('@')}` : myEmail}
+                      </span>
+                      <ChevronDown className={`size-4 shrink-0 transition-transform duration-150 ${fromOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {fromOpen && (
+                      <ul className="mt-1 overflow-hidden rounded-md border border-border/70">
+                        {[{ local: '', address: myEmail }, ...myAliases].map((option) => (
+                          <li key={option.local || 'primary'}>
+                            <button
+                              type="button"
+                              onClick={() => { setFromAlias(option.local); setFromOpen(false) }}
+                              className={`flex min-h-11 w-full items-center px-3 text-left text-[13px] ${
+                                fromAlias === option.local ? 'bg-primary/15 text-primary' : 'text-ink-2'
+                              }`}
+                            >
+                              {option.address}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </div>
               )}
