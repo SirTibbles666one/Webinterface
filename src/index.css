@@ -446,8 +446,24 @@
 
 /* A conversation card already says who sent the message and when, and offers no per-message
    action bar: the reader inside it is the body. */
-.thread-card [data-view-chrome] {
+/* A card already says who sent the message and when, so the reader's own header and sender
+   block are hidden. The reply row is not: hiding it left the conversation with no way to answer
+   at all. It belongs to the message being read, so it sits at that card's foot rather than
+   floating over the screen — which is what it did while the card replaced a full-screen reader. */
+.thread-card [data-view-chrome='bar'],
+.thread-card [data-view-chrome='sender'] {
   display: none !important;
+}
+
+.thread-card [data-view-chrome='actions'] {
+  position: static !important;
+  inset: auto !important;
+  z-index: auto !important;
+  background: transparent !important;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-bottom: 0.5rem;
+  backdrop-filter: none !important;
 }
 
 /* Inside a conversation the whole screen scrolls. A body that scrolls itself swallows the

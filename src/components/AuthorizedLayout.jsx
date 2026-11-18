@@ -883,8 +883,10 @@ const AuthorizedLayout = () => {
     if (Number.isNaN(d.getTime())) return ''
     return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
   }
+  // `thread.uids` runs oldest→newest (that is how threads.js builds it), and a conversation
+  // read from the top should start with the message that just arrived, not the first one ever.
   const threadCards = (threadUids) =>
-    threadUids.map((uid) => ({
+    [...threadUids].reverse().map((uid) => ({
       uid,
       sender: previews[uid]?.from?.name || previews[uid]?.from?.email || '',
       when: cardWhen(previews[uid]?.date),
