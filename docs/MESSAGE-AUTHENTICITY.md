@@ -62,8 +62,15 @@ SLW2 | 0x02 | iv(12) | ct_len(u32 BE) | ciphertext | sig(3.3 KB ml-dsa-65)
 The signature covers, in order:
 
 ```
-"slw/v2/message" | iv | ciphertext | recipient_set_hash | sender_address | sent_at(u64)
+"slw/v2/message" | iv | ciphertext | recipient_address | sender_address | sent_at(u64)
 ```
+
+**Correction made during implementation.** This section originally signed a hash of the whole
+recipient set. That cannot work: each recipient receives its own ciphertext copy, and a BCC'd
+reader cannot see the other recipients, so they could never recompute the set hash and could
+never verify their own mail. Binding the *recipient* — the address that copy was sealed for —
+is verifiable by everyone including BCC, and still makes a copy un-replayable to another
+address. The set hash survives only as a helper for future group semantics.
 
 Signing the **ciphertext** rather than the plaintext is deliberate: the recipient can verify
 it before decrypting, with no key material of theirs involved, and a re-encryption by anyone
