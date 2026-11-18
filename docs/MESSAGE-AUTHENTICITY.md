@@ -216,9 +216,26 @@ and verified by the reader's own function.
 | one flipped ciphertext byte | **`invalid`** |
 | sender swapped to another address | **`invalid`** |
 
-**Still to build:** sign in `useSendEmail` (pack `SLW2` around the payload), verify in the
-reader against the sender's published key and its KT leaf, and the three reader states with
-the body withheld on `invalid`.
+**Step 3 — wired, deployed, and proven in the reader (2026-11-18, `a197952`).**
+
+- `useSendEmail` signs each recipient copy, bound to the address that copy was sealed for.
+  A missing signing key leaves the message unsigned rather than blocking the send.
+- `decryptStored` unwraps `SLW2` centrally, so every reader path (inbox previews, reader,
+  sent, export) cannot be handed an envelope to decrypt as if it were plain ciphertext.
+- `signatureState` answers `verified` / `unsigned` / `invalid`; the reader shows a lock only
+  for a verified signature and **withholds the body** for an invalid one.
+
+**Proven where a person would see it:** a signed message from an account whose key the test
+controls, opened as QA in a real browser — body rendered, lock present
+(`aria-label="Signed by the sender and verified"`), no refusal card, no console errors.
+
+**Two bugs the tests caught before production:** parsed headers are objects (`{name, email}`),
+so `String(from)` produced `[object Object]` and every verification would have silently
+reported "unsigned"; and the public-keys lookup had to accept both a keyed map and a list.
+
+**Publish-on-login verified itself:** `tibs` has a published signing key in
+`data/sigkeys.json`, created by a real sign-in through the login path — the one thing the
+automated tests could not drive without typing a password.
 
 **A wart found while building this, worth keeping in mind.** `/email/list` returns uids as
 u128 **JSON numbers**, so `JSON.parse` turns `1.4786006677720391e+38` into a float and the low
