@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react'
 import {
   Inbox,
   Star,
+  Clock,
   SendHorizontal,
   FileEdit,
   MoreVertical,
@@ -22,6 +23,9 @@ import {
 const DEFAULT_FOLDERS = [
   { id: 'inbox', icon: Inbox, label: 'Inbox' },
   { id: 'starred', icon: Star, label: 'Starred' },
+  // Snoozed sits beside Starred: both are a view over the inbox, not a place
+  // mail is filed into.
+  { id: 'snoozed', icon: Clock, label: 'Snoozed' },
   { id: 'sent', icon: SendHorizontal, label: 'Sent' },
   { id: 'drafts', icon: FileEdit, label: 'Drafts' },
   { id: 'trash', icon: Trash2, label: 'Trash' },
@@ -52,6 +56,7 @@ const Sidebar = ({
   sentCount = 0,
   draftsCount = 0,
   trashCount = 0,
+  snoozeCount = 0,
   onCompose,
   onOpenSettings,
 }) => {
@@ -87,6 +92,7 @@ const Sidebar = ({
     if (id === 'starred') return starredCount
     if (id === 'sent') return sentCount
     if (id === 'drafts') return draftsCount
+    if (id === 'snoozed') return snoozeCount
     if (id === 'trash') return trashCount
     return 0
   }

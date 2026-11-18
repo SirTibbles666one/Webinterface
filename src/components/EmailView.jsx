@@ -30,6 +30,8 @@ import {
   Flame,
   Undo2,
   Filter,
+  Clock,
+  AlarmClockOff,
 } from 'lucide-react'
 import api from '@/api'
 import { storage } from '@/storage'
@@ -78,6 +80,11 @@ const EmailView = ({
   onFileSender = null,
   onDeleteFromSender = null,
   countFromSender = null,
+  // Putting a message away until a time you chose, and the way back before then.
+  onSnooze = null,
+  onWake = null,
+  snoozedUntil = null,
+  snoozeOptions = [],
 }) => {
   const [email, setEmail] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -316,6 +323,31 @@ const EmailView = ({
                     </DropdownMenuSubContent>
                   </DropdownMenuPortal>
                 </DropdownMenuSub>
+              )}
+              {onSnooze && (
+                <>
+                  <DropdownMenuSeparator />
+                  {snoozedUntil ? (
+                    <DropdownMenuItem onClick={() => onWake(uid)}>
+                      <AlarmClockOff className="size-4" /> Bring back now
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <Clock className="size-4" /> Snooze until…
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuPortal>
+                        <DropdownMenuSubContent>
+                          {snoozeOptions.map((option) => (
+                            <DropdownMenuItem key={option.key} onClick={() => onSnooze(uid, option.until)}>
+                              {option.label}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuPortal>
+                    </DropdownMenuSub>
+                  )}
+                </>
               )}
               {senderAddress && onDeleteFromSender && fromSenderCount > 1 && (
                 <>
