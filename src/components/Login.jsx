@@ -14,6 +14,7 @@ import { keySession } from '@/keySession'
 import { Mail } from 'lucide-react'
 import SlothMark from '@/components/SlothMark'
 import { cryptoUnavailableMessage } from '@/lib/cryptoFailure'
+import { publishSigningKeyAfterUnlock } from '@/lib/sigKey'
 
 const Login = () => {
   const [phase, setPhase] = useState('login')
@@ -121,6 +122,16 @@ const Login = () => {
             // Same password, same salt: the post-quantum secret unlocks with the
             // account key it sits beside. Accounts without one simply skip this.
             await loadPostQuantumKey(passwordUsed, salt)
+            // A signing key lets recipients prove who sealed a message. Failure here
+            // must never cost anyone their mailbox, so it reports and carries on.
+            const sig = await publishSigningKeyAfterUnlock({
+              password: passwordUsed,
+              serverSalt: salt,
+              publish: (sigKeyB64) => api.post('/user/sigkey', { sig_key: sigKeyB64 }, {
+                headers: { Authorization: `Bearer ${token}` },
+              }),
+            })
+            if (!sig.ok) console.warn('[Login] signing key unavailable:', sig.reason)
             console.log('[Login] ✅ Private key decrypted and loaded into session')
           } catch (keyErr) {
             console.error('[Login] ❌ Failed to decrypt private key:', keyErr)

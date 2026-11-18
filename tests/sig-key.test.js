@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { generateSigKeyPair, signBytes, verifyBytes, ensureSigningKey, sessionSigningKey } from '@/lib/sigKey'
+import {
+  generateSigKeyPair, signBytes, verifyBytes, ensureSigningKey, sessionSigningKey,
+  publishSigningKeyAfterUnlock,
+} from '@/lib/sigKey'
 import { wrapSecretBytes, unwrapSecretBytes } from '@/crypto'
 
 // These tests exercise the real ML-DSA-65 implementation, not a stand-in: the signing key
@@ -89,5 +92,34 @@ describe('signing key lifecycle', () => {
     // Nothing half-saved: no wrapped key without a published half, and vice versa.
     expect(storage.getItem('openneutron.sig_key_public')).toBeNull()
     expect(storage.getItem('openneutron.sig_key_wrapped')).toBeNull()
+  })
+})
+
+describe('publishing must never cost someone their mailbox', () => {
+  const fake = () => {
+    const map = new Map()
+    return { getItem: (k) => (map.has(k) ? map.get(k) : null), setItem: (k, v) => map.set(k, String(v)), removeItem: (k) => map.delete(k) }
+  }
+
+  it('reports a failed publish instead of throwing into the unlock flow', async () => {
+    const result = await publishSigningKeyAfterUnlock({
+      password: PASSWORD,
+      serverSalt: SALT,
+      publish: async () => { throw new Error('server said no') },
+      storage: fake(),
+      session: fake(),
+    })
+    expect(result).toEqual({ ok: false, reason: 'server said no' })
+  })
+
+  it('reports success when the publish lands', async () => {
+    const result = await publishSigningKeyAfterUnlock({
+      password: PASSWORD,
+      serverSalt: SALT,
+      publish: async () => {},
+      storage: fake(),
+      session: fake(),
+    })
+    expect(result.ok).toBe(true)
   })
 })

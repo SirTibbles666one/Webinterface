@@ -69,6 +69,22 @@ export function sessionSigningKey(session = globalThis.sessionStorage) {
   return raw ? fromB64(raw) : null
 }
 
+/**
+ * Publish the signing key after an unlock, and never let that block the unlock.
+ *
+ * Called from both unlock paths. A signing key is worth having, but a mailbox that will
+ * not open because key generation failed is worse than an unsigned one — so this reports
+ * the failure through its return value and swallows nothing else.
+ */
+export async function publishSigningKeyAfterUnlock({ password, serverSalt, publish, storage, session }) {
+  try {
+    await ensureSigningKey({ password, serverSalt, publish, storage, session })
+    return { ok: true }
+  } catch (error) {
+    return { ok: false, reason: error?.message || 'signing key unavailable' }
+  }
+}
+
 export function clearSigningKey(session = globalThis.sessionStorage) {
   session.removeItem(SESSION_KEY)
 }

@@ -186,6 +186,24 @@ export const userGetKey = async () => {
   return response.data
 }
 
+// Publish the account's ML-DSA-65 verifying key. The server logs the hash into key
+// transparency before storing the key, so a recipient can tie the two together.
+export const userPublishSigKey = async (sigKey) => {
+  const token = storage.getToken()
+  const response = await api.post('/user/sigkey', { sig_key: sigKey }, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return response.data
+}
+
+export const userSigKey = async () => {
+  const token = storage.getToken()
+  const response = await api.get('/user/sigkey', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return response.data
+}
+
 export const userSetCredentials = async (passwordHash, publicKey, encryptedPrivateKey) => {
   const token = storage.getToken()
   const response = await api.post('/user/credentials', {
