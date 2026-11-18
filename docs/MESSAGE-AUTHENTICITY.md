@@ -286,8 +286,15 @@ being precise about it because "zero-knowledge" invites the assumption that ever
   sender what is waiting. It now posts `subject_enc` — the subject sealed to the sender's own
   public key — and the server stores and returns an opaque blob. `ScheduledPanel` decrypts it.
   A row written before this change still carries a plaintext `subject` and still renders.
-- **Sealed notes** (`/note/create`) still post their subject in clear. That is the remaining
-  exception; it needs the same treatment, and it touches the note list the same way.
+- **Sealed notes** (`/note/create`) post their subject in clear, and this one is not a leak to fix
+  but a property to be honest about. The same string is the `Subject:` of the notification email
+  the client sends to the recipient (`useSendEmail.js` builds it), so it reaches the recipient's
+  mailbox in plaintext regardless of what the note record stores. Sealing the record alone would
+  be theatre: the copy in the email is the one that leaks. Making a note's subject genuinely
+  private means the notification has to stop carrying it — "A sealed note is waiting" with no
+  subject — which is a product decision about a feature whose purpose is to send a link by email.
+  Until that decision is taken, the note subject is metadata, not ciphertext, and the claim page
+  showing it to anyone holding the link is the same fact stated once more.
 
 The rule to hold: the server may store what it must hand back, but it should not be able to read
 it. A subject is not needed for delivery — the MIME already has one — so anything the server keeps
