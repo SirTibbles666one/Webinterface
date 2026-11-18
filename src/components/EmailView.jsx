@@ -265,9 +265,15 @@ const EmailView = ({
       } catch (err) {
         console.error('[EmailView] Failed to load/decrypt email uid=%s:', uid, err)
         setEmail(null)
-        setError(err?.response?.data?.code === 'email_not_found'
-          ? 'This message no longer exists. If it was a disappearing message, it was deleted after it was read.'
-          : userFacingError(err, { fallback: 'This message could not be opened. Try again in a moment.' }))
+        setError(
+          err?.response?.data?.code === 'email_not_found'
+            ? 'This message no longer exists. If it was a disappearing message, it was deleted after it was read.'
+            : err?.code === 'pq_key_missing'
+              // Name it: the mailbox is open, but the half of the key this message needs is not
+              // in the session, and "could not be opened" gives nobody anything to do.
+              ? 'This message is sealed with the post-quantum half of your key, which this session does not have. Unlock the mailbox again to read it.'
+              : userFacingError(err, { fallback: 'This message could not be opened. Try again in a moment.' }),
+        )
       } finally {
         setLoading(false)
       }

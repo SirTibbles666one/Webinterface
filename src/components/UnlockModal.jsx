@@ -7,6 +7,7 @@ import { decryptPrivateKey } from '@/crypto'
 import { keySession } from '@/keySession'
 import { storage } from '@/storage'
 import { ensureStoredKey } from '@/lib/keyRecovery'
+import { loadPostQuantumKey } from '@/lib/pqSetup'
 
 /**
  * Shown when the tab was reloaded (or reopened) and the private key is no longer
@@ -32,6 +33,12 @@ export function UnlockModal({ isOpen, onUnlocked, onDismiss = null }) {
       }
       const key = await decryptPrivateKey(encrypted, password, salt)
       await keySession.set(key)
+      // The other half of the hybrid envelope. Sign-in loads it; unlocking did not — so on a
+      // post-quantum account every message sealed since PQ was switched on failed with
+      // `pq_key_missing`, and the list read "(encrypted)" while the mailbox was unlocked.
+      // Silent by design: an account without one is normal, and a failure here must not
+      // block a mailbox that is otherwise open.
+      await loadPostQuantumKey(password, salt)
       setPassword('')
       onUnlocked()
     } catch {

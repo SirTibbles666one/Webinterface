@@ -179,9 +179,9 @@ export function EmailListItem({
               and on desktop it is the one that costs nothing. */}
           <span
             className={`truncate text-[13.5px] ${unreadWeight} ${undecryptable ? 'text-sand' : 'text-ink-1'}`}
-            title={undecryptable ? 'Encrypted message' : senderLabel}
+            title={undecryptable ? (preview?.keyMissing ? 'Unlock to read this message' : 'Encrypted message') : senderLabel}
           >
-            {undecryptable ? 'Encrypted message' : senderLabel}
+            {undecryptable ? (preview?.keyMissing ? 'Locked — unlock to read' : 'Encrypted message') : senderLabel}
           </span>
         </div>
 

@@ -62,7 +62,18 @@ export function useSentEmails(setPreviews) {
             }
           } catch (err) {
             console.error('[useSentEmails] Failed to decrypt uid=%s:', uid, err)
-            newPreviews[uid] = { subject: '(encrypted)', from: null, date: received_at ? new Date(received_at) : null, preview: '', attachments: [], decryptFailed: true }
+            // "(encrypted)" reads as "your mailbox is locked" whatever the real cause. A missing
+          // post-quantum key is a different sentence and a different fix, so keep the code.
+          const code = err?.code || ''
+          newPreviews[uid] = {
+            subject: code === 'pq_key_missing' ? '(unlock to read)' : '(encrypted)',
+            from: null,
+            date: received_at ? new Date(received_at) : null,
+            preview: '',
+            attachments: [],
+            decryptFailed: true,
+            keyMissing: code === 'pq_key_missing',
+          }
           }
         }),
       )
