@@ -313,6 +313,10 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
   // The server refuses to suspend the caller, so the button is disabled for
   // the signed-in admin instead of round-tripping into a 409.
   const [suspendTarget, setSuspendTarget] = useState(null)
+  // The signed-in operator's own row: the only one whose second factor the panel can warn about.
+  const me = users.find((u) => u.username === storage.getUsername()) || null
+  const canModerate = Boolean(me && (me.role === 'admin' || me.role === 'staff'))
+
   const [suspendReason, setSuspendReason] = useState('')
   const [suspendHours, setSuspendHours] = useState(0)
 
@@ -477,6 +481,13 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
         )}
 
         {/* ── People ─────────────────────────────────────────────────────── */}
+        {tab === 'people' && canModerate && me && me.mfa_enrolled === false && (
+          <div className="border-b border-sand/40 bg-sand/10 px-4 py-3 text-[12.5px] text-ink-1" role="status">
+            <strong className="font-medium">This account can moderate without a second factor.</strong>{' '}
+            Add one in Settings → Security. The server can require it for staff and admins, and
+            it will then refuse these actions until you have.
+          </div>
+        )}
         {tab === 'people' && (
           <Panel
             title="Mailboxes"
