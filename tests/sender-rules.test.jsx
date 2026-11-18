@@ -40,7 +40,14 @@ describe('saving sender rules', () => {
     post.mockResolvedValue({ data: { uid: GROUP, title: 'Alerts', email_uids: [], filter_addresses: ['root@slothlee.xyz'] } })
     const { result } = renderHook(() => useGroups([{ uid: GROUP, title: 'Alerts', email_uids: [], filter_addresses: [] }]))
     await act(async () => { await result.current.setSenderRules(GROUP, ['Root <root@slothlee.xyz>']) })
-    expect(post).toHaveBeenCalledWith('/group/update', `{"uid":"${GROUP}","filter_addresses":["root@slothlee.xyz"]}`, expect.anything())
+    // The body now carries subject rules too (empty here), because the server distinguishes
+    // "absent" from "cleared" — omitting the field would make removing subject rules
+    // impossible from the UI.
+    expect(post).toHaveBeenCalledWith(
+      '/group/update',
+      `{"uid":"${GROUP}","filter_addresses":["root@slothlee.xyz"],"filter_subjects":[]}`,
+      expect.anything(),
+    )
     expect(result.current.groups[0].filter_addresses).toEqual(['root@slothlee.xyz'])
   })
 
@@ -73,7 +80,7 @@ describe('the rules screen', () => {
     fireEvent.change(box, { target: { value: 'root@slothlee.xyz\nDNS Watch <dns-watch@slothlee.xyz>\nnonsense' } })
     expect(screen.getByRole('status').textContent).toMatch(/nonsense/)
     fireEvent.click(screen.getByRole('button', { name: 'Save 2 rules' }))
-    expect(onSave).toHaveBeenCalledWith(['root@slothlee.xyz', 'dns-watch@slothlee.xyz'])
+    expect(onSave).toHaveBeenCalledWith(['root@slothlee.xyz', 'dns-watch@slothlee.xyz'], [])
   })
 })
 

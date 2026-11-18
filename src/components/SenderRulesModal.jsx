@@ -19,6 +19,8 @@ export function SenderRulesModal({ isOpen, group, onSave, onClose }) {
 
 function RulesForm({ group, onSave, onClose }) {
   const [text, setText] = useState(() => (group?.filter_addresses ?? []).join('\n'))
+  const [subjects, setSubjects] = useState(() => (group?.filter_subjects ?? []).join('\n'))
+  const subjectLines = subjects.split(/[\n]+/).map((l) => l.trim()).filter(Boolean)
 
   const lines = text.split(/[\n,;]+/).map((line) => line.trim()).filter(Boolean)
   const addresses = cleanAddresses(lines)
@@ -41,6 +43,22 @@ function RulesForm({ group, onSave, onClose }) {
           placeholder={'alerts@example.com\nnewsletter@example.org'}
           className="w-full resize-y rounded-md border border-border bg-input px-3 py-2 font-mono text-[13px] text-foreground outline-none focus:ring-2 focus:ring-ring/50 placeholder:text-muted-foreground/60"
         />
+        <label className="mt-3 block text-[13px] text-ink-2" htmlFor="subject-rules">
+          Subject contains
+        </label>
+        <textarea
+          id="subject-rules"
+          aria-label="Subject rules, one phrase per line"
+          value={subjects}
+          onChange={(e) => setSubjects(e.target.value)}
+          rows={3}
+          placeholder={'stack check failed\ninvoice'}
+          className="mt-1 w-full resize-y rounded-md border border-border bg-input px-3 py-2 font-mono text-[13px] text-foreground outline-none focus:ring-2 focus:ring-ring/50 placeholder:text-muted-foreground/60"
+        />
+        <p className="text-[12px] leading-relaxed text-ink-3">
+          Matched when the message arrives, so it applies from now on — the server cannot read
+          mail it has already stored, so nothing older moves. "Re:" and "Fwd:" are ignored.
+        </p>
         {rejected.length > 0 && (
           <p className="text-[12px] text-sand" role="status">
             Not an address, so it will be left out: {rejected.slice(0, 3).join(', ')}{rejected.length > 3 ? '…' : ''}
@@ -49,8 +67,10 @@ function RulesForm({ group, onSave, onClose }) {
       </ModalContent>
       <ModalFooter>
         <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <Button onClick={() => onSave(addresses)}>
-          {addresses.length ? `Save ${addresses.length} rule${addresses.length === 1 ? '' : 's'}` : 'Remove all rules'}
+        <Button onClick={() => onSave(addresses, subjectLines)}>
+          {addresses.length + subjectLines.length
+            ? `Save ${addresses.length + subjectLines.length} rule${addresses.length + subjectLines.length === 1 ? '' : 's'}`
+            : 'Remove all rules'}
         </Button>
       </ModalFooter>
     </>

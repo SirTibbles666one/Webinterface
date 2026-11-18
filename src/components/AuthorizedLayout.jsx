@@ -312,16 +312,23 @@ const AuthorizedLayout = () => {
     toast(`Mail from ${address} now goes to ${group.title} as it arrives.${filed ? ` ${filed} already here filed too.` : ''}${missed ? ` ${missed} could not be filed.` : ''}`)
   }
 
-  const saveSenderRules = async (addresses) => {
+  const saveSenderRules = async (addresses, subjects = []) => {
     const group = groups.find((g) => g.uid === modalState.groupUid)
     setModalState({ type: null })
     if (!group) return
     const before = new Set(group.filter_addresses ?? [])
-    const updated = await setSenderRules(group.uid, addresses)
+    const updated = await setSenderRules(group.uid, addresses, subjects)
     if (!updated) return
     const added = (updated.filter_addresses ?? []).filter((address) => !before.has(address))
     const { filed } = added.length ? await fileExisting({ ...group, ...updated }, added) : { filed: 0 }
-    toast(`${group.title}: ${updated.filter_addresses?.length ? `${updated.filter_addresses.length} sender rule${updated.filter_addresses.length === 1 ? '' : 's'} saved` : 'sender rules removed'}.${filed ? ` ${filed} message${filed === 1 ? '' : 's'} already here filed.` : ''}`)
+    const subjectCount = updated.filter_subjects?.length ?? 0
+    const addressCount = updated.filter_addresses?.length ?? 0
+    const total = addressCount + subjectCount
+    toast(
+      `${group.title}: ${total ? `${total} rule${total === 1 ? '' : 's'} saved` : 'rules removed'}.` +
+        `${filed ? ` ${filed} message${filed === 1 ? '' : 's'} already here filed.` : ''}` +
+        `${subjectCount ? ' Subject rules apply to new mail only.' : ''}`,
+    )
   }
 
   const draftPreviews = useMemo(() => {

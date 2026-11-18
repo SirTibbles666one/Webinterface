@@ -57,10 +57,17 @@ export function useGroupActions({ setGroups, setSelectedFolder, setModalState })
    * Replace a group's sender rules: mail from these addresses is filed into the group as it
    * arrives. Returns the updated group, or null when the server refused.
    */
-  const setSenderRules = async (uid, addresses) => {
+  const setSenderRules = async (uid, addresses, subjects = []) => {
     const clean = cleanAddresses(addresses)
+    const cleanSubjects = subjects.map((s) => s.trim()).filter(Boolean)
     try {
-      const res = await api.post('/group/update', `{"uid":"${uid}","filter_addresses":${JSON.stringify(clean)}}`, auth())
+      // `filter_subjects` is absent-tolerant on the server: omitting it leaves the saved
+      // rules alone, so an old bundle cannot wipe rules it does not know about.
+      const res = await api.post(
+        '/group/update',
+        `{"uid":"${uid}","filter_addresses":${JSON.stringify(clean)},"filter_subjects":${JSON.stringify(cleanSubjects)}}`,
+        auth(),
+      )
       setGroups((prev) => prev.map((g) => (g.uid === uid ? res.data : g)))
       return res.data
     } catch {
