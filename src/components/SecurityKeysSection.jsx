@@ -191,7 +191,7 @@ export default function SecurityKeysSection() {
           <p className="text-[12.5px] leading-relaxed text-ink-2">
             {codeRequired && !confirmedWithKey
               ? 'Confirm it is you: touch a key you already have, or enter a code from your authenticator app.'
-              : 'Have the key ready — the browser will ask you to touch it in a moment.'}
+              : 'Have the key ready. The browser will ask for it: on a phone, hold it against the back of the device; on a computer, plug it in and press its button.'}
           </p>
           {codeRequired && !confirmedWithKey && (
             <button
