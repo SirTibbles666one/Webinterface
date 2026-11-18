@@ -442,3 +442,10 @@
   border-radius: 0 0.375rem 0.375rem 0;
 }
 .ProseMirror blockquote p { margin: 0.25rem 0; }
+
+
+/* A conversation card already says who sent the message and when, and offers no per-message
+   action bar: the reader inside it is the body. */
+.thread-card [data-view-chrome] {
+  display: none !important;
+}

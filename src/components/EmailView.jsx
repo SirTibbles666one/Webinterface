@@ -286,7 +286,7 @@ const EmailView = ({
     >
       {/* The bar carries actions only. What the message is, and who sent it,
           belongs in the reading column below, where the eye already is. */}
-      <div className="flex h-14 shrink-0 items-center gap-1 border-b border-line px-3 max-sm:h-12 max-sm:px-2">
+      <div data-view-chrome="bar" className="flex h-14 shrink-0 items-center gap-1 border-b border-line px-3 max-sm:h-12 max-sm:px-2">
         {/* Hidden only where the pane sits beside the list and the list is still reachable.
             It was `md:hidden`, so a 768px tablet got a full-screen reader with no way out. */}
         {onBack && !inline && (
@@ -515,7 +515,7 @@ const EmailView = ({
               )}
             </h1>
 
-            <div className="mt-5 flex items-start gap-3 max-sm:mt-2">
+            <div data-view-chrome="sender" className="mt-5 flex items-start gap-3 max-sm:mt-2">
               <SenderAvatar from={email.from} variant="view" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-3">
@@ -684,7 +684,7 @@ const EmailView = ({
           and it lifts above the iPhone home indicator. "Reply" carries the word as well
           as the arrow: an arrow alone next to a back arrow is a guess. */}
       {email && (
-        <div className={`shrink-0 border-t border-line bg-background/95 px-3 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] ${
+        <div data-view-chrome="actions" className={`shrink-0 border-t border-line bg-background/95 px-3 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] ${
             inline
               // Inline is inside a scrolling list, so a bar at the bottom of the block
               // scrolls away with it. Sticky depended on its block being in view and still

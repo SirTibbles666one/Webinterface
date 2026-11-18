@@ -73,7 +73,7 @@ export function ThreadView({ cards, label, count, onBack, renderMessage }) {
                   </span>
                 </button>
                 {isOpen && (
-                  <div className="border-t border-line">
+                  <div className="thread-card border-t border-line">
                     {renderMessage(card.uid)}
                   </div>
                 )}

@@ -1197,7 +1197,7 @@ const AuthorizedLayout = () => {
           the right, and the drawer's only other job — switching folder — on the left,
           where a thumb can reach it. Hidden while composing or reading, because both
           take the bottom of the screen for themselves. */}
-      {!composeOpen && !selectedUid && (
+      {!composeOpen && !selectedUid && !openThread && (
         <nav
           aria-label="Mail actions"
           data-testid="phone-bar"
