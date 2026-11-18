@@ -1116,7 +1116,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                     )}
                   </button>
                   {whenOpen && (
-                    <div className="absolute bottom-full right-0 z-20 mb-2 w-64 rounded-lg border border-border bg-popover p-2 shadow-lg">
+                    <div className="absolute bottom-full right-0 z-20 mb-2 w-64 rounded-lg border border-border bg-popover p-2 shadow-lg max-sm:fixed max-sm:inset-x-2 max-sm:bottom-[5.5rem] max-sm:mb-0 max-sm:w-auto">
                       <p className="px-1 pb-1 text-[11px] text-foreground/55">Deletes</p>
                       <select
                         value={vanish}
