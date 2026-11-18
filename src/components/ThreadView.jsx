@@ -60,10 +60,7 @@ export function ThreadView({ cards, label, count, onBack, renderMessage, message
                     onClick={() => toggle(card.uid)}
                     aria-expanded={isOpen}
                     className="flex min-w-0 flex-1 items-center gap-2 text-left transition-colors duration-120 active:bg-accent/60"
-                  > toggle(card.uid)}
-                  aria-expanded={isOpen}
-                  className="flex min-h-12 w-full items-center gap-2 px-3 py-3 text-left transition-colors duration-120 active:bg-accent/60"
-                >
+                  >
                   <span
                     className={`truncate text-[13.5px] ${card.unread ? 'font-semibold text-ink-1' : 'text-ink-2'}`}
                     title={card.sender}
