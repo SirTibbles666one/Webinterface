@@ -13,7 +13,7 @@ const ContextMenuSubTrigger = React.forwardRef(({ className, inset, children, ..
   <ContextMenu.SubTrigger
     ref={ref}
     className={cn(
-      "flex cursor-default select-none items-center gap-2 rounded-sm px-2.5 py-1.5 text-xs outline-none transition-colors focus:bg-accent focus:text-foreground data-[state=open]:bg-accent data-[state=open]:text-foreground",
+      "flex cursor-pointer select-none items-center gap-2 rounded-sm px-2.5 py-1.5 text-sm outline-none transition-colors data-[highlighted]:bg-accent data-[highlighted]:text-foreground focus:bg-accent focus:text-foreground data-[state=open]:bg-accent data-[state=open]:text-foreground",
       inset && "pl-8",
       className
     )}
@@ -29,7 +29,7 @@ const ContextMenuSubContent = React.forwardRef(({ className, ...props }, ref) =>
   <ContextMenu.SubContent
     ref={ref}
     className={cn(
-      "z-50 min-w-[10rem] overflow-hidden rounded-lg border border-line bg-popover backdrop-blur-xl p-1 shadow-2xl text-foreground",
+      "z-50 min-w-[10rem] overflow-hidden rounded-md border border-line bg-popover backdrop-blur-xl p-1 shadow-2xl text-foreground",
       className
     )}
     {...props}
@@ -42,7 +42,7 @@ const ContextMenuContent = React.forwardRef(({ className, ...props }, ref) => (
     <ContextMenu.Content
       ref={ref}
       className={cn(
-        "z-50 min-w-[11rem] overflow-hidden rounded-lg border border-line bg-popover backdrop-blur-xl p-1 shadow-2xl text-foreground",
+        "z-50 min-w-[12rem] overflow-hidden rounded-md border border-line bg-popover backdrop-blur-xl p-1 shadow-2xl text-foreground",
         className
       )}
       {...props}
@@ -55,7 +55,7 @@ const ContextMenuItem = React.forwardRef(({ className, inset, destructive, ...pr
   <ContextMenu.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center gap-2 rounded-sm px-2.5 py-1.5 text-xs outline-none transition-colors focus:bg-accent focus:text-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-40",
+      "relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2.5 py-1.5 text-sm outline-none transition-colors data-[highlighted]:bg-accent data-[highlighted]:text-foreground focus:bg-accent focus:text-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-40",
       inset && "pl-8",
       destructive
         ? "text-danger focus:bg-danger-surface focus:text-danger-ink"
@@ -70,7 +70,7 @@ ContextMenuItem.displayName = "ContextMenuItem"
 const ContextMenuSeparator = React.forwardRef(({ className, ...props }, ref) => (
   <ContextMenu.Separator
     ref={ref}
-    className={cn("-mx-1 my-1 h-px bg-line", className)}
+    className={cn("-mx-1 my-1 h-px bg-accent", className)}
     {...props}
   />
 ))
