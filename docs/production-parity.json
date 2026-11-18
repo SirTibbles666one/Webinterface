@@ -88,11 +88,12 @@
       ]
     },
     {
-      "id": "inline-reading",
-      "why": "On a phone a message opens in place under its row, and the list stays; the block announces itself.",
+      "id": "fullscreen-reading",
+      "why": "On a phone an opened message takes the whole screen, with its own back control and the action bar pinned to the bottom. It replaces inline reading, which left the list visible above and below and clipped the body to roughly 250px \u2014 the owner reported mail cut off mid-sentence.",
       "must": [
-        "Opened message"
-      ]
+        "Back to inbox"
+      ],
+      "replaces": "inline-reading"
     }
   ]
 }
