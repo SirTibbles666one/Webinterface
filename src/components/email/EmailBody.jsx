@@ -544,7 +544,9 @@ export function EmailBody({ textBody, htmlBody, senderHint }) {
           )
         }
         return (
-          <pre key={i} className="whitespace-pre-wrap break-words font-sans text-sm/relaxed">
+          {/* Mail is prose, and 14px is a desktop size. A phone gets 15.5px with the same
+              line height ratio; the desktop column is unchanged. */}
+          <pre key={i} className="whitespace-pre-wrap break-words font-sans text-[15.5px] leading-[1.65] sm:text-sm/relaxed">
             <TextWithLinks text={block.content} />
           </pre>
         )
