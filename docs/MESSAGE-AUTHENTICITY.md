@@ -205,9 +205,27 @@ deploy; the publish endpoint was exercised live earlier (200, leaf carries `sig`
 real password typed into the sign-in form, which this environment must not do. It will
 exercise itself on the next real sign-in, and the API half is already proven.
 
+**End-to-end proof (LIVE_SIG=1, run 2026-11-18).** A throwaway account whose keys the test
+controls: sealed and signed with the app's own crypto, sent through the live API, read back,
+and verified by the reader's own function.
+
+| step | result |
+|---|---|
+| publish signing key | accepted, KT leaf carries `sig` |
+| message as sent | **`verified`**; body decrypts underneath the envelope |
+| one flipped ciphertext byte | **`invalid`** |
+| sender swapped to another address | **`invalid`** |
+
 **Still to build:** sign in `useSendEmail` (pack `SLW2` around the payload), verify in the
 reader against the sender's published key and its KT leaf, and the three reader states with
 the body withheld on `invalid`.
+
+**A wart found while building this, worth keeping in mind.** `/email/list` returns uids as
+u128 **JSON numbers**, so `JSON.parse` turns `1.4786006677720391e+38` into a float and the low
+digits are destroyed. The client survives because `api.js` quotes every 16+ digit run before
+parsing — the crude regex the audit flagged as P2. It is not cosmetic: removing it would make
+message ids unaddressable. The proper fix is emitting uids as strings, which is a server
+change with a client migration.
 
 ---
 
