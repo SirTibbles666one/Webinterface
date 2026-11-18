@@ -189,6 +189,15 @@ export const adminDenyPending = async (username) => {
  * What administrators have done. Admin-only on the server, and reading it is itself recorded
  * — which is why this is a POST: it is an action, not a page fetch.
  */
+/** One answer to "is mail working": filter activity, junk totals, queue depth. */
+export const adminMailHealth = async () => {
+  const token = storage.getToken()
+  const response = await api.post('/admin/mail-health', {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return response.data
+}
+
 export const adminListAudit = async ({ offset = 0, limit = 50, target = '' } = {}) => {
   const token = storage.getToken()
   const response = await api.post(

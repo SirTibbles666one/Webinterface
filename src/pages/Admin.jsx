@@ -13,7 +13,7 @@ import {
   adminGetUsers, adminCreateUser, adminDeleteUser, adminSetAdminStatus, adminSetSuspended,
   adminGetWaitlist, adminApproveWaitlist, adminGetPending, adminApprovePending,
   adminDenyPending, adminSetRecoveryAddress, adminSendRecovery,
-  adminGetRecipients, adminGetDiskUsage, adminListAudit,
+  adminGetRecipients, adminGetDiskUsage, adminListAudit, adminMailHealth,
 } from '@/api'
 import { storage } from '@/storage'
 
@@ -94,6 +94,7 @@ function Admin() {
   // null = not read yet; { records, total, chain } once the server answers.
   const [audit, setAudit] = useState(null)
   const [auditLoading, setAuditLoading] = useState(false)
+  const [health, setHealth] = useState(null)
 
   const [busy, setBusy] = useState('')
   const [copied, setCopied] = useState('')
@@ -149,6 +150,15 @@ function Admin() {
     }
   }, [])
 
+  const fetchHealth = useCallback(async () => {
+    try {
+      setHealth(await adminMailHealth())
+    } catch {
+      // Leave it null: the card renders "could not be read" rather than zeros.
+      setHealth(null)
+    }
+  }, [])
+
   const fetchAudit = useCallback(async () => {
     setAuditLoading(true)
     try {
@@ -168,6 +178,10 @@ function Admin() {
   }, [tab, audit, fetchAudit])
 
   useEffect(() => {
+    if (tab === 'deliverability' && health === null) fetchHealth()
+  }, [tab, health, fetchHealth])
+
+  useEffect(() => {
     if (!storage.getIsAdmin()) {
       navigate('/')
       return
@@ -183,6 +197,7 @@ function Admin() {
     if (which === 'activity') fetchAudit()
     if (which === 'people') fetchUsers()
     if (which === 'access') { fetchPending(); fetchInvites() }
+    if (which === 'deliverability') fetchHealth()
     if (which === 'deliverability' || which === 'system') fetchDelivery()
   }
 
@@ -745,6 +760,78 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
         )}
 
         {/* ── Deliverability ─────────────────────────────────────────────── */}
+        {tab === 'deliverability' && (
+          <Panel
+            title="Mail health"
+            note="What the filter is doing and what is stuck. Every figure carries the moment it was measured; a card without a timestamp is a rumour."
+          >
+            {!health ? (
+              <Empty>Mail health could not be read just now.</Empty>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-2 border-b border-line px-4 py-3 sm:grid-cols-4">
+                  {health.rspamd ? (
+                    <>
+                      <div>
+                        <p className="label">Scanned</p>
+                        <p className="mono mt-1 text-[15px] text-ink-1">{health.rspamd.scanned}</p>
+                      </div>
+                      <div>
+                        <p className="label">Rejected</p>
+                        <p className="mono mt-1 text-[15px] text-ink-1">{health.rspamd.rejected}</p>
+                      </div>
+                      <div>
+                        <p className="label">Tagged</p>
+                        <p className="mono mt-1 text-[15px] text-ink-1">{health.rspamd.tagged}</p>
+                      </div>
+                      <div>
+                        <p className="label">Bayes learned</p>
+                        <p className="mono mt-1 text-[15px] text-ink-1">{health.rspamd.learned}</p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="col-span-2 sm:col-span-4">
+                      {/* Unavailable, never zeros: zeros read as "nothing is wrong". */}
+                      <p className="text-[13px] text-destructive" role="alert">
+                        The filter is unavailable — {health.rspamd_error || 'no answer'}.
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2 border-b border-line px-4 py-3 sm:grid-cols-4">
+                  <div>
+                    <p className="label">Queue</p>
+                    <p className="mono mt-1 text-[15px] text-ink-1">
+                      {health.queue_available ? health.queue.depth : 'unknown'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="label">Deferred</p>
+                    <p className="mono mt-1 text-[15px] text-ink-1">
+                      {health.queue_available ? health.queue.deferred : 'unknown'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="label">In junk</p>
+                    <p className="mono mt-1 text-[15px] text-ink-1">{health.junk?.messages ?? 0}</p>
+                  </div>
+                  <div>
+                    <p className="label">Accounts with junk</p>
+                    <p className="mono mt-1 text-[15px] text-ink-1">{health.junk?.accounts ?? 0}</p>
+                  </div>
+                </div>
+                <p className="px-4 py-2 text-[11.5px] text-ink-3">
+                  as of {new Date((health.as_of ?? 0) * 1000).toLocaleString()}
+                  {health.queue_available
+                    ? ` · queue as of ${new Date((health.queue.at ?? 0) * 1000).toLocaleTimeString()}`
+                    : ' · the host has not written a queue snapshot recently'}
+                  {health.rspamd ? ` · rspamd ${health.rspamd.version}` : ''}
+                </p>
+              </>
+            )}
+          </Panel>
+        )}
+
         {tab === 'activity' && (
           <Panel
             title="Activity"
