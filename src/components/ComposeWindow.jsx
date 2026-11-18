@@ -18,6 +18,18 @@ import api from '@/api'
 import { storage } from '@/storage'
 
 /** "Tomorrow 09:00" reads better than a full date when it is close. */
+/** The same fact in the width a phone toolbar has. */
+function formatWhenShort(when) {
+  if (!when) return ''
+  const now = new Date()
+  const time = when.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  if (when.toDateString() === now.toDateString()) return time
+  const tomorrow = new Date(now)
+  tomorrow.setDate(now.getDate() + 1)
+  if (when.toDateString() === tomorrow.toDateString()) return 'tmrw'
+  return when.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+}
+
 function formatWhen(when) {
   if (!when) return ''
   const now = new Date()
@@ -717,16 +729,21 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
             )}
 
             <div className="flex flex-wrap items-center gap-2 px-3 py-1.5 border-b border-border/60 text-xs">
+              {/* A toggle whose label never changes and whose "off" state has no border reads
+                  as text, not as something you can press. Say the state. */}
               <button
                 type="button"
                 onClick={() => { setPgpOn(!pgpOn); setPgpError('') }}
-                className={`flex items-center gap-1.5 px-2 py-1 rounded transition-colors ${
-                  pgpOn ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted'
+                aria-pressed={pgpOn}
+                className={`flex items-center gap-1.5 rounded border px-2 py-1 transition-colors ${
+                  pgpOn
+                    ? 'border-primary/40 bg-primary/15 text-primary'
+                    : 'border-border text-muted-foreground hover:bg-muted'
                 }`}
-                title="Encrypt this message with OpenPGP"
+                title={pgpOn ? 'OpenPGP encryption is on — press to send as ordinary mail' : 'Encrypt this message with OpenPGP for recipients elsewhere'}
               >
                 {pgpOn ? <Lock className="w-3.5 h-3.5" /> : <LockOpen className="w-3.5 h-3.5" />}
-                OpenPGP
+                OpenPGP {pgpOn ? 'on' : 'off'}
               </button>
               {offServerRecipients.length > 0 && (
                 <button
@@ -1082,7 +1099,14 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                     }`}
                   >
                     <Clock className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-                    {sendAt && <span className="hidden sm:inline">{formatWhen(sendAt)}</span>}
+                    {/* On a phone this was icon-only, so once a message was held the one fact
+                        that matters — when it goes — was visible only on a desktop. */}
+                    {sendAt && (
+                      <span className="whitespace-nowrap">
+                        <span className="sm:hidden">{formatWhenShort(sendAt)}</span>
+                        <span className="max-sm:hidden">{formatWhen(sendAt)}</span>
+                      </span>
+                    )}
                   </button>
                   {whenOpen && (
                     <div className="absolute bottom-full right-0 mb-2 w-56 rounded-lg border border-border bg-popover p-2 shadow-lg z-20">

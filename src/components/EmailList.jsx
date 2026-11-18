@@ -109,8 +109,14 @@ const EmailList = ({
     onOrder?.(displayOrder)
   }, [displayOrder, onOrder])
 
+  // Selection on a phone has no room of its own: the checkbox column costs 44px of every
+  // row, and an empty ring beside every sender reads as an unfinished control. Hide it
+  // until something is selected — a long-press starts selection, which is Proton's shape.
+  const selectionActive = (checkedUids?.size ?? 0) > 0
+
   const rowProps = (uid) => ({
     uid,
+    selectionActive,
     compactTime: true,
     preview: previews[uid],
     untilLabel: untilLabels?.[uid] ?? null,
@@ -271,7 +277,11 @@ const EmailList = ({
                       />
                       {/* The same box, in the same column, as a single message: a conversation
                           could not be selected before, so it could not be deleted in bulk. */}
-                      <div className="flex w-4 shrink-0 items-center justify-center self-stretch max-sm:w-11">
+                      <div
+                        className={`flex w-4 shrink-0 items-center justify-center self-stretch ${
+                          selectionActive || checkedCount ? 'max-sm:w-11' : 'max-sm:hidden'
+                        }`}
+                      >
                         <button
                           type="button"
                           aria-label={allChecked

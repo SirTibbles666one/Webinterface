@@ -65,6 +65,7 @@ export function EmailListItem({
   isFresh = false,
   isStarred,
   onSelect,
+  selectionActive = false,
   onCheck,
   onMarkRead,
   onMarkUnread,
@@ -123,7 +124,11 @@ export function EmailListItem({
         }`}
       />
 
-      <div className="flex w-4 shrink-0 items-center justify-center self-stretch max-sm:w-11">
+      <div
+        className={`flex w-4 shrink-0 items-center justify-center self-stretch ${
+          selectionActive ? 'max-sm:w-11' : 'max-sm:hidden'
+        }`}
+      >
         <button
           type="button"
           aria-label={isChecked ? 'Unselect message' : 'Select message'}
