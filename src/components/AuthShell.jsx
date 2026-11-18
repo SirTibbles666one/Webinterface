@@ -68,7 +68,8 @@ export default function AuthShell({ children, aside = true }) {
             </ul>
           </div>
 
-          <p className="relative mono text-[11px] text-ink-4">slothlee.xyz</p>
+          {/* ink-3, not ink-4: measured 4.23:1 at 11px in the dark theme, under the 4.5 floor. */}
+          <p className="relative mono text-[11px] text-ink-3">slothlee.xyz</p>
         </aside>
       )}
 
