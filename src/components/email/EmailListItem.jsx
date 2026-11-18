@@ -1,4 +1,5 @@
 import { formatClock } from '@/lib/appearance'
+import { senderLabelFor } from '@/lib/senderLabel'
 import { useState } from 'react'
 import {
   DropdownMenuRoot,
@@ -85,18 +86,7 @@ export function EmailListItem({
   const undecryptable = !!preview?.decryptFailed
   const isInGroup = selectedFolder && selectedFolder !== 'inbox' && selectedFolder !== 'starred'
 
-  // A preview can carry a null name; printing it is how "null" reached a row in Drafts.
-  //
-  // This was one expression: `name || email || uid ? untilLabel ? … : preview : …`. The ternary
-  // swallowed the sender, so the cell showed the until-label or the preview text — "null" for a
-  // draft with no time. The two-line row has no preview line any more, so the sender is all this
-  // needs to be.
-  const senderLabel =
-    [preview?.from?.name, preview?.from?.email, uid]
-      .map((v) => (v == null ? '' : String(v).trim()))
-      .find((v) => v && v !== 'null' && v !== 'undefined') ||
-    // A draft with no recipient has no address to name: its id is not a name.
-    (String(uid).startsWith('draft_') ? 'Draft' : 'Unknown')
+  const senderLabel = senderLabelFor(preview, uid)
 
   const ground = isSelected
     ? 'bg-[color-mix(in_srgb,var(--color-primary)_9%,transparent)]'
