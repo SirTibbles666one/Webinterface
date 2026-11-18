@@ -851,7 +851,9 @@ const AuthorizedLayout = () => {
                     setJunkUids((prev) => prev.filter((u) => u !== reportedUid))
                     setUids((prev) => [...new Set([reportedUid, ...prev])])
                   }
-                  setSelectedUid(null)
+                  // Deliberately not closing the reader: the confirmation line lives in it,
+                  // and a report that silently vanishes the screen tells the person nothing
+                  // about whether it worked. The row is already gone from the list behind.
                 }}
                 onToggleStar={toggleStar}
                 onMarkRead={markRead}
