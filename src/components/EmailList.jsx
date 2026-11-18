@@ -236,6 +236,10 @@ const EmailList = ({
               const participants = thread.participants.slice(0, 3).join(', ')
               const checkedCount = thread.uids.filter((uid) => checkedUids?.has(uid)).length
               const allChecked = checkedCount === thread.uids.length
+              // Opening a conversation expands it in place so its messages can be chosen.
+              // It used to also open the newest message in the reader, which now takes the
+              // whole screen — so the expansion happened behind the reader and the click
+              // looked like it did nothing but hide the list.
               const toggleOpen = () => {
                 setExpandedThreads((prev) => {
                   const next = new Set(prev)
@@ -243,7 +247,6 @@ const EmailList = ({
                   else next.add(thread.key)
                   return next
                 })
-                onSelect(thread.latestUid)
               }
 
               return (
