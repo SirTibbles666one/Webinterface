@@ -18,6 +18,7 @@ import {
   FolderPlus,
   Settings,
   Trash2,
+  ShieldAlert,
 } from 'lucide-react'
 
 const DEFAULT_FOLDERS = [
