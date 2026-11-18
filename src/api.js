@@ -97,6 +97,21 @@ api.interceptors.response.use(
  * read it, so it cannot learn from what it holds. This is the one moment a message is
  * deliberately shown to the server — per message, on purpose, never automatic.
  */
+/**
+ * The Junk view. A separate read rather than a client-side filter: the server already
+ * keeps junk out of the Inbox, so asking for it is the only way to see it.
+ */
+export const listJunk = async () => {
+  const token = storage.getToken()
+  if (!token) return []
+  const res = await api.post(
+    '/email/list',
+    { junk: true, limit: 500, offset: 0 },
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+  return (res.data?.uids ?? []).map(String)
+}
+
 export const reportSpam = async (uid, verdict, raw) => {
   // Every other call here sends its own Authorization header — this one shipped without it
   // and the endpoint answered 401, which the button then showed. Never assume the axios

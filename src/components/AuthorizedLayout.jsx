@@ -22,6 +22,7 @@ import { listShortcut, neighbourAfterRemoval, stepThrough } from '@/lib/mailNav'
 import { useEmailActions } from '@/hooks/useEmailActions'
 import { useGroupActions } from '@/hooks/useGroupActions'
 import { useSnoozed, snoozeLabel, snoozePresets } from '@/hooks/useSnoozed'
+import { listJunk } from '@/api'
 import { keySession } from '@/keySession'
 import { mergeServerFlags } from '@/lib/mailboxState'
 import { storage } from '@/storage'
@@ -132,6 +133,17 @@ const AuthorizedLayout = () => {
   }, [fetchEmails, fetchSentUids, fetchSentPreviews])
   const trash = useTrash({ fetchPreviewsFor, fetchSentPreviews, setPreviews, onRestored: reloadFolders })
   const snoozed = useSnoozed({ fetchPreviewsFor })
+  // Junk is server-side: this is only the list of what the filter or its owner convicted.
+  const [junkUids, setJunkUids] = useState([])
+  const fetchJunk = useCallback(async () => {
+    try {
+      const list = await listJunk()
+      setJunkUids(list)
+      if (list.length) await fetchPreviewsFor(list).catch(() => {})
+    } catch {
+      setJunkUids([])
+    }
+  }, [fetchPreviewsFor])
   const { markRead, markUnread, toggleStar, deleteEmail, deleteMany, undoLast, moveToGroup, removeFromGroup, forget } = useEmailActions({
     emailMeta, setEmailMeta, setUids, setPreviews, setSelectedUid, setGroups, groups, setSentUids,
     onTrashed: trash.addTrashed,
@@ -188,6 +200,8 @@ const AuthorizedLayout = () => {
         await trash.fetchTrash()
       } else if (selectedFolder === 'snoozed') {
         await snoozed.fetchSnoozed()
+      } else if (selectedFolder === 'junk') {
+        await fetchJunk()
       } else {
         await reload()
         if (selectedFolder !== 'inbox' && selectedFolder !== 'starred' && selectedFolder !== 'drafts') await fetchGroups()
@@ -255,6 +269,7 @@ const AuthorizedLayout = () => {
     if (selectedFolder === 'drafts') return drafts.map((d) => d.id)
     if (selectedFolder === 'trash') return trash.items.map((item) => item.uid)
     if (selectedFolder === 'snoozed') return snoozed.items.map((item) => item.uid)
+    if (selectedFolder === 'junk') return junkUids
     const group = groups.find((g) => g.uid === selectedFolder)
     if (group) return group.email_uids.filter((uid) => uids.includes(uid) || sentUids.includes(uid))
     return uids
@@ -424,6 +439,11 @@ const AuthorizedLayout = () => {
     if (selectedFolder === 'trash') fetchTrash()
   }, [selectedFolder, fetchTrash])
 
+  // The Junk view is read when opened, and only then: nothing else shows these messages.
+  useEffect(() => {
+    if (selectedFolder === 'junk') fetchJunk()
+  }, [selectedFolder, fetchJunk])
+
   // Snoozed mail appears in no other folder, so the list is read once the account is
   // known — the bar's count needs it — and again whenever the folder is opened.
   // Nothing here filters the inbox: the server is what keeps a sleeping message out of it.
@@ -454,6 +474,7 @@ const AuthorizedLayout = () => {
     if (selectedFolder === 'drafts') return 'Drafts'
     if (selectedFolder === 'trash') return 'Trash'
     if (selectedFolder === 'snoozed') return 'Snoozed'
+    if (selectedFolder === 'junk') return 'Junk'
     return groups.find((g) => g.uid === selectedFolder)?.title ?? 'Inbox'
   })()
 
@@ -1011,6 +1032,16 @@ const AuthorizedLayout = () => {
                         Empty trash
                       </button>
                     )}
+                  </div>
+                </div>
+              )}
+              {selectedFolder === 'junk' && (
+                <div className="border-b border-line">
+                  <div className="mx-auto flex w-full max-w-[1040px] items-center gap-3 px-4 py-2 text-[12px] text-ink-2">
+                    <span className="min-w-0 flex-1">
+                      Messages you reported as spam. They are out of the Inbox, and opening one
+                      here does not bring it back — report it as not spam to do that.
+                    </span>
                   </div>
                 </div>
               )}

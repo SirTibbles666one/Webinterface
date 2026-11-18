@@ -26,6 +26,8 @@ const DEFAULT_FOLDERS = [
   // Snoozed sits beside Starred: both are a view over the inbox, not a place
   // mail is filed into.
   { id: 'snoozed', icon: Clock, label: 'Snoozed' },
+  // Junk is where a reported message goes. It is not a place mail is filed into by hand.
+  { id: 'junk', icon: ShieldAlert, label: 'Junk' },
   { id: 'sent', icon: SendHorizontal, label: 'Sent' },
   { id: 'drafts', icon: FileEdit, label: 'Drafts' },
   { id: 'trash', icon: Trash2, label: 'Trash' },

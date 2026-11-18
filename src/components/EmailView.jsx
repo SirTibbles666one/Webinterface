@@ -723,8 +723,10 @@ const EmailView = ({
                     String(email.textBody || '').slice(0, 200000),
                   ].join('\r\n')
                   try {
-                    await reportSpam(uid, 'spam', raw)
-                    setSpamReport('spam')
+                    const result = await reportSpam(uid, 'spam', raw)
+                    // The server may file the message without being able to teach the
+                    // filter (too short, already known). Say which happened.
+                    setSpamReport(result?.note || 'spam')
                     setSpamError('')
                   } catch (err) {
                     // An honest failure beats a button that lies about having taught it.
@@ -742,7 +744,7 @@ const EmailView = ({
             )}
             {spamReport && (
               <span className="px-2 text-[12.5px] text-ink-3" role="status">
-                Reported — the filter will learn from it
+                {spamReport === 'spam' ? 'Reported — the filter will learn from it' : `Moved to Junk — ${spamReport}`}
               </span>
             )}
             {spamError && !spamReport && (
