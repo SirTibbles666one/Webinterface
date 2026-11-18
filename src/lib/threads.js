@@ -117,6 +117,25 @@ export function buildThreads(messages = [], options = {}) {
     }
   })
 
+  // 3. Same sender, one conversation — whatever the subject says.
+  //    Asked for explicitly, and it fixes a real annoyance: a watchdog that names a fault
+  //    slightly differently each hour ("silent for 2666 minutes", "2606"...) was eight
+  //    conversations about one thing. Owner's choice: sender is the unit.
+  //    Off with `groupBySender: false` for callers that want subject semantics.
+  const groupBySender = options.groupBySender !== false
+  if (groupBySender) {
+    const bySender = new Map()
+    items.forEach((item, i) => {
+      if (!item.from) return
+      const bucket = bySender.get(item.from) || []
+      bucket.push(i)
+      bySender.set(item.from, bucket)
+    })
+    bySender.forEach((bucket) => {
+      for (let k = 1; k < bucket.length; k += 1) union(bucket[0], bucket[k])
+    })
+  }
+
   const groups = new Map()
   items.forEach((item, i) => {
     const root = find(i)
@@ -132,7 +151,7 @@ export function buildThreads(messages = [], options = {}) {
       // Stable across reloads: the id of the oldest message in the thread.
       key: ordered[0].messageId || `subject:${ordered[0].normalized}` || `uid:${ordered[0].uid}`,
       uids: ordered.map((m) => m.uid),
-      subject: ordered[0].subject || '(no subject)',
+      subject: (groupBySender ? latest.subject : ordered[0].subject) || '(no subject)',
       participants,
       latestUid: latest.uid,
       latestDate: latest.date,

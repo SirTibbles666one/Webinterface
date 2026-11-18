@@ -51,11 +51,19 @@ describe('buildThreads', () => {
     expect(threads[0].uids).toEqual(['a', 'b', 'c'])
   })
 
-  it('does not merge unrelated conversations that share a subject across months', () => {
+  it('one sender is one conversation, however far apart and whatever the subject', () => {
+    // The owner's choice: sender is the unit. A watchdog naming a fault slightly
+    // differently every hour is one thing happening, not eight conversations.
     const a = msg({ uid: 'a', subject: 'Invoice', date: at(0) })
-    const b = msg({ uid: 'b', subject: 'Re: Invoice', date: at(120) })
-    const threads = buildThreads([a, b])
-    expect(threads).toHaveLength(2)
+    const b = msg({ uid: 'b', subject: 'Completely different', date: at(120) })
+    expect(buildThreads([a, b])).toHaveLength(1)
+  })
+
+  it('keeps subject semantics when sender grouping is turned off', () => {
+    // The old contract is still available for anyone who wants it.
+    const a = msg({ uid: 'a', subject: 'Invoice', date: at(0) })
+    const b = msg({ uid: 'b', subject: 'Completely different', date: at(120) })
+    expect(buildThreads([a, b], { groupBySender: false })).toHaveLength(2)
   })
 
   it('does not merge the same subject from different senders', () => {
@@ -76,7 +84,7 @@ describe('buildThreads', () => {
     const old = msg({ uid: 'old', subject: 'Old', date: at(0) })
     const newA = msg({ uid: 'n1', messageId: '<9@x>', subject: 'New', date: at(10) })
     const newB = msg({ uid: 'n2', messageId: '<10@x>', references: '<9@x>', subject: 'Re: New', date: at(11) })
-    const threads = buildThreads([old, newA, newB])
+    const threads = buildThreads([old, newA, newB], { groupBySender: false })
     expect(threads).toHaveLength(2)
     expect(threads[0].latestUid).toBe('n2')
     expect(threads[1].latestUid).toBe('old')
