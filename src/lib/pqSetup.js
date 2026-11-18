@@ -52,6 +52,31 @@ export async function enablePostQuantum(password, serverSalt) {
 }
 
 /**
+ * Make sure the account has a post-quantum key, without asking.
+ *
+ * Confidentiality is hybrid only for accounts that published an ML-KEM key; everyone else
+ * gets RSA alone, which a future quantum computer could open. Having that depend on a
+ * person finding a setting is how a security claim becomes true for some users and quietly
+ * weaker for the rest — so it happens on the next unlock.
+ *
+ * Never throws: a sign-in must not fail because a key could not be generated.
+ */
+export async function ensurePostQuantumKey(password, serverSalt) {
+  try {
+    const status = await fetchPostQuantumStatus()
+    // "Could not read the status" is not "no key": publishing blind could overwrite a key
+    // the account already has, and a failed lookup is a network problem, not a setup gap.
+    if (status?.unavailable) return { ok: false, reason: 'key status unavailable' }
+    if (status?.enabled) return { ok: true, created: false }
+    if (!password || !serverSalt) return { ok: false, reason: 'no password in hand' }
+    await enablePostQuantum(password, serverSalt)
+    return { ok: true, created: true }
+  } catch (error) {
+    return { ok: false, reason: error?.message || 'post-quantum setup unavailable' }
+  }
+}
+
+/**
  * Load the wrapped secret key into this session. Silent by design: an account
  * without one is a normal state, not an error.
  */

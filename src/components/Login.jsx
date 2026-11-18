@@ -7,7 +7,7 @@ import api from '@/api'
 import { storage } from '@/storage'
 import { loginSecondFactor, loginSecurityKeyBegin, loginSecurityKeyFinish } from '@/api'
 import { getAssertion, describeKeyError, securityKeyProblem } from '@/lib/webauthn'
-import { enablePostQuantum, loadPostQuantumKey } from '@/lib/pqSetup'
+import { enablePostQuantum, ensurePostQuantumKey, loadPostQuantumKey } from '@/lib/pqSetup'
 import { hashPassword, generateKeyPair, exportPublicKeyBase64, encryptPrivateKey, decryptPrivateKey, hasSubtleCrypto } from '@/crypto'
 import RecoveryKeySetup from '@/components/RecoveryKeySetup'
 import { keySession } from '@/keySession'
@@ -127,6 +127,10 @@ const Login = () => {
             // Same password, same salt: the post-quantum secret unlocks with the
             // account key it sits beside. Accounts without one simply skip this.
             await loadPostQuantumKey(passwordUsed, salt)
+            // Same reasoning as the signing key: the hybrid envelope is only as good as
+            // the account having a key, so it is created rather than offered.
+            const pq = await ensurePostQuantumKey(passwordUsed, salt)
+            if (!pq.ok) console.warn('[Login] post-quantum key unavailable:', pq.reason)
             // A signing key lets recipients prove who sealed a message. Failure here
             // must never cost anyone their mailbox, so it reports and carries on.
             const sig = await publishSigningKeyAfterUnlock({
