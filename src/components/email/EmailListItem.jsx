@@ -197,8 +197,11 @@ export function EmailListItem({
 
         <div className="col-span-2 row-start-2 min-w-0 @[520px]:col-span-1 @[520px]:col-start-2 @[520px]:row-start-1">
           <div className="flex min-w-0 items-baseline gap-2">
+            {/* A phone has no hover, so `title` is useless there and a single clipped line
+                hid the rest of the subject. Two lines costs one row of height and shows it.
+                Desktop keeps one line: the column is narrow and the tooltip covers the rest. */}
             <p
-              className={`truncate text-[13px] ${isUnread ? 'text-ink-1' : 'text-ink-2'}`}
+              className={`text-[13px] ${isUnread ? 'text-ink-1' : 'text-ink-2'} truncate max-sm:whitespace-normal max-sm:line-clamp-2`}
               title={preview?.subject || '(no subject)'}
             >
               {preview?.subject || '(no subject)'}
