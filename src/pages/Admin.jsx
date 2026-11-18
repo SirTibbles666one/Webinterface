@@ -13,7 +13,7 @@ import {
   adminGetUsers, adminCreateUser, adminDeleteUser, adminSetAdminStatus, adminSetSuspended,
   adminGetWaitlist, adminApproveWaitlist, adminGetPending, adminApprovePending,
   adminDenyPending, adminSetRecoveryAddress, adminSendRecovery,
-  adminGetRecipients, adminGetDiskUsage, adminListAudit, adminMailHealth,
+  adminGetRecipients, adminGetDiskUsage, adminListAudit, adminMailHealth, adminSetRole,
 } from '@/api'
 import { storage } from '@/storage'
 
@@ -294,6 +294,21 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
     }
   }
 
+  // Staff is the moderation role: suspend and approve, but no delete, no re-keying, no
+  // granting. Offered only where admin is not already the answer.
+  const toggleStaff = async (user) => {
+    setBusy(user.username)
+    setError('')
+    try {
+      await adminSetRole(user.username, user.role === 'staff' ? 'user' : 'staff')
+      await fetchUsers()
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Could not change that role')
+    } finally {
+      setBusy('')
+    }
+  }
+
   // Suspending is reversible: the mailbox and its mail stay, sign-in stops.
   // The server refuses to suspend the caller, so the button is disabled for
   // the signed-in admin instead of round-tripping into a 409.
@@ -508,6 +523,21 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                               {user.email ?? `${user.username}@slothlee.xyz`}
                             </p>
                           </div>
+                          {!user.is_admin && (
+                            <button
+                              onClick={() => toggleStaff(user)}
+                              disabled={busy === user.username}
+                              aria-label={user.role === 'staff' ? 'Revoke staff' : 'Grant staff'}
+                              className={`inline-flex min-h-[44px] shrink-0 items-center gap-1 rounded-full border px-3 text-[11px] ${
+                                user.role === 'staff'
+                                  ? 'border-primary/35 bg-primary/10 text-primary'
+                                  : 'border-line text-ink-3'
+                              }`}
+                            >
+                              {user.role === 'staff' ? <ShieldCheck className="size-3" /> : <Shield className="size-3" />}
+                              {user.role === 'staff' ? 'staff' : 'no staff'}
+                            </button>
+                          )}
                           <button
                             onClick={() => toggleAdmin(user)}
                             disabled={self}

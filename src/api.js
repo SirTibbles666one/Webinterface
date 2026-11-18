@@ -190,6 +190,17 @@ export const adminDenyPending = async (username) => {
  * — which is why this is a POST: it is an action, not a page fetch.
  */
 /** One answer to "is mail working": filter activity, junk totals, queue depth. */
+/** Grant or remove the staff role. Admin-only on the server. */
+export const adminSetRole = async (username, role) => {
+  const token = storage.getToken()
+  const response = await api.post(
+    '/admin/users/role',
+    { username, role },
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+  return response.data
+}
+
 export const adminMailHealth = async () => {
   const token = storage.getToken()
   const response = await api.post('/admin/mail-health', {}, {
