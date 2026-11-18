@@ -22,11 +22,26 @@ export const MAX_TOTAL_ATTACHMENT_BYTES = 24 * 1024 * 1024
 
 
 
-export function encodeRfc2047Word(str) {
-  if (!str) return ''
-  if (!/[^\x00-\x7F]/.test(str)) return str
-  return `=?UTF-8?B?${utf8ToBase64(str)}?=`
+/**
+ * A header line ends at CRLF, so a value containing CRLF is not a value — it is a second header.
+ * Every header that carries anything a correspondent controls passes through here first.
+ */
+export function headerSafe(value) {
+  return String(value ?? '')
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
+    .trim()
 }
+
+export function encodeRfc2047Word(str) {
+  // Sanitise first: a carriage return and line feed are ASCII, so the plain branch below would
+  // have passed them straight into a header line.
+  const cleaned = headerSafe(str)
+  if (!cleaned) return ''
+  if (!/[^\x00-\x7f]/.test(cleaned)) return cleaned
+  return `=?UTF-8?B?${utf8ToBase64(cleaned)}?=`
+}
+
 
 export function foldBase64(b64) {
   return (b64.match(/.{1,76}/g) ?? [b64]).join('\r\n')

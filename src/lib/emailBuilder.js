@@ -1,5 +1,6 @@
 
 import { encodeRfc2047Word, foldBase64 } from './mime'
+import { headerSafe } from '@/lib/mime'
 
 function rfc5322Date(d) {
   return d.toUTCString().replace('GMT', '+0000')
@@ -14,14 +15,16 @@ function makeRand() {
 }
 
 function buildHeaders({ from, to, cc, subject, date, messageId, inReplyTo, references, e2ee }) {
+  // Every value here can carry a correspondent's text (a reply pre-fills the subject from the
+  // message being answered), and a header value containing CRLF is a header injection.
   return [
-    `Date: ${date}`,
-    `Message-ID: ${messageId}`,
-    ...(inReplyTo  ? [`In-Reply-To: ${inReplyTo}`]  : []),
-    ...(references ? [`References: ${references}`]   : []),
-    `From: ${from}`,
-    ...(to.length ? [`To: ${to.join(', ')}`] : []),
-    ...(cc.length ? [`Cc: ${cc.join(', ')}`] : []),
+    `Date: ${headerSafe(date)}`,
+    `Message-ID: ${headerSafe(messageId)}`,
+    ...(inReplyTo  ? [`In-Reply-To: ${headerSafe(inReplyTo)}`]  : []),
+    ...(references ? [`References: ${headerSafe(references)}`]  : []),
+    `From: ${headerSafe(from)}`,
+    ...(to.length ? [`To: ${headerSafe(to.join(', '))}`] : []),
+    ...(cc.length ? [`Cc: ${headerSafe(cc.join(', '))}`] : []),
     `Subject: ${encodeRfc2047Word(subject) || '(no subject)'}`,
     'MIME-Version: 1.0',
     'X-Mailer: Sloth Lee Mail',
@@ -46,7 +49,8 @@ function buildTextPart(body, boundary) {
 }
 
 function buildAttachmentPart({ name, type, data }, boundary) {
-  const safeName = encodeRfc2047Word(name) || name
+  // A quote ends a quoted filename early, and whatever follows would be read as another parameter.
+  const safeName = headerSafe(encodeRfc2047Word(name) || name).replace(/"/g, "'")
   const mimeType = type || 'application/octet-stream'
   return [
     `--${boundary}`,

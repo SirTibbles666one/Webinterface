@@ -294,14 +294,17 @@ export async function exportPublicKeyFromPrivate(privateKey) {
 export async function encryptEmail(plaintext, publicKey) {
   const useForge = !hasSubtleCrypto || (publicKey && publicKey._forge)
 
-  // Prefer crypto.getRandomValues when available (works even on HTTP)
+  // Fail closed. Math.random is not a cryptographic source, and a mailbox whose AES key and IV
+  // came from it is not encrypted — it only looks encrypted. If the platform cannot produce real
+  // randomness, this must refuse rather than produce something plausible.
   const getRandomBytes = (n) => {
-    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-      return crypto.getRandomValues(new Uint8Array(n))
+    if (typeof crypto === 'undefined' || typeof crypto.getRandomValues !== 'function') {
+      throw new Error(
+        'This browser cannot generate secure random numbers, so this message cannot be encrypted here. ' +
+          'Open Sloth Lee Mail over HTTPS in a current browser.',
+      )
     }
-    const b = new Uint8Array(n)
-    for (let i = 0; i < n; i++) b[i] = Math.floor(Math.random() * 256)
-    return b
+    return crypto.getRandomValues(new Uint8Array(n))
   }
 
   const iv     = getRandomBytes(12)
