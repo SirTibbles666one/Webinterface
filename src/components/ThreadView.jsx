@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { ChevronDown, MoreHorizontal, Star, MailOpen, Mail, Trash2 } from 'lucide-react'
+import { Fragment, useState } from 'react'
+import { ChevronDown, MoreHorizontal, Star, MailOpen, Mail, Trash2, Paperclip } from 'lucide-react'
 
 /**
  * A conversation, opened as its own screen.
@@ -19,6 +19,8 @@ export function ThreadView({ cards, label, count, onBack, renderMessage, message
   // Starring, marking and deleting lived in the reader header this screen hides. Without a menu
   // of its own a conversation could be read and answered, but not tidied.
   const [menuFor, setMenuFor] = useState(null)
+  // Where this conversation stops being read. With the newest open, nothing else says it.
+  const firstUnread = cards.findIndex((c) => c.unread)
   const toggle = (uid) => {
     // A menu left open while its card collapses is clipped by the card's own overflow, which
     // reads as a stray row wedged between two cards. Closing it costs nothing.
@@ -54,10 +56,20 @@ export function ThreadView({ cards, label, count, onBack, renderMessage, message
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
         <ul className="space-y-2">
-          {cards.map((card) => {
+          {cards.map((card, index) => {
             const isOpen = open.has(String(card.uid))
             return (
-              <li key={String(card.uid)} className="relative overflow-hidden rounded-xl border border-line bg-card">
+              <Fragment key={String(card.uid)}>
+              {index === firstUnread && (
+                <li
+                  aria-label="Unread messages start here"
+                  className="flex items-center gap-2 px-1 pt-2 pb-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary"
+                >
+                  <span>New</span>
+                  <span className="h-px flex-1 bg-primary/30" />
+                </li>
+              )}
+              <li className="relative overflow-hidden rounded-xl border border-line bg-card">
                 <div className="flex min-h-12 w-full items-center gap-1 px-3 py-3">
                   <button
                     type="button"
@@ -65,13 +77,27 @@ export function ThreadView({ cards, label, count, onBack, renderMessage, message
                     aria-expanded={isOpen}
                     className="flex min-w-0 flex-1 items-center gap-2 text-left transition-colors duration-120 active:bg-accent/60"
                   >
-                  <span
-                    className={`truncate text-[13.5px] ${card.unread ? 'font-semibold text-ink-1' : 'text-ink-2'}`}
-                    title={card.sender}
-                  >
-                    {card.sender || 'Unknown sender'}
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span
+                      className={`truncate text-[13.5px] ${card.unread ? 'font-semibold text-ink-1' : 'text-ink-2'}`}
+                      title={card.sender}
+                    >
+                      {card.sender || 'Unknown sender'}
+                    </span>
+                    {card.subject && (
+                      <span className="mt-0.5 truncate text-[12px] text-ink-3" title={card.subject}>
+                        {card.subject}
+                      </span>
+                    )}
                   </span>
                   <span className="ml-auto flex shrink-0 items-center gap-2 text-ink-3">
+                    {card.attachments > 0 && (
+                      <span className="flex items-center gap-0.5" title={`${card.attachments} attachment${card.attachments === 1 ? '' : 's'}`}>
+                        <Paperclip className="size-3.5" aria-hidden="true" />
+                        <span className="mono text-[11px]">{card.attachments}</span>
+                        <span className="sr-only">{card.attachments} attachments</span>
+                      </span>
+                    )}
                     <span className="mono text-[12px] tabular-nums">{card.when}</span>
                     {card.unread && <span className="size-1.5 rounded-full bg-primary" aria-label="Unread" />}
                     <ChevronDown
@@ -132,6 +158,7 @@ export function ThreadView({ cards, label, count, onBack, renderMessage, message
                   </div>
                 )}
               </li>
+              </Fragment>
             )
           })}
         </ul>

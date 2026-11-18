@@ -909,13 +909,20 @@ const AuthorizedLayout = () => {
     return `${day}, ${time}`
   }
 
-  const threadCards = (threadUids) =>
+  const threadCards = (threadUids, threadLabel = '') =>
     [...threadUids].reverse().map((uid) => ({
       uid,
       sender: previews[uid]?.from?.name || previews[uid]?.from?.email || '',
       when: cardWhen(previews[uid]?.date),
       unread: emailMeta[uid]?.unread !== false,
       starred: !!emailMeta[uid]?.starred,
+      // A clip says which message carried files without opening it, and the subject is what
+      // tells two messages from one sender apart — shown only when it is not the thread's title.
+      attachments: (previews[uid]?.attachments || []).length,
+      subject:
+        previews[uid]?.subject && previews[uid].subject !== threadLabel && previews[uid].subject !== '(no subject)'
+          ? previews[uid].subject
+          : '',
     }))
 
   const renderReader = (inline, uidOverride) => renderEmail(
@@ -1225,7 +1232,7 @@ const AuthorizedLayout = () => {
             {/* A conversation is its own screen on anything without a pane beside it. */}
             {openThread && !selectedUid && (
               <ThreadView
-                cards={threadCards(openThread.uids)}
+                cards={threadCards(openThread.uids, openThread.label)}
                 label={openThread.label}
                 count={openThread.count}
                 onBack={() => setOpenThread(null)}
