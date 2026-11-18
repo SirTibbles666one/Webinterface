@@ -2,6 +2,23 @@ import axios from 'axios'
 import { storage } from './storage'
 import { keySession } from './keySession'
 
+// u128 ids come back as JSON *numbers*, so JSON.parse turns a 20-digit uid into a float
+// and destroys the low digits (1.4786006677720391e+38). Quoting runs of 16+ digits before
+// parsing is the only reason message ids address anything — verified in the signed-message
+// end-to-end test, where /email/get answered "Invalid JSON" until this was replicated.
+//
+// It is also indiscriminate: any 16+ digit run after `:`/`,`/`[` inside a message body is
+// quoted too, which corrupts that body. The real fix is uids as strings on the wire
+// (docs/UID-ON-THE-WIRE.md); until then this must stay.
+export function preserveBigInts(data) {
+  if (typeof data !== 'string') return data
+  try {
+    return JSON.parse(data.replace(/([,:\[]\s*)(\d{16,})/g, '$1"$2"'))
+  } catch {
+    return data
+  }
+}
+
 const api = axios.create({
   //baseURL: 'http://openneutron.com:8080',
   //baseURL: 'http://localhost:8080/api',
@@ -9,16 +26,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  transformResponse: [
-    (data) => {
-      if (typeof data !== 'string') return data
-      try {
-        return JSON.parse(data.replace(/([,:\[]\s*)(\d{16,})/g, '$1"$2"'))
-      } catch {
-        return data
-      }
-    },
-  ],
+  transformResponse: [preserveBigInts],
 })
 
 // A 401 from one call is not proof the session is over: an endpoint reached
