@@ -877,11 +877,18 @@ const AuthorizedLayout = () => {
 
   // One reader, two homes: the desktop pane and (on a phone) the row that was tapped.
   // One card per message: who sent it, when, and whether it has been read.
+  // A conversation is read to work out when things were said, and "18 Nov" alone cannot answer
+  // "did this arrive before or after the one above it". Date and time, always.
   const cardWhen = (value) => {
     if (!value) return ''
     const d = new Date(value)
     if (Number.isNaN(d.getTime())) return ''
-    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+    return d.toLocaleString(undefined, {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
   }
   // `thread.uids` runs oldest→newest (that is how threads.js builds it), and a conversation
   // read from the top should start with the message that just arrived, not the first one ever.

@@ -19,7 +19,10 @@ export function ThreadView({ cards, label, count, onBack, renderMessage, message
   // Starring, marking and deleting lived in the reader header this screen hides. Without a menu
   // of its own a conversation could be read and answered, but not tidied.
   const [menuFor, setMenuFor] = useState(null)
-  const toggle = (uid) =>
+  const toggle = (uid) => {
+    // A menu left open while its card collapses is clipped by the card's own overflow, which
+    // reads as a stray row wedged between two cards. Closing it costs nothing.
+    setMenuFor(null)
     setOpen((prev) => {
       const next = new Set(prev)
       const key = String(uid)
@@ -27,6 +30,7 @@ export function ThreadView({ cards, label, count, onBack, renderMessage, message
       else next.add(key)
       return next
     })
+  }
 
   return (
     <div
