@@ -517,7 +517,7 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                               // offer is the way to set it.
                               <button
                                 onClick={() => openRecovery(user)}
-                                className="text-[12px] text-ink-4 underline decoration-line-strong underline-offset-2 transition-colors duration-120 hover:text-primary"
+                                className="text-[12px] text-ink-3 underline decoration-line-strong underline-offset-2 transition-colors duration-120 hover:text-primary"
                               >
                                 Set recovery
                               </button>
@@ -681,7 +681,7 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                           </Button>
                         </div>
                       ) : (
-                        <span className="text-[11px] text-ink-4">code already used</span>
+                        <span className="text-[11px] text-ink-3">code already used</span>
                       )}
                     </li>
                   ))}
@@ -766,7 +766,7 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                   <>
                   <div className="flex items-baseline justify-between border-b border-line px-4 py-2">
                     <p className="label">Largest mailboxes</p>
-                    <p className="mono text-[10.5px] text-ink-4">
+                    <p className="mono text-[10.5px] text-ink-3">
                       {diskTotals.biggest.length} of {disk.length} · bar is share of total
                     </p>
                   </div>
@@ -839,7 +839,7 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
               {created.token || 'The server did not return a one-time password'}
             </code>
 
-            <p className="mt-2 text-[11.5px] leading-relaxed text-ink-4">
+            <p className="mt-2 text-[11.5px] leading-relaxed text-ink-3">
               It stops working the moment they set their own password, and the account is unusable
               without it — there is no way to show it again.
             </p>

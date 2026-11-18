@@ -134,7 +134,7 @@ export function MailboxesSection() {
         />
         <div className="mt-3 space-y-1">
           {addresses.length === 0 && (
-            <p className="text-[11.5px] text-ink-4">Add an address first — your own is not enough on its own.</p>
+            <p className="text-[11.5px] text-ink-3">Add an address first — your own is not enough on its own.</p>
           )}
           {addresses.map((address) => {
             const elsewhere = taken.has(address)

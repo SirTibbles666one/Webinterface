@@ -169,7 +169,7 @@ export default function PostQuantumSection() {
           )}
 
           {!resealing && migration.pending > 0 && (
-            <p className="mt-1.5 text-[11px] leading-relaxed text-ink-4">
+            <p className="mt-1.5 text-[11px] leading-relaxed text-ink-3">
               Each message is opened and sealed again in this browser, twenty at a time — the plaintext
               never leaves it. Stopping is safe: it resumes from whatever is still sealed the old way.
             </p>
@@ -224,7 +224,7 @@ export default function PostQuantumSection() {
               {busy ? 'Creating…' : 'Turn on'}
             </Button>
           </div>
-          <p className="text-[11px] text-ink-4">
+          <p className="text-[11px] text-ink-3">
             The key is wrapped with your password in this browser before it is stored. The server
             never sees the password or the unwrapped key.
           </p>

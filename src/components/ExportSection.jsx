@@ -157,7 +157,7 @@ export default function ExportSection() {
             {busy === 'sealed' ? 'Sealing…' : 'Download .slotharc'}
           </Button>
         </div>
-        <p className="text-[11px] text-ink-4">
+        <p className="text-[11px] text-ink-3">
           There is no recovery for this passphrase. Losing it loses the archive.
         </p>
       </form>

@@ -234,7 +234,7 @@ export default function ImportSection() {
           {running ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
           {running ? 'Importing…' : 'Choose files'}
         </Button>
-        <span className="text-[11.5px] text-ink-4">
+        <span className="text-[11.5px] text-ink-3">
           .eml, .mbox, .slotharc or a folder of them · up to 20 MB each
         </span>
       </div>
@@ -273,7 +273,7 @@ export default function ImportSection() {
                   </li>
                 ))}
                 {failures.length > 6 && (
-                  <li className="text-[11.5px] text-ink-4">and {failures.length - 6} more</li>
+                  <li className="text-[11.5px] text-ink-3">and {failures.length - 6} more</li>
                 )}
               </ul>
             )}
@@ -281,7 +281,7 @@ export default function ImportSection() {
         </div>
       )}
 
-      <p className="mt-4 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-ink-4">
+      <p className="mt-4 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-ink-3">
         <FileUp className="mt-0.5 size-3 shrink-0" />
         Folders and mailboxes that another provider exports as .mbox work directly. Thunderbird,
         Apple Mail and most IMAP tools export in that format.
