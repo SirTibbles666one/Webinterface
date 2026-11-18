@@ -510,6 +510,26 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pgpOn, sealExternal, recipients.join(','), coverage.missing.join(',')])
 
+  // A five-second window to take a message back.
+  //
+  // Deliberately a client-side hold rather than a server one: the scheduled-send path only
+  // ticks once a minute, so a server hold would either deliver up to a minute late or need a
+  // second sweeper. Nothing is lost if the tab dies inside the window — the draft is saved a
+  // beat after typing stops — and nothing has been claimed that did not happen.
+  const [holdLeft, setHoldLeft] = useState(0)
+  useEffect(() => {
+    if (holdLeft <= 0) return undefined
+    const timer = setTimeout(() => {
+      if (holdLeft === 1) {
+        setHoldLeft(0)
+        sendWithPgpIfNeeded()
+      } else {
+        setHoldLeft(holdLeft - 1)
+      }
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [holdLeft, sendWithPgpIfNeeded])
+
   const buildDraft = useCallback(() => {
     const hasContent = toChips.length > 0 || subject.trim() || (body && body.replace(/<(.|\n)*?>/g, '').trim()) || attachments.length > 0
     if (!hasContent) return null
@@ -1195,8 +1215,24 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                     </div>
                   )}
                 </div>
+                {holdLeft > 0 ? (
+                  <div className="ml-auto flex shrink-0 items-center gap-2 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-xs text-primary sm:ml-0 sm:py-1.5 max-sm:min-h-11">
+                    <span className="whitespace-nowrap" aria-live="polite">Sending in {holdLeft}s</span>
+                    <button
+                      type="button"
+                      onClick={() => setHoldLeft(0)}
+                      className="rounded px-2 py-0.5 font-semibold underline underline-offset-2 hover:bg-primary/15 max-sm:min-h-9"
+                    >
+                      Undo
+                    </button>
+                  </div>
+                ) : (
                 <button
-                  onClick={sendWithPgpIfNeeded}
+                  onClick={() => {
+                    // Sending is immediate everywhere except the moment after pressing Send.
+                    if (isSendBlocked || hasLoadingFiles || pgpBusy) return
+                    setHoldLeft(5)
+                  }}
                   disabled={isSendBlocked || hasLoadingFiles || pgpBusy}
                   title={hasLoadingFiles
                     ? 'Waiting for files to finish loading…'
@@ -1215,6 +1251,7 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                       ? (sendAt ? `Update · ${formatWhen(sendAt)}` : 'Update')
                       : (sendAt ? `Hold · ${formatWhen(sendAt)}` : 'Send')}
                 </button>
+                )}
               </div>
             </div>
 
