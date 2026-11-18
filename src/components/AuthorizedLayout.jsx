@@ -15,6 +15,7 @@ import { fetchPostQuantumStatus } from '@/lib/pqSetup'
 import { hasIdentity } from '@/lib/pgpRing'
 import { UnlockModal } from '@/components/UnlockModal'
 import { EmailToolbar } from '@/components/EmailToolbar'
+import { ThreadView } from '@/components/ThreadView'
 import { useEmailFetch } from '@/hooks/useEmailFetch'
 import { useSentEmails } from '@/hooks/useSentEmails'
 import { useTrash } from '@/hooks/useTrash'
@@ -61,6 +62,8 @@ const AuthorizedLayout = () => {
     return () => mq.removeEventListener('change', onChange)
   }, [])
 
+  // A conversation opened as its own screen, rather than expanded in the list.
+  const [openThread, setOpenThread] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   // Search used to read only the page that had been paged in, so a query for older
   // mail came back empty and looked broken. A query now pages the rest in.
@@ -851,15 +854,35 @@ const AuthorizedLayout = () => {
   }
 
   // One reader, two homes: the desktop pane and (on a phone) the row that was tapped.
-  const renderReader = (inline) => (
+  // One card per message: who sent it, when, and whether it has been read.
+  const cardWhen = (value) => {
+    if (!value) return ''
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) return ''
+    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+  }
+  const threadCards = (threadUids) =>
+    threadUids.map((uid) => ({
+      uid,
+      sender: previews[uid]?.from?.name || previews[uid]?.from?.email || '',
+      when: cardWhen(previews[uid]?.date),
+      unread: emailMeta[uid]?.unread !== false,
+    }))
+
+  const renderReader = (inline, uidOverride) => renderEmail(
+    uidOverride ?? selectedUid,
+    inline,
+  )
+
+  const renderEmail = (uid, inline) => (
     <EmailView
-                key={selectedUid}
-                uid={selectedUid}
+                key={uid}
+                uid={uid}
                 onBack={() => setSelectedUid(null)}
                 myEmail={userEmail}
                 onRequestUnlock={() => setUnlockDismissed(false)}
-                emailMeta={selectedUid ? (emailMeta[selectedUid] ?? {}) : null}
-                arrivedAt={selectedUid ? (previews[selectedUid]?.alias ?? null) : null}
+                emailMeta={uid ? (emailMeta[uid] ?? {}) : null}
+                arrivedAt={uid ? (previews[uid]?.alias ?? null) : null}
                 inJunk={selectedFolder === 'junk'}
                 onReported={(reportedUid, verdict) => {
                   // Move it locally so the change is immediate, then let the server be the
@@ -904,7 +927,7 @@ const AuthorizedLayout = () => {
                 countFromSender={(address) => uidsFromSender(address).length}
                 onSnooze={snoozeMessage}
                 onWake={wakeMessage}
-                snoozedUntil={selectedUid ? snoozed.untilFor(selectedUid) : null}
+                snoozedUntil={uid ? snoozed.untilFor(uid) : null}
                 snoozeOptions={snoozeOptions}
     inline={inline}
     />
@@ -1123,6 +1146,16 @@ const AuthorizedLayout = () => {
                 onCheck={handleCheck}
                 onCheckThread={handleCheckThread}
                 openThreadInPane={wideForPane}
+                onOpenThread={
+                  wideForPane
+                    ? null
+                    : (thread) =>
+                        setOpenThread({
+                          uids: thread.uids,
+                          count: thread.count,
+                          label: previews[thread.latestUid]?.subject || 'Conversation',
+                        })
+                }
                 loading={loading}
                 hasMore={selectedFolder === 'inbox' && hasMore}
                 onLoadMore={loadMore}
@@ -1140,6 +1173,17 @@ const AuthorizedLayout = () => {
                 onRefresh={handleRefresh}
               />
             </div>
+            {/* A conversation is its own screen on anything without a pane beside it. */}
+            {openThread && !selectedUid && (
+              <ThreadView
+                cards={threadCards(openThread.uids)}
+                label={openThread.label}
+                count={openThread.count}
+                onBack={() => setOpenThread(null)}
+                renderMessage={(uid) => renderEmail(uid, true)}
+              />
+            )}
+
             {selectedUid && (
               <div className="fixed inset-0 z-40 flex min-w-0 flex-1 flex-col bg-background min-[1200px]:static min-[1200px]:z-auto min-[1200px]:block">
                 {renderReader(false)}

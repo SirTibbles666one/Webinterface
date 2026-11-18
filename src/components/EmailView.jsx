@@ -496,7 +496,7 @@ const EmailView = ({
           className={`custom-scrollbar overflow-y-auto overscroll-contain ${
             // 34vh, not 42: the bar now carries four verbs, and at 42 the bar itself fell
             // below the list viewport — the buttons were there, just not on screen.
-            inline ? 'max-h-[34vh] max-sm:pb-16' : 'flex-1 min-h-0'
+            inline ? 'max-h-[70vh]' : 'flex-1 min-h-0'
           }`}
         >
           {/* One measure for the whole message: a line of text that runs the

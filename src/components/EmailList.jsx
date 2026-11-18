@@ -21,6 +21,7 @@ const EmailList = ({
   onSelect,
   onCheck,
   openThreadInPane = false,
+  onOpenThread = null,
   // Selects (or clears) every message in a conversation at once.
   onCheckThread = null,
   loading,
@@ -266,11 +267,12 @@ const EmailList = ({
                       role="button"
                       tabIndex={0}
                       aria-expanded={open}
-                      onClick={toggleOpen}
+                      onClick={() => (onOpenThread ? onOpenThread(thread) : toggleOpen())}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault()
-                          toggleOpen()
+                          if (onOpenThread) onOpenThread(thread)
+                          else toggleOpen()
                         }
                       }}
                       className={`relative flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors duration-120 ${
