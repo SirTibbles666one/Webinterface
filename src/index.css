@@ -465,8 +465,9 @@
 
 
 /* The quote card reads the "On … wrote:" line above it and shows it as the card's own header,
-   so the paragraph must not also appear in the body. The quote itself is not hidden: the card
-   owns it and renders the content when opened. */
-.ProseMirror p:has(+ blockquote) {
+   so the paragraph must not also appear in the body. `:has(+ blockquote)` cannot find it — a
+   node view renders a div, not a blockquote — so the line carries a class of its own. The
+   quote itself is not hidden: the card owns it and renders the content when opened. */
+.ProseMirror p.sloth-quote-attribution {
   display: none;
 }
