@@ -171,6 +171,37 @@ container recreated (17 users loaded, SMTP listening).
 That last row is the one that matters: the client's `kt/v2/leaf` implementation and the
 server's agree on real data, which is the failure unit tests cannot catch.
 
+
+## Step 2 — client side, partway (deployed 2026-11-18)
+
+**Landed and live (`a43d47d`):**
+
+- `src/lib/msgSign.js` — the `SLW2` envelope and its signed bytes
+  (`label|iv|ciphertext|recipient_set_hash|sender|sent_at`), with a three-way verifier:
+  `verified`, `unsigned` (a v1 message — old, not suspicious), `invalid` (must not render).
+  Ten tests, including re-encryption, replay to another recipient set, re-attribution,
+  timestamp tampering and truncation.
+- `src/lib/sigKey.js` — ML-DSA-65 keypair generated on the device, secret wrapped with the
+  **same** password KDF as the mailbox key (`deriveWrapKey`; the salt is **hex**, not
+  base64), only the 1,952-byte verifying key published, wrapped copy cached so a second tab
+  unwraps instead of minting a second identity. Eight tests against the real post-quantum
+  implementation, including that a failed publish leaves no half-saved state.
+- The login path now ensures a signing key after the mailbox key unlocks, and **cannot fail
+  the unlock**: the helper returns `{ok:false, reason}` and the session continues. A mailbox
+  that will not open is worse than an unsigned one.
+
+**Verified on production:** login page and app render with zero console errors after the
+deploy; the publish endpoint was exercised live earlier (200, leaf carries `sig`, tree
+23→24, client `verifyProof` passes).
+
+**Not yet verified:** the publish-on-login path as a *user* would hit it. Driving it needs a
+real password typed into the sign-in form, which this environment must not do. It will
+exercise itself on the next real sign-in, and the API half is already proven.
+
+**Still to build:** sign in `useSendEmail` (pack `SLW2` around the payload), verify in the
+reader against the sender's published key and its KT leaf, and the three reader states with
+the body withheld on `invalid`.
+
 ---
 
 ## Appendix — server groundwork (superseded by the section above)
