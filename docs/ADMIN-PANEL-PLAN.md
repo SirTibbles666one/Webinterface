@@ -1,7 +1,7 @@
 # Admin panel — full-scale plan
 
-Status: **plan only.** Nothing in this document has been built since the inventory below was
-measured on 2026-11-18. Section 1 is what exists today; everything after it is proposal.
+Status: **Phase A is built and live** (`data/audit.json`, `POST /api/admin/audit`, Activity tab).
+Phases B–G remain proposals. Section 1 records the inventory measured before Phase A.
 
 ## 1. What exists today (measured, not remembered)
 
