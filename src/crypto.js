@@ -33,6 +33,7 @@ const argon2id = wasmStep('argon2id', argon2idRaw)
 import forge from 'node-forge'
 import KeygenWorker from './keygen.worker.js?worker&inline'
 import { ml_kem768 } from '@noble/post-quantum/ml-kem.js'
+import { toBase64, fromBase64, bytesToBinaryString } from '@/lib/bytes'
 
 // true when the Web Crypto API is available (requires a secure context / HTTPS)
 export const hasSubtleCrypto = typeof crypto !== 'undefined' && !!crypto.subtle
@@ -40,23 +41,15 @@ export const hasSubtleCrypto = typeof crypto !== 'undefined' && !!crypto.subtle
 // ─── Binary helpers ───────────────────────────────────────────────────────────
 
 function toB64(buffer) {
-  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
-  let bin = ''
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
-  return btoa(bin)
+  return toBase64(buffer)
 }
 
 function fromB64(b64) {
-  const bin = atob(b64)
-  const buf = new Uint8Array(bin.length)
-  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i)
-  return buf
+  return fromBase64(b64)
 }
 
 function toForgeBin(u8) {
-  let s = ''
-  for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i])
-  return s
+  return bytesToBinaryString(u8)
 }
 
 function fromForgeBin(s) {

@@ -1,3 +1,4 @@
+import { toBase64 } from '@/lib/bytes'
 /**
  * Post-quantum key material (ML-KEM-768, FIPS 203).
  *
@@ -12,7 +13,9 @@ import { ml_kem768 } from '@noble/post-quantum/ml-kem.js'
 
 export const PQ_KEM = 'ml-kem-768'
 
-const b64 = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes)))
+// Spreading a buffer into String.fromCharCode overflows the argument stack on anything larger than
+// a few hundred kilobytes ('Maximum call stack size exceeded', measured at 28 MB).
+const b64 = (bytes) => toBase64(new Uint8Array(bytes))
 const fromB64 = (text) => Uint8Array.from(atob(text), (c) => c.charCodeAt(0))
 
 /** A fresh keypair, serialised the way it will be stored and published. */
