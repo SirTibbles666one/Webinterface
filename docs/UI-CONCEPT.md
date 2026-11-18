@@ -114,7 +114,10 @@ by the checkbox — the row never gains height.
    uidemo@slothlee.xyz land here." + the one action that makes sense.
 3. **Error** — what failed, in the user's terms, and the retry. Never stale data
    presented as current.
-4. **Full** — the design above.
+4. **Locked** — the key is not in this session. Not an error: the body is sealed,
+   nothing is lost, and the way out is one press. A red failure card here read as
+   corruption and told the reader to log out, which was both wrong and alarming.
+5. **Full** — the design above.
 
 ## Dialogs
 
