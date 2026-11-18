@@ -80,6 +80,7 @@ const EmailView = ({
   // Set when this message is being read from the Junk view, where the useful action is
   // the opposite one: take it back out of Junk.
   inJunk = false,
+  onReported = null,
   onComposeTo,
   onMessageDeleted,
   onBack,
@@ -729,8 +730,12 @@ const EmailView = ({
                     const result = await reportSpam(uid, inJunk ? 'ham' : 'spam', raw)
                     // The server may file the message without being able to teach the
                     // filter (too short, already known). Say which happened.
-                    setSpamReport(result?.note || (inJunk ? 'ham' : 'spam'))
+                    const verdict = inJunk ? 'ham' : 'spam'
+                    setSpamReport(result?.note || verdict)
                     setSpamError('')
+                    // The list behind this reader has to change now: a reported message
+                    // that stays visible until the next refresh looks like the report failed.
+                    onReported?.(uid, verdict)
                   } catch (err) {
                     // An honest failure beats a button that lies about having taught it.
                     setSpamError(err?.response?.data?.error || 'Could not report this message')

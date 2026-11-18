@@ -841,6 +841,18 @@ const AuthorizedLayout = () => {
                 emailMeta={selectedUid ? (emailMeta[selectedUid] ?? {}) : null}
                 arrivedAt={selectedUid ? (previews[selectedUid]?.alias ?? null) : null}
                 inJunk={selectedFolder === 'junk'}
+                onReported={(reportedUid, verdict) => {
+                  // Move it locally so the change is immediate, then let the server be the
+                  // authority on the next refresh.
+                  if (verdict === 'spam') {
+                    setUids((prev) => prev.filter((u) => u !== reportedUid))
+                    setJunkUids((prev) => [...new Set([...prev, reportedUid])])
+                  } else {
+                    setJunkUids((prev) => prev.filter((u) => u !== reportedUid))
+                    setUids((prev) => [...new Set([reportedUid, ...prev])])
+                  }
+                  setSelectedUid(null)
+                }}
                 onToggleStar={toggleStar}
                 onMarkRead={markRead}
                 onMarkUnread={markUnread}
