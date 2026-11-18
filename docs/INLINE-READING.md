@@ -96,3 +96,19 @@ Proton gesture and one control instead of two. With the bar absent, composing be
 unreachable, so a floating action (56px, bottom-right, above the safe area) appears
 while a message is open. Verified at 390: FAB at right 374 in a 390 viewport, tap the
 row to collapse, FAB opens the composer.
+
+## What a conversation card says before it is opened
+
+A card is read to answer three questions without opening it, and each one has a line:
+
+- **Who and when** — sender, then the clock (or the day and clock for anything not today).
+- **Did it carry files** — a clip and a count, on that message only. Opening every card to find the
+  attachment was the alternative.
+- **Which message is this** — the subject, but only when it differs from the thread's title. A
+  repeated subject is noise; a different one is the whole point.
+
+And one line belongs to the list rather than a card: **`New`** sits above the first unread message,
+once. With the newest message open by default, nothing else marks where reading stopped.
+
+Four tests in `tests/thread-view-badges.test.jsx` hold these, including the negative case: a fully
+read conversation shows no `New` line at all.
