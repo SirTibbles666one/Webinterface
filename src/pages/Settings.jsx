@@ -9,6 +9,7 @@ import TwoFactorSection from '@/components/TwoFactorSection'
 import SecurityKeysSection from '@/components/SecurityKeysSection'
 import SessionsSection from '@/components/SessionsSection'
 import { AliasesSection } from '@/components/AliasesSection'
+import { MailboxesSection } from '@/components/MailboxesSection'
 import NotificationsSection from '@/components/NotificationsSection'
 import AppearanceSection from '@/components/AppearanceSection'
 import KeysSection from '@/components/KeysSection'
@@ -43,6 +44,9 @@ const GROUPS = [
     label: 'Mail',
     items: [
       { id: 'addresses', label: 'Addresses', title: 'Addresses', note: 'Extra addresses that deliver into this mailbox, and that replies can leave from.', Component: AliasesSection },
+      // Mailboxes come right after the addresses they are made of: one is the
+      // material, the other is how it is grouped.
+      { id: 'mailboxes', label: 'Mailboxes', title: 'Mailboxes', note: 'Name a set of your addresses so the inbox can be read one mailbox at a time, on every device.', Component: MailboxesSection },
       { id: 'notifications', label: 'Notifications', title: 'New mail notifications', note: 'How this browser tells you mail arrived while the app is closed.', Component: NotificationsSection },
       { id: 'appearance', label: 'Appearance', title: 'Appearance', note: 'Theme and row density, stored on this device only.', Component: AppearanceSection },
     ],
