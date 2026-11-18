@@ -242,3 +242,18 @@ screens — and the 44 px sweep with an allow-list for inline prose links.
 - Nothing that carries meaning is truncated on a phone. Decorative truncation
   (previews, subjects) is fine; the setup banner was not.
 - A drawer, sheet or overlay always has a visible way out.
+
+---
+
+## Closed later — 18 Nov 2026
+
+- **Admin on a phone.** The account table was ~450 px wide inside its own container, so the
+  action column and the fourth tab painted past a 390 px edge while the page reported no
+  overflow: delete and suspend were unreachable, "System" read as a missing surface. Below
+  `sm` it is now one card per account with full-width 44 px actions, and the tab strip is a
+  2 × 2 grid. Measured after: 0 controls past the viewport, 0 under 44 px, tabs at 193/374.
+- **The unlock prompt.** It rendered a close wired to nothing, so a phone user without the
+  password could not reach folders, settings or admin — none of which need the key. It now
+  has `role="dialog"`, Escape, focus in/out, a labelled 44 px password field, "Not now", and
+  one strip above the list that offers the way back.
+- **Dialogs generally.** The shared shell gained the semantics every modal was missing.
