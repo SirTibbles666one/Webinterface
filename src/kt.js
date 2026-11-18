@@ -1,4 +1,5 @@
 // Key transparency, checked rather than believed.
+import { KT_PINNED_KEYS } from './ktPinnedKey'
 //
 // The server hands every recipient's public key to the sender. Until now the sender
 // had no way to tell an honest answer from a substituted one, and a substituted key
@@ -251,8 +252,35 @@ export async function verifyHeadExtension(sawHead, pinned, fetchProof) {
   return check.ok ? { ok: true, checked: true } : { ok: false, reason: check.reason }
 }
 
+/**
+ * Is this head signed by a key this build trusts?
+ *
+ * Compared as decoded bytes, not as strings: base64 padding or a re-encode must not be
+ * able to pass for a different key, and string equality would treat them as different.
+ */
+export function isPinnedSigner(headOrPk) {
+  const raw = typeof headOrPk === 'string' ? headOrPk : headOrPk?.pk
+  if (!raw) return false
+  let candidate
+  try {
+    candidate = fromB64(raw)
+  } catch {
+    return false
+  }
+  return KT_PINNED_KEYS.some((pinned) => {
+    let key
+    try {
+      key = fromB64(pinned)
+    } catch {
+      return false
+    }
+    return key.length === candidate.length && key.every((byte, i) => byte === candidate[i])
+  })
+}
+
 /** Verify the ML-DSA-65 signature over a head. */
 export function verifyHeadSignature(head) {
+  if (!isPinnedSigner(head)) return false
   try {
     const pk = fromB64(head.pk)
     const sig = fromB64(head.sig)
@@ -272,6 +300,10 @@ export function verifyHeadSignature(head) {
 export function verifyProof(proof) {
   if (!proof || !proof.leaf || !proof.head) return { ok: false, reason: 'no_proof' }
   if (proof.head.alg !== 'ml-dsa-65') return { ok: false, reason: 'unknown_head_algorithm' }
+  // Judge the signer before any tree math: there is no point computing roots for a
+  // directory this build does not trust, and a hostile head should be refused before it
+  // can influence anything else.
+  if (!isPinnedSigner(proof.head)) return { ok: false, reason: 'kt_signer_unpinned' }
 
   const head = proof.head
   const index = proof.index

@@ -138,8 +138,16 @@ export function useSendEmail({ myEmail, replyData, draftId, onDeleteDraft, onSen
         sawHead = entry.proof.head
       }
       if (unproven.length > 0) {
+        // The pinned signer is the one refusal worth its own sentence: it means this build
+        // and this server disagree about who signs the directory, which is exactly what a
+        // substituted directory looks like from here.
+        const unpinned = unproven.some((line) => line.includes('kt_signer_unpinned'))
         setSendError(
-          `Could not verify whose key this is: ${unproven.join(', ')}. Nothing was sent.`
+          unpinned
+            ? 'The server is presenting a key directory signed by a key this build does not trust. ' +
+              'Nothing was sent. Either the server changed its signing key (a build with the new ' +
+              'key is needed) or something is impersonating it — check before sending.'
+            : `Could not verify whose key this is: ${unproven.join(', ')}. Nothing was sent.`
         )
         setSendState('error')
         return
