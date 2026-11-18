@@ -7,8 +7,8 @@ checkable by someone who does not trust the operator.
 ## Verify a release
 
 ```sh
-git clone https://github.com/SirTibbles666one/Sloth-Lee-Mail
-cd Sloth-Lee-Mail
+git clone https://github.com/SirTibbles666one/Webinterface
+cd Webinterface
 npm ci
 npm run build
 sha256sum dist/assets/*.js dist/assets/*.css
@@ -35,7 +35,21 @@ mismatch in content is the signal; a mismatch in names is not.
 
 ## Deployed
 
-### dist68 — service worker `sloth-mail-shell-v21`
+### 30bbf9c — snooze, mailboxes and the parity gate
+
+| file | sha256 |
+|---|---|
+| `assets/index-Pi-O2tCM.js` | `4c3b60dce10a30b463b4bef893d01f5911d0e5e868a3b1e930afe27ee5d22126` |
+| `assets/index-SwyFLtpT.css` | `27898b1db6f9d752ed6be999e97abfb8841e96e83e3709fde0e99391c5c9e4fe` |
+| `index.html` | `8db6b6d7cffd4121289a4a906c53d72d19dff612d386597c92a124002ae0b1ad` |
+
+- `deploy.sh` now refuses a build that drops a feature production serves
+  (`scripts/check-live-parity.mjs` against `docs/production-parity.json`)
+- snooze, named mailboxes, admin suspend and the one-time sign-in message are in
+  source again; they had been live without ever being committed
+- verified through the edge: the served JS and CSS hash to the values above
+
+### dist68 (historical, superseded) — service worker `sloth-mail-shell-v21`
 
 | file | sha256 |
 |---|---|

@@ -46,7 +46,7 @@ Nothing else in this document matters without this. Options, cheapest first:
 
 1. **Publish the source + reproducible build**, and serve the hashes from
    somewhere the mail server does not control (GitHub release, DNS TXT).
-   - [x] Client source published: https://github.com/SirTibbles666one/Sloth-Lee-Mail
+   - [x] Client source published: https://github.com/SirTibbles666one/Webinterface
    - [ ] Reproducible build + published hashes per release
 2. **Split the origins**: `app.slothlee.xyz` (static, no API) serves the client;
    `mail.slothlee.xyz` serves only the API. A mail-server compromise no longer
