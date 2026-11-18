@@ -86,15 +86,15 @@ export function EmailListItem({
   const isInGroup = selectedFolder && selectedFolder !== 'inbox' && selectedFolder !== 'starred'
 
   // A preview can carry a null name; printing it is how "null" reached a row in Drafts.
-  const senderLabel = [preview?.from?.name, preview?.from?.email, uid]
-    .map((v) => (v == null ? '' : String(v).trim()))
-    .find((v) => v && v !== 'null' && v !== 'undefined') || 'Unknown'
-    ? undecryptable || !preview?.preview
-      ? untilLabel
-      : `${untilLabel} · ${preview.preview}`
-    : undecryptable
-      ? 'Cannot be decrypted with the key on this device'
-      : preview?.preview || ''
+  //
+  // This was one expression: `name || email || uid ? untilLabel ? … : preview : …`. The ternary
+  // swallowed the sender, so the cell showed the until-label or the preview text — "null" for a
+  // draft with no time. The two-line row has no preview line any more, so the sender is all this
+  // needs to be.
+  const senderLabel =
+    [preview?.from?.name, preview?.from?.email, uid]
+      .map((v) => (v == null ? '' : String(v).trim()))
+      .find((v) => v && v !== 'null' && v !== 'undefined') || 'Unknown'
 
   const ground = isSelected
     ? 'bg-[color-mix(in_srgb,var(--color-primary)_9%,transparent)]'
@@ -102,7 +102,9 @@ export function EmailListItem({
   const unreadWeight = isUnread ? 'font-semibold' : 'font-normal'
   // Empty when the day group above already names the day: the row should spend its
   // width on the name, not on a date the reader just read.
-  const stamped = rowTime(preview?.date, compactTime)
+  // In Snoozed, when it comes back is more useful than when it arrived. When the merged ternary
+  // was split apart this became unused, which meant the Snoozed folder stopped saying "until".
+  const stamped = untilLabel || rowTime(preview?.date, compactTime)
 
   return (
     <div
