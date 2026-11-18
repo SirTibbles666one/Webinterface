@@ -524,6 +524,24 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
     }
   }, [toChips, ccChips, bccChips, subject, body, attachments])
 
+  // Drafts used to be written only on close, so a failed send and a killed tab lost the
+  // message — and nothing ever told the writer it had been kept. This saves a beat after
+  // typing stops and says when.
+  const [savedAt, setSavedAt] = useState(null)
+  useEffect(() => {
+    const draft = buildDraft()
+    if (!draft) return undefined
+    const timer = setTimeout(() => {
+      try {
+        storage.saveDraft(draft)
+        setSavedAt(Date.now())
+      } catch {
+        /* a full or blocked store must not interrupt writing */
+      }
+    }, 1200)
+    return () => clearTimeout(timer)
+  }, [buildDraft])
+
   const handleClose = useCallback(() => {
     const draft = buildDraft()
     onClose(draft)
@@ -584,6 +602,17 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
           )}
           {subject || (replaceId ? 'Edit before it goes' : 'New Message')}
         </span>
+        {/* It is kept a beat after typing stops; saying so is the difference between trusting
+            the draft and not closing the tab to be safe. On a phone just the word — the time
+            costs more than it is worth beside a truncated subject. */}
+        {savedAt && (
+          <span className="ml-2 shrink-0 text-[11px] text-ink-3" aria-live="polite">
+            <span className="max-sm:hidden">
+              Saved {new Date(savedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+            </span>
+            <span className="sm:hidden">Saved</span>
+          </span>
+        )}
         <div className="flex items-center gap-1 ml-2 shrink-0">
           {!isPhone && (
             <button
@@ -1020,9 +1049,18 @@ const ComposeWindow = ({ myEmail, onClose, onSent, replyData = null, draftId = n
                   </span>
                 )}
                 {sendState === 'error' && (
-                  <span className="flex items-center gap-1.5 text-xs text-destructive min-w-0">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate" role="alert" title={sendError}>{sendError}</span>
+                  <span className="flex min-w-0 items-start gap-1.5 text-xs text-destructive">
+                    <AlertCircle className="mt-0.5 w-3.5 h-3.5 shrink-0" />
+                    {/* Cut to one ellipsised line, the reason for a failed send was unreadable —
+                        and the only way to retry was to work out that Send does it again. */}
+                    <span className="min-w-0 line-clamp-2" role="alert" title={sendError}>{sendError}</span>
+                    <button
+                      type="button"
+                      onClick={sendWithPgpIfNeeded}
+                      className="shrink-0 underline underline-offset-2 text-destructive/90 max-sm:min-h-11"
+                    >
+                      Try again
+                    </button>
                   </span>
                 )}
                 {sendState === 'done' && sendResults.length > 0 && (
