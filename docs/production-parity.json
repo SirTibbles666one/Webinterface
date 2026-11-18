@@ -3,12 +3,13 @@
   "baseline": "live bundle at mail.slothlee.xyz, 2026-11-18 (index-BWTHVBwE.js, Settings-CT-b9i2Y.js, Admin-1Oj5voM0.js, ComposeWindow-Cd-3eI-Y.js)",
   "features": [
     {
-      "id": "attachments-25mb",
-      "why": "The composer accepts 25 MB per file and all six caps agree.",
+      "id": "attachments-budget",
+      "why": "The wire multiplies a picked file by 3.65 (base64 in the MIME, base64 in the envelope, one seal per recipient), so a limit written in file bytes must be divided by that. The budget is counted per message, and a refusal names the sizes.",
       "must": [
-        "Max 25 MB per file",
-        "24 MB per message"
-      ]
+        "Encrypted mail carries",
+        "per message"
+      ],
+      "label": "The composer accepts a measured per-message attachment budget"
     },
     {
       "id": "snooze",
