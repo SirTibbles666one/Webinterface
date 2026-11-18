@@ -201,6 +201,15 @@ export const adminSetRole = async (username, role) => {
   return response.data
 }
 
+/** Who is reporting on this domain, and who says mail failed. */
+export const adminDmarc = async (days = 30) => {
+  const token = storage.getToken()
+  const response = await api.post('/admin/dmarc', { days }, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return response.data
+}
+
 export const adminMailHealth = async () => {
   const token = storage.getToken()
   const response = await api.post('/admin/mail-health', {}, {

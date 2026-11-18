@@ -13,7 +13,7 @@ import {
   adminGetUsers, adminCreateUser, adminDeleteUser, adminSetAdminStatus, adminSetSuspended,
   adminGetWaitlist, adminApproveWaitlist, adminGetPending, adminApprovePending,
   adminDenyPending, adminSetRecoveryAddress, adminSendRecovery,
-  adminGetRecipients, adminGetDiskUsage, adminListAudit, adminMailHealth, adminSetRole,
+  adminGetRecipients, adminGetDiskUsage, adminListAudit, adminMailHealth, adminSetRole, adminDmarc,
 } from '@/api'
 import { storage } from '@/storage'
 
@@ -95,6 +95,7 @@ function Admin() {
   const [audit, setAudit] = useState(null)
   const [auditLoading, setAuditLoading] = useState(false)
   const [health, setHealth] = useState(null)
+  const [dmarc, setDmarc] = useState(null)
 
   const [busy, setBusy] = useState('')
   const [copied, setCopied] = useState('')
@@ -150,6 +151,14 @@ function Admin() {
     }
   }, [])
 
+  const fetchDmarc = useCallback(async () => {
+    try {
+      setDmarc(await adminDmarc(30))
+    } catch {
+      setDmarc(null)
+    }
+  }, [])
+
   const fetchHealth = useCallback(async () => {
     try {
       setHealth(await adminMailHealth())
@@ -178,8 +187,8 @@ function Admin() {
   }, [tab, audit, fetchAudit])
 
   useEffect(() => {
-    if (tab === 'deliverability' && health === null) fetchHealth()
-  }, [tab, health, fetchHealth])
+    if (tab === 'deliverability' && health === null) { fetchHealth(); fetchDmarc() }
+  }, [tab, health, fetchHealth, fetchDmarc])
 
   useEffect(() => {
     if (!storage.getIsAdmin()) {
@@ -197,7 +206,7 @@ function Admin() {
     if (which === 'activity') fetchAudit()
     if (which === 'people') fetchUsers()
     if (which === 'access') { fetchPending(); fetchInvites() }
-    if (which === 'deliverability') fetchHealth()
+    if (which === 'deliverability') { fetchHealth(); fetchDmarc() }
     if (which === 'deliverability' || which === 'system') fetchDelivery()
   }
 
@@ -868,6 +877,59 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                     : ' · the host has not written a queue snapshot recently'}
                   {health.rspamd ? ` · rspamd ${health.rspamd.version}` : ''}
                 </p>
+              </>
+            )}
+          </Panel>
+        )}
+
+        {tab === 'deliverability' && (
+          <Panel
+            title="Reports from other mail systems"
+            note="DMARC and TLS reports sent to this domain, last 30 days. A failure here is another provider telling you that something claimed to be you did not authenticate."
+          >
+            {!dmarc ? (
+              <Empty>Reports could not be read just now.</Empty>
+            ) : !dmarc.rows?.length ? (
+              <Empty>No reports in the last {dmarc.days} days.</Empty>
+            ) : (
+              <>
+                <ul className="divide-y divide-line sm:hidden">
+                  {dmarc.rows.map((r) => (
+                    <li key={`${r.reporter}-${r.kind}`} className="px-4 py-3">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <p className="min-w-0 flex-1 truncate text-[13.5px] text-ink-1">{r.reporter}</p>
+                        <span className={`mono shrink-0 text-[12px] ${r.failures ? 'text-destructive' : 'text-ink-3'}`}>
+                          {r.failures} failed
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-[11.5px] text-ink-3">
+                        {r.kind} · {r.messages} messages · last {new Date(r.last_seen * 1000).toLocaleDateString()}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+                <table className="hidden w-full text-left text-[13px] sm:table">
+                  <thead>
+                    <tr className="border-b border-line">
+                      <th className="label px-4 py-2">Reporter</th>
+                      <th className="label px-4 py-2">Kind</th>
+                      <th className="label px-4 py-2">Messages</th>
+                      <th className="label px-4 py-2">Failed</th>
+                      <th className="label px-4 py-2">Last seen</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dmarc.rows.map((r) => (
+                      <tr key={`${r.reporter}-${r.kind}`} className="border-b border-line/60">
+                        <td className="px-4 py-2 text-ink-1">{r.reporter}</td>
+                        <td className="px-4 py-2 text-ink-3">{r.kind}</td>
+                        <td className="mono px-4 py-2 text-ink-2">{r.messages}</td>
+                        <td className={`mono px-4 py-2 ${r.failures ? 'text-destructive' : 'text-ink-3'}`}>{r.failures}</td>
+                        <td className="mono px-4 py-2 text-ink-3">{new Date(r.last_seen * 1000).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </>
             )}
           </Panel>
