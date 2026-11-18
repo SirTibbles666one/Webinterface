@@ -1,0 +1,64 @@
+# Inline reading: open a message in the list, Proton-style
+
+Status: **planned, not built.** The reply/spacing slice shipped (`d173f7b`); this is
+the next structural slice and it changes navigation, so it gets its own pass.
+
+## What is asked for
+
+On a phone, tapping a message should expand it **in place** in the list — header,
+body, and its own action row — instead of replacing the screen with a reader you
+back out of. The list stays scrollable, and the next message is one tap away.
+Compose becomes a floating action rather than a bar.
+
+The reference (Proton Mail on Android) shows: collapsed rows carrying sender, time,
+star/attachment marks; the open row expands to a header (lock, sender, address, To
+row), a compact action row (archive/trash/more, reply/reply-all/forward), the body
+in a white card, and an attachment strip with sizes. A floating compose button
+sits over the list.
+
+## Why it is not a resize
+
+Today the two form factors take different paths in `AuthorizedLayout`:
+
+- **desktop**: `selectedUid` fills a right-hand pane with `EmailView`
+- **phone**: `selectedUid` replaces the list with `EmailView` and adds a back control
+
+`EmailView` fetches, decrypts, renders HTML in a sandboxed iframe and owns the
+action bar. Inline reading needs that same component **inside** the list's scroll
+flow, for exactly one row, without its own scroll container.
+
+## Shape of the change
+
+1. `EmailList` gains two props: `inlineUid` and `inlineSlot`. After rendering the row
+   whose uid matches, it renders `inlineSlot` — nothing else changes, no row gains
+   height unless it is the open one.
+2. `EmailView` gains a `variant="inline"` that drops its `ScrollArea` and the back
+   control, keeps the header/body/attachments, and caps its height so one long
+   message cannot swallow the list.
+3. `AuthorizedLayout` picks the variant by form factor: desktop keeps the pane;
+   phone passes `inlineUid={selectedUid}` and stops rendering the full-screen reader.
+4. The phone compose bar becomes a floating action in the same slice — a bottom bar
+   plus an inline open row is two things competing for the same edge.
+
+## Acceptance
+
+- Tapping row N opens exactly one inline body, directly under row N, and the rows
+  above and below keep their positions (measure row rects before/after; the open row
+  may grow, nothing above it may move).
+- Tapping it again collapses it; tapping another row closes the first.
+- Scrolling with a message open does not jump: the open row stays anchored.
+- No horizontal overflow at 320/390/430, every control ≥ 44 px, and the action row
+  fully inside the viewport (measure `rect.right`, not `scrollWidth`).
+- Reader height cap: a long message scrolls inside its own block, not the page.
+- Desktop is untouched — same two-pane behaviour, same measurements.
+- The parity gate gains the strings this introduces, so the feature cannot be lost
+  in a later rebuild.
+
+## Risks
+
+- `EmailView`'s decrypt path runs per open row; opening/closing quickly must not
+  leave a stale body rendered under the wrong row (`key={uid}` on the slot).
+- The HTML body renders in an iframe sized by its own measure; inside a growing row
+  the resize observer must be told the width changed.
+- Two scroll containers (list + body) fight on touch; the body must not scroll the
+  page when it reaches its end (`overscroll-behavior: contain`).
