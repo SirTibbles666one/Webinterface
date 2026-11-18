@@ -287,11 +287,13 @@ const EmailView = ({
       {/* The bar carries actions only. What the message is, and who sent it,
           belongs in the reading column below, where the eye already is. */}
       <div className="flex h-14 shrink-0 items-center gap-1 border-b border-line px-3 max-sm:h-12 max-sm:px-2">
+        {/* Hidden only where the pane sits beside the list and the list is still reachable.
+            It was `md:hidden`, so a 768px tablet got a full-screen reader with no way out. */}
         {onBack && !inline && (
           <button
             type="button"
             onClick={onBack}
-            className="md:hidden flex min-h-11 items-center gap-1 pr-1.5 text-[13px] text-ink-2"
+            className="min-[1200px]:hidden flex min-h-11 items-center gap-1 pr-1.5 text-[13px] text-ink-2"
             aria-label="Back to inbox"
           >
             <span aria-hidden="true" className="text-[15px]">←</span> Inbox
