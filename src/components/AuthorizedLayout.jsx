@@ -205,14 +205,10 @@ const AuthorizedLayout = () => {
         storage.set({ is_admin: admin })
       }
       setServerStatus('ok')
-    } catch (err) {
-      // A revoked or expired token is not an unreachable server: retrying it every 30 seconds is
-      // how a session that was ended keeps hammering the API. Send the reader to sign in once.
-      if (err?.response?.status === 401) {
-        storage.clear?.()
-        window.location.assign('/login')
-        return
-      }
+    } catch {
+      // A 401 is handled once, centrally, by the api client's interceptor: it verifies the token
+      // with the server, clears the session and sends the reader to sign in. Retrying here would
+      // be a second mechanism doing the same job with a different opinion.
       setServerStatus('unreachable')
     }
   }, [])
