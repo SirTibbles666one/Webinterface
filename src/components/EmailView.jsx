@@ -565,7 +565,10 @@ const EmailView = ({
           </div>
 
           {email.attachments.length > 0 && (
-            <div className="px-6 pb-6 border-t border-border pt-5">
+            <div className="px-6 pb-6 border-t border-border pt-5 max-sm:pb-28">
+            {/* The action bar is fixed to the bottom edge on a phone; the attachments
+                are the last thing in the scroll pane, so they need the bar's height
+                reserved here or the chip is clipped under it — measured, not guessed. */}
               <p className="text-sm font-semibold text-foreground/65 mb-3">
                 Attachments ({email.attachments.length})
               </p>
