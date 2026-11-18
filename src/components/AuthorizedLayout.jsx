@@ -21,6 +21,7 @@ import { useTrash } from '@/hooks/useTrash'
 import { listShortcut, neighbourAfterRemoval, stepThrough } from '@/lib/mailNav'
 import { useEmailActions } from '@/hooks/useEmailActions'
 import { useGroupActions } from '@/hooks/useGroupActions'
+import { useSnoozed, snoozeLabel, snoozePresets } from '@/hooks/useSnoozed'
 import { keySession } from '@/keySession'
 import { mergeServerFlags } from '@/lib/mailboxState'
 import { storage } from '@/storage'
@@ -111,6 +112,7 @@ const AuthorizedLayout = () => {
     if (sent.length) await fetchSentPreviews(sent)
   }, [fetchEmails, fetchSentUids, fetchSentPreviews])
   const trash = useTrash({ fetchPreviewsFor, fetchSentPreviews, setPreviews, onRestored: reloadFolders })
+  const snoozed = useSnoozed({ fetchPreviewsFor })
   const { markRead, markUnread, toggleStar, deleteEmail, deleteMany, undoLast, moveToGroup, removeFromGroup, forget } = useEmailActions({
     emailMeta, setEmailMeta, setUids, setPreviews, setSelectedUid, setGroups, groups, setSentUids,
     onTrashed: trash.addTrashed,
@@ -165,6 +167,8 @@ const AuthorizedLayout = () => {
         if (sent.length) await fetchSentPreviews(sent)
       } else if (selectedFolder === 'trash') {
         await trash.fetchTrash()
+      } else if (selectedFolder === 'snoozed') {
+        await snoozed.fetchSnoozed()
       } else {
         await reload()
         if (selectedFolder !== 'inbox' && selectedFolder !== 'starred' && selectedFolder !== 'drafts') await fetchGroups()
@@ -172,7 +176,7 @@ const AuthorizedLayout = () => {
     } finally {
       setRefreshing(false)
     }
-  }, [selectedFolder, fetchSentUids, fetchSentPreviews, trash, reload, fetchGroups])
+  }, [selectedFolder, fetchSentUids, fetchSentPreviews, trash, snoozed, reload, fetchGroups])
 
   // New mail arrives without a tap: once a minute while the app is on screen, and at once when
   // it comes back (a phone switching back to the tab, a laptop waking). Hidden tabs do not poll.
@@ -231,6 +235,7 @@ const AuthorizedLayout = () => {
     if (selectedFolder === 'sent') return sentUids
     if (selectedFolder === 'drafts') return drafts.map((d) => d.id)
     if (selectedFolder === 'trash') return trash.items.map((item) => item.uid)
+    if (selectedFolder === 'snoozed') return snoozed.items.map((item) => item.uid)
     const group = groups.find((g) => g.uid === selectedFolder)
     if (group) return group.email_uids.filter((uid) => uids.includes(uid) || sentUids.includes(uid))
     return uids
@@ -299,7 +304,20 @@ const AuthorizedLayout = () => {
     return map
   }, [drafts])
 
-  const allPreviews = selectedFolder === 'drafts' ? draftPreviews : previews
+  // In the Snoozed folder the useful line on a row is when it comes back, so the
+  // excerpt is prefixed with it. EmailListItem shows the excerpt it is given.
+  const snoozedPreviews = useMemo(() => {
+    if (selectedFolder !== 'snoozed') return previews
+    const map = { ...previews }
+    for (const item of snoozed.items) {
+      const base = previews[item.uid] ?? {}
+      const label = snoozeLabel(item.until)
+      map[item.uid] = { ...base, preview: base.preview ? `${label} · ${base.preview}` : label }
+    }
+    return map
+  }, [previews, snoozed.items, selectedFolder])
+
+  const allPreviews = selectedFolder === 'drafts' ? draftPreviews : snoozedPreviews
 
   const filteredUids = useMemo(() => {
     if (selectedFolder === 'drafts') return visibleUids
@@ -356,6 +374,20 @@ const AuthorizedLayout = () => {
     if (selectedFolder === 'trash') fetchTrash()
   }, [selectedFolder, fetchTrash])
 
+  // Snoozed mail appears in no other folder, so the list is read once the account is
+  // known — the bar's count needs it — and again whenever the folder is opened.
+  // Nothing here filters the inbox: the server is what keeps a sleeping message out of it.
+  const { fetchSnoozed } = snoozed
+  useEffect(() => {
+    if (!userEmail) return
+    fetchSnoozed().catch(() => {})
+  }, [userEmail, fetchSnoozed])
+
+  useEffect(() => {
+    if (selectedFolder !== 'snoozed') return
+    fetchSnoozed().catch(() => {})
+  }, [selectedFolder, fetchSnoozed])
+
   useEffect(() => {
     if (selectedFolder === 'sent') {
       fetchSentUids().then((uids) => {
@@ -371,6 +403,7 @@ const AuthorizedLayout = () => {
     if (selectedFolder === 'sent') return 'Sent'
     if (selectedFolder === 'drafts') return 'Drafts'
     if (selectedFolder === 'trash') return 'Trash'
+    if (selectedFolder === 'snoozed') return 'Snoozed'
     return groups.find((g) => g.uid === selectedFolder)?.title ?? 'Inbox'
   })()
 
@@ -691,6 +724,35 @@ const AuthorizedLayout = () => {
     setComposeOpen(true)
   }, [])
 
+  // The four times the menu offers, worked out from the moment it is drawn.
+  const snoozeOptions = snoozePresets()
+
+  // Putting a message away: the server keeps it asleep and the inbox no longer lists
+  // it, so it leaves this list at once rather than after a reload.
+  const snoozeMessage = async (uid, until) => {
+    const [done] = await snoozed.snooze([uid], until)
+    if (!done) {
+      toast('That message could not be put away')
+      return
+    }
+    setUids((prev) => prev.filter((item) => String(item) !== String(uid)))
+    setSelectedUid(null)
+    toast(`Snoozed — ${snoozeLabel(until)}`)
+  }
+
+  // Waking it early is the server's job too: the message goes back where its folder
+  // rules put it, so the lists are read again instead of guessed at.
+  const wakeMessage = async (uid) => {
+    const woken = await snoozed.wake([uid])
+    if (!woken.length) {
+      toast('That message could not be brought back')
+      return
+    }
+    setSelectedUid(null)
+    await reloadFolders()
+    toast('Back in the inbox')
+  }
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <div className="flex flex-1 overflow-hidden">
@@ -708,6 +770,7 @@ const AuthorizedLayout = () => {
             sentCount={sentUids.length}
             draftsCount={drafts.length}
             trashCount={trash.items.length}
+            snoozeCount={snoozed.count}
             onCompose={() => setComposeOpen(true)}
             onOpenSettings={() => navigate('/settings')}
           />
@@ -748,6 +811,7 @@ const AuthorizedLayout = () => {
                 sentCount={sentUids.length}
                 draftsCount={drafts.length}
                 trashCount={trash.items.length}
+                snoozeCount={snoozed.count}
                 onCompose={() => { setNavOpen(false); setComposeOpen(true) }}
                 onOpenSettings={() => { setNavOpen(false); navigate('/settings') }}
               />
@@ -825,6 +889,17 @@ const AuthorizedLayout = () => {
                         Empty trash
                       </button>
                     )}
+                  </div>
+                </div>
+              )}
+              {selectedFolder === 'snoozed' && (
+                <div className="border-b border-line">
+                  <div className="mx-auto flex w-full max-w-[1040px] items-center gap-3 px-4 py-2 text-[12px] text-ink-2">
+                    <span className="min-w-0 flex-1">
+                      {snoozed.available
+                        ? 'Put away until a time you chose. These are out of every other folder and come back to the inbox by themselves.'
+                        : 'Snoozing needs the latest mail server. Until it is updated, nothing can be put away.'}
+                    </span>
                   </div>
                 </div>
               )}
@@ -909,6 +984,10 @@ const AuthorizedLayout = () => {
                 onFileSender={selectedFolder === 'trash' || selectedFolder === 'sent' ? null : fileSender}
                 onDeleteFromSender={selectedFolder === 'trash' ? null : deleteFromSender}
                 countFromSender={(address) => uidsFromSender(address).length}
+                onSnooze={snoozeMessage}
+                onWake={wakeMessage}
+                snoozedUntil={selectedUid ? snoozed.untilFor(selectedUid) : null}
+                snoozeOptions={snoozeOptions}
               />
             </div>
             )}
