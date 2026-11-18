@@ -1,6 +1,6 @@
 # Ids on the wire — plan
 
-Status: **planned, not started.** The client change shipped 2026-11-18 (`preserveBigInts`
+Status: **done and deployed 2026-11-18** (`openneutron:u128`, client `1348e55`). Server restart done with `openneutron:rollback-pre-u128` tagged for rollback. The client change shipped 2026-11-18 (`preserveBigInts`
 extracted and pinned by tests); the server half needs its own build-and-restart window.
 
 ## The problem
@@ -61,3 +61,31 @@ by the server, but a permissive helper keeps round-trip tests possible).
 Not because the hack is ugly. Because it silently corrupts message content: any mail where
 such a number appears after a colon is unreadable, and the reader shows "(encrypted)"
 instead — which looks like a crypto problem and sends people looking in the wrong place.
+
+## What actually shipped
+
+**Server** (`hermes/u128-strings`, image `openneutron:u128`): a `u128_string` serde helper, applied
+to exactly six response fields — `EmailBytesResponse.uid`, `EmailFlagResponse.uid`,
+`EmailUidsResponse.uids`, `EmailUidsPage.uids`, `GroupDto.email_uids`, `EphemeralStatusItem.uid`.
+Requests were left untouched; they still accept numbers through `u128_flex`. 160 Rust tests,
+two new.
+
+**Client** (`preserveBigInts`): a response is now parsed as-is first. The quoting pass runs only
+when a clean parse produced a number above `Number.MAX_SAFE_INTEGER` — the signature of an id
+that has already lost digits. A well-formed response is never touched, so the body corruption
+is gone while an old server keeps working unchanged.
+
+**Verified on production, in this order:**
+
+| check | result |
+|---|---|
+| `/email/list` uid | `"105325996633965786859089797389928490293"` — quoted, 39 digits |
+| KT head across the restart | size 45, same root — nothing moved |
+| a message whose body says `ref: 1234567890123456` | **renders**, no "(encrypted)" placeholder, no error card |
+| encrypted send → read → decrypt | works end to end with ids travelling back as strings |
+
+**A wrong turn worth keeping.** The first client fix was "parse cleanly, fall back on failure".
+That would have silently accepted a rounded uid, because `123456789012345678901` parses perfectly
+happily into `123456789012345680000` — the corruption is invisible, not an exception. The guard
+had to be "clean parse, then check for a number beyond safe-integer range", which is what an
+overflowed id actually looks like. Two tests pin it, including that a timestamp stays a number.
