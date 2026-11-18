@@ -178,10 +178,6 @@ export function EmailListItem({
           >
             {undecryptable ? 'Encrypted message' : senderLabel}
           </span>
-          {preview?.e2ee && <Lock className="size-3 shrink-0 text-ink-3" aria-label="End-to-end encrypted" />}
-          {preview?.attachments?.length > 0 && (
-            <Paperclip className="size-3 shrink-0 text-ink-3" aria-label="Has attachments" />
-          )}
         </div>
 
         {/* One width for the column, not three: "14:34" is 36px, "Oct 17" 43, and
@@ -206,7 +202,29 @@ export function EmailListItem({
             >
               {preview?.subject || '(no subject)'}
             </p>
-            {isStarred && <Star className="size-3 shrink-0 self-center fill-sand text-sand" aria-label="Starred" />}
+            {/* Proton puts the badges on the subject line, not the sender line: the left
+                column belongs to people, the right to status. Kept as icons rather than
+                text so the subject keeps its width. */}
+            <span className="ml-auto flex shrink-0 items-center gap-1.5 pl-1">
+              {preview?.attachments?.length > 0 && (
+                <Paperclip className="size-3 text-ink-3" aria-label="Has attachments" />
+              )}
+              {preview?.e2ee && <Lock className="size-3 text-ink-3" aria-label="End-to-end encrypted" />}
+              <button
+                type="button"
+                aria-label={isStarred ? 'Remove star' : 'Star message'}
+                aria-pressed={isStarred}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onToggleStar(uid)
+                }}
+                className={`-m-1 rounded p-1 transition-colors duration-120 hover:text-sand ${
+                  isStarred ? 'text-sand' : 'text-ink-3'
+                }`}
+              >
+                <Star className={`size-3.5 ${isStarred ? 'fill-sand' : ''}`} />
+              </button>
+            </span>
           </div>
           {/* No snippet line. Proton's inbox is two lines — people, then subject — and a
               third line of preview text was what made this list feel crowded next to it.
@@ -224,20 +242,6 @@ export function EmailListItem({
           menuOpen ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100 focus-within:opacity-100'
         } pointer-coarse:hidden`}
       >
-        <button
-          type="button"
-          aria-label={isStarred ? 'Remove star' : 'Star message'}
-          onClick={(e) => {
-            e.stopPropagation()
-            onToggleStar(uid)
-          }}
-          className={`rounded p-1.5 transition-colors duration-120 hover:bg-accent max-sm:p-2.5 ${
-            isStarred ? 'text-sand' : 'text-ink-3 hover:text-sand'
-          }`}
-        >
-          <Star className={`size-3.5 ${isStarred ? 'fill-sand' : ''}`} />
-        </button>
-
         <DropdownMenuRoot onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger asChild>
             <button
