@@ -449,3 +449,9 @@
 .thread-card [data-view-chrome] {
   display: none !important;
 }
+
+/* The message body reserves 96px at its foot to clear the fixed action bar. A card has no
+   bar, and that reservation was the empty space under every opened message. */
+.thread-card .max-sm\:pb-24 {
+  padding-bottom: 0.75rem !important;
+}
