@@ -29,18 +29,29 @@ describe('preserveBigInts', () => {
     expect(preserveBigInts(wire)).toEqual({ message: 'send completed', count: 3 })
   })
 
-  it('KNOWN FLAW: a 16-digit run after a colon inside text is quoted too', () => {
-    // Documented, not celebrated. The trigger is narrow but real: only digits that follow
-    // `:`, `,` or `[` — so "card 1234…" survives while "ref: 1234…" is corrupted. This is
-    // the concrete reason the server should send uids as strings.
-    // The quoting lands INSIDE the string, so the JSON becomes unparseable and the whole
-    // response is handed back as raw text — which is how a message with such a line ends
-    // up rendering as "(encrypted)" instead of its contents.
-    const broken = preserveBigInts('{"body":"ref: 1234567890123456 was declined"}')
-    expect(typeof broken).toBe('string')
+  it('no longer corrupts a body with a 16-digit number after a colon', () => {
+    // This was the user-visible bug: the quoting landed inside the string, the JSON stopped
+    // parsing, and the message rendered as "(encrypted)". Now a well-formed response is
+    // parsed as-is, so the fallback never touches it.
+    const parsed = preserveBigInts('{"body":"ref: 1234567890123456 was declined"}')
+    expect(parsed.body).toBe('ref: 1234567890123456 was declined')
 
-    const fine = preserveBigInts('{"body":"card 1234567890123456 was declined"}')
-    expect(fine.body).toBe('card 1234567890123456 was declined')
+    const plain = preserveBigInts('{"body":"card 1234567890123456 was declined"}')
+    expect(plain.body).toBe('card 1234567890123456 was declined')
+  })
+
+  it('still rescues a server that sends numeric ids', () => {
+    // The compatibility path: a clean parse would hand back a rounded double, so the guard
+    // detects an unsafe number and re-reads with quoting.
+    const numeric = preserveBigInts('{"uid":123456789012345678901}')
+    expect(numeric.uid).toBe('123456789012345678901')
+  })
+
+  it('does not treat an ordinary large-but-safe number as an id', () => {
+    // 1.7e9 (a timestamp) must stay a number, not become a string.
+    const parsed = preserveBigInts('{"at":1795002611,"n":42}')
+    expect(parsed.at).toBe(1795002611)
+    expect(parsed.n).toBe(42)
   })
 
   it('passes non-string input through untouched', () => {

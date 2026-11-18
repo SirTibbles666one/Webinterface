@@ -10,12 +10,37 @@ import { keySession } from './keySession'
 // It is also indiscriminate: any 16+ digit run after `:`/`,`/`[` inside a message body is
 // quoted too, which corrupts that body. The real fix is uids as strings on the wire
 // (docs/UID-ON-THE-WIRE.md); until then this must stay.
+const QUOTE_BIG_DIGITS = /([,:\[]\s*)(\d{16,})/g
+
+// Does this parsed value contain a number too big to have survived as a double?
+function hasUnsafeNumber(node, depth = 0) {
+  if (depth > 6 || node === null || typeof node !== 'object') {
+    return typeof node === 'number' && Number.isFinite(node) && Math.abs(node) > Number.MAX_SAFE_INTEGER
+  }
+  if (Array.isArray(node)) return node.some((item) => hasUnsafeNumber(item, depth + 1))
+  return Object.values(node).some((value) => hasUnsafeNumber(value, depth + 1))
+}
+
 export function preserveBigInts(data) {
   if (typeof data !== 'string') return data
+
+  // Parse cleanly first. Ids travel as strings now, so a well-formed response needs no
+  // patching — and patching one anyway corrupts any message body holding a 16-digit number
+  // after a colon, which is exactly why such messages used to render as "(encrypted)".
+  let parsed
   try {
-    return JSON.parse(data.replace(/([,:\[]\s*)(\d{16,})/g, '$1"$2"'))
+    parsed = JSON.parse(data)
   } catch {
-    return data
+    parsed = undefined
+  }
+  // A clean parse is only trustworthy if it did not silently mangle an id: a numeric uid
+  // beyond 2^53 has already lost digits by the time it is a `number`. Only then fall back
+  // to the quoting pass, which is what old servers need and new ones never trigger.
+  if (parsed !== undefined && !hasUnsafeNumber(parsed)) return parsed
+  try {
+    return JSON.parse(data.replace(QUOTE_BIG_DIGITS, '$1"$2"'))
+  } catch {
+    return parsed !== undefined ? parsed : data
   }
 }
 
