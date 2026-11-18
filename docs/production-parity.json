@@ -1,0 +1,41 @@
+{
+  "_comment": "Features the production client ships. A build missing any of these is a downgrade, however green the build looks. Strings are checked against the emitted bundle, case-sensitively. Keep this list to user-visible text that belongs to one feature, so a failure names the feature that vanished.",
+  "baseline": "live bundle at mail.slothlee.xyz, 2026-11-18 (index-BWTHVBwE.js, Settings-CT-b9i2Y.js, Admin-1Oj5voM0.js, ComposeWindow-Cd-3eI-Y.js)",
+  "features": [
+    {
+      "id": "attachments-25mb",
+      "why": "The composer accepts 25 MB per file and all six caps agree.",
+      "must": ["Max 25 MB per file", "25 MB limit"]
+    },
+    {
+      "id": "snooze",
+      "why": "Snoozing puts a message out of every folder until a chosen time.",
+      "must": ["Snooze until", "Bring back now", "Snoozing needs the latest mail server"]
+    },
+    {
+      "id": "mailboxes",
+      "why": "Named mailboxes read several addresses as one inbox.",
+      "must": ["Save mailbox", "no addresses yet", "New mailbox", "in another mailbox", "That is all"]
+    },
+    {
+      "id": "admin-suspend",
+      "why": "An admin can switch an account off and back on.",
+      "must": ["Switch this account off", "Switch it back on"]
+    },
+    {
+      "id": "admin-signin-message",
+      "why": "A new account's one-time password is shown once and can be copied as a message.",
+      "must": ["Copy sign-in message", "Sloth Lee Mail account ("]
+    },
+    {
+      "id": "import-archive",
+      "why": "Mail can be imported from another provider's archive.",
+      "must": ["slotharc"]
+    },
+    {
+      "id": "trash",
+      "why": "Deleted mail is recoverable until the trash is emptied.",
+      "must": ["Empty trash", "Restore to where it was"]
+    }
+  ]
+}

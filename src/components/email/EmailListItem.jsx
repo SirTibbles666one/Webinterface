@@ -57,6 +57,8 @@ export function EmailListItem({
   compactTime = false,
   uid,
   preview,
+  // In the Snoozed folder the useful line is when the message comes back, not its text.
+  untilLabel = null,
   isSelected,
   isChecked,
   isUnread,
@@ -82,9 +84,13 @@ export function EmailListItem({
 
   const senderLabel = preview?.from?.name || preview?.from?.email || uid
 
-  const snippet = undecryptable
-    ? 'Cannot be decrypted with the key on this device'
-    : preview?.preview || ''
+  const snippet = untilLabel
+    ? undecryptable || !preview?.preview
+      ? untilLabel
+      : `${untilLabel} · ${preview.preview}`
+    : undecryptable
+      ? 'Cannot be decrypted with the key on this device'
+      : preview?.preview || ''
 
   const ground = isSelected
     ? 'bg-[color-mix(in_srgb,var(--color-primary)_9%,transparent)]'

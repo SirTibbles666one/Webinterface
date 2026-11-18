@@ -304,20 +304,17 @@ const AuthorizedLayout = () => {
     return map
   }, [drafts])
 
-  // In the Snoozed folder the useful line on a row is when it comes back, so the
-  // excerpt is prefixed with it. EmailListItem shows the excerpt it is given.
-  const snoozedPreviews = useMemo(() => {
-    if (selectedFolder !== 'snoozed') return previews
-    const map = { ...previews }
-    for (const item of snoozed.items) {
-      const base = previews[item.uid] ?? {}
-      const label = snoozeLabel(item.until)
-      map[item.uid] = { ...base, preview: base.preview ? `${label} · ${base.preview}` : label }
-    }
+  // In the Snoozed folder the useful line on a row is when it comes back. The list
+  // takes that as its own prop rather than rewriting previews, so a row that cannot
+  // be decrypted still says when it returns instead of only why it will not open.
+  const snoozedLabels = useMemo(() => {
+    if (selectedFolder !== 'snoozed') return null
+    const map = {}
+    for (const item of snoozed.items) map[item.uid] = snoozeLabel(item.until)
     return map
-  }, [previews, snoozed.items, selectedFolder])
+  }, [snoozed.items, selectedFolder])
 
-  const allPreviews = selectedFolder === 'drafts' ? draftPreviews : snoozedPreviews
+  const allPreviews = selectedFolder === 'drafts' ? draftPreviews : previews
 
   const filteredUids = useMemo(() => {
     if (selectedFolder === 'drafts') return visibleUids
@@ -917,6 +914,7 @@ const AuthorizedLayout = () => {
                 filterMode={filterMode}
                 uids={pagedUids}
                 previews={allPreviews}
+                untilLabels={snoozedLabels}
                 emailMeta={emailMeta}
                 selectedUid={selectedUid}
                 checkedUids={checkedUids}

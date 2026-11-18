@@ -28,3 +28,4 @@ note.asc
 seal-pass.mjs
 seal-files.mjs
 check-file.mjs
+.worktrees/

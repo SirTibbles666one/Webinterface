@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "proofs": "./scripts/run-all-proofs.sh"
+    "proofs": "./scripts/run-all-proofs.sh",
+    "check:parity": "node scripts/check-live-parity.mjs dist"
   },
   "dependencies": {
     "@noble/post-quantum": "^0.7.1",

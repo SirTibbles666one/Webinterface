@@ -46,6 +46,13 @@ if ! grep -q "$stamp" "dist/$entry"; then
   exit 1
 fi
 
+echo "== parity with production"
+# A green build that dropped a shipped feature looks exactly like a good one.
+if ! node scripts/check-live-parity.mjs dist; then
+  echo "FAIL  this build is missing features production already serves — see docs/production-parity.json" >&2
+  exit 1
+fi
+
 echo "== upload $entry ($stamp)"
 tar czf - -C dist . | ssh -i "$KEY" -o BatchMode=yes "$HOST" \
   "rm -rf $STATIC/* && tar xzf - -C $STATIC && echo uploaded"

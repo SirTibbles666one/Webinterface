@@ -28,7 +28,7 @@ export function useAttachments({ onError }) {
     }
 
     if (oversized.length > 0) {
-      onError(`${oversized.length === 1 ? 'File exceeds' : 'Files exceed'} the 20 MB limit: ${oversized.join(', ')}`)
+      onError(`${oversized.length === 1 ? 'File exceeds' : 'Files exceed'} the 25 MB limit: ${oversized.join(', ')}`)
     }
 
     if (toAdd.length === 0) return

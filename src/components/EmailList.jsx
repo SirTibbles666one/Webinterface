@@ -9,6 +9,8 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 
 const EmailList = ({
   searchQuery = '',
+  // Inside Snoozed, the row's second line says when the message comes back.
+  untilLabels = null,
   filterMode = 'all',
   uids,
   previews,
@@ -102,6 +104,7 @@ const EmailList = ({
     uid,
     compactTime: true,
     preview: previews[uid],
+    untilLabel: untilLabels?.[uid] ?? null,
     isSelected: selectedUid === uid,
     isChecked: !!checkedUids?.has(uid),
     isUnread: emailMeta[uid]?.unread !== false,
