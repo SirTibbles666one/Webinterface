@@ -14,7 +14,7 @@ import { ensureStoredKey } from '@/lib/keyRecovery'
  * so the password is needed again — this is the prompt that makes that a small
  * step instead of a full logout.
  */
-export function UnlockModal({ isOpen, onUnlocked }) {
+export function UnlockModal({ isOpen, onUnlocked, onDismiss = null }) {
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -42,8 +42,11 @@ export function UnlockModal({ isOpen, onUnlocked }) {
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={() => {}}>
-      <ModalHeader title="Unlock mailbox" onClose={() => {}} />
+    // The gate used to render a close control wired to nothing: a false affordance
+    // exactly where a phone user has no password to hand. "Not now" is real, and the
+    // shell keeps a way back in.
+    <Modal isOpen={isOpen} onClose={onDismiss || (() => {})} dismissible={!!onDismiss}>
+      <ModalHeader title="Unlock mailbox" onClose={onDismiss || (() => {})} dismissible={!!onDismiss} />
       <ModalContent>
         <p className="text-sm text-foreground/70">
           Your messages are decrypted in this browser only. After closing or reloading
@@ -51,6 +54,8 @@ export function UnlockModal({ isOpen, onUnlocked }) {
         </p>
         <Input
           type="password"
+          aria-label="Password"
+          className="max-sm:min-h-[44px]"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           onKeyDown={(e) => {
@@ -63,7 +68,12 @@ export function UnlockModal({ isOpen, onUnlocked }) {
         {error && <p className="text-xs text-destructive">{error}</p>}
       </ModalContent>
       <ModalFooter>
-        <Button size="sm" onClick={unlock} disabled={busy || !password}>
+        {onDismiss && (
+          <Button variant="ghost" onClick={onDismiss} disabled={busy} className="max-sm:min-h-[44px]">
+            Not now
+          </Button>
+        )}
+        <Button size="sm" onClick={unlock} disabled={busy || !password} className="max-sm:min-h-[44px]">
           {busy ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Lock className="w-3.5 h-3.5 mr-1.5" />}
           Unlock
         </Button>

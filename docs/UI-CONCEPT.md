@@ -116,6 +116,17 @@ by the checkbox — the row never gains height.
    presented as current.
 4. **Full** — the design above.
 
+## Dialogs
+
+One shell (`ui/Modal`) carries what a dialog must not have to remember per call
+site: `role="dialog"`, `aria-modal`, a label from its own heading, Escape as a
+real way out, focus moved in on open and returned on close, and the page behind
+it not scrolling. A close control must do something — the unlock prompt used to
+render an X wired to nothing, which is a false affordance in the one place a
+phone user has no password to hand. That gate is now dismissible ("Not now")
+and leaves a single strip above the list with a way back in; only the message
+bodies need the key, so the folders, settings and admin stay reachable.
+
 ## Composition rules
 
 - **The rest state of the mail surface is one column.** With nothing open, the
@@ -126,6 +137,14 @@ by the checkbox — the row never gains height.
   collapse into one line with a count and an expand.
 - **The sidebar ends deliberately** — a footer with the account and settings, not
   a void below the last group.
+- **A table is a desktop shape.** Below `sm` the admin's account table becomes one
+  card per row: name, address, role, then full-width 44 px actions. The table sits
+  ~450 px wide inside its own container, so at 390 it scrolled sideways with its
+  action column past the edge while the page reported no overflow at all.
+- **Four tabs do not fit a phone in one row.** The admin's tab strip wraps to a
+  2 × 2 grid below `sm`; a scroller leaves the fourth surface half cut. Below
+  `sm` nothing may paint past the viewport — measured as `rect.right`, which is
+  the check `scrollWidth` cannot make.
 
 ## "Better", as numbers
 

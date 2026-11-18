@@ -100,6 +100,9 @@ const AuthorizedLayout = () => {
   }
   const dismissSetup = () => setSetupDismissed(true)
   const [needsUnlock, setNeedsUnlock] = useState(false)
+  // Locked mail stays readable as a list; only the bodies need the key. Dismissing the
+  // prompt must not strand the account, so it is a state with a way back.
+  const [unlockDismissed, setUnlockDismissed] = useState(false)
   const [serverStatus, setServerStatus] = useState('checking')
 
   const { uids, setUids, previews, setPreviews, loading, hasMore, fetchEmails, loadMore, fetchPreviewsFor, reload, checkNew } = useEmailFetch()
@@ -828,11 +831,27 @@ const AuthorizedLayout = () => {
             onOpenNav={() => setNavOpen(true)}
             
           />
+          {/* One strip above the list, never two: while the mailbox is locked the unlock
+              is the thing that matters, so the setup gaps wait their turn. */}
           <SetupStrip
-            items={setupDismissed ? [] : setupGaps}
+            items={needsUnlock && unlockDismissed ? [] : setupDismissed ? [] : setupGaps}
             onOpen={(href) => navigate(href || '/settings')}
             onDismiss={dismissSetup}
           />
+          {needsUnlock && unlockDismissed && (
+            <div className="flex items-center gap-2 border-b border-line bg-secondary/40 px-4 py-1.5">
+              <span className="min-w-0 flex-1 text-[12.5px] text-ink-2">
+                Mail is locked — message bodies stay sealed until you unlock.
+              </span>
+              <button
+                type="button"
+                onClick={() => setUnlockDismissed(false)}
+                className="shrink-0 rounded-md border border-line px-2.5 text-[12px] text-ink-1 transition-colors duration-120 hover:bg-accent max-sm:min-h-[44px] sm:min-h-7"
+              >
+                Unlock
+              </button>
+            </div>
+          )}
           <div
             /* The phone bar is fixed to the bottom edge; reserve its height here so the
                list ends above it instead of being clipped mid-row behind it. */
@@ -1106,8 +1125,9 @@ const AuthorizedLayout = () => {
       )}
 
       <UnlockModal
-        isOpen={needsUnlock}
+        isOpen={needsUnlock && !unlockDismissed}
         onUnlocked={() => window.location.reload()}
+        onDismiss={() => setUnlockDismissed(true)}
       />
     </div>
   )

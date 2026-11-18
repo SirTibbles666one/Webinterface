@@ -357,11 +357,10 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
         </div>
 
         <div className="relative mx-auto w-full max-w-[1080px]">
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-background to-transparent sm:hidden"
-          />
-          <div className="flex w-full gap-1 overflow-x-auto pl-4 pr-10 pb-2 sm:px-4 [scrollbar-width:none]">
+          {/* Four short labels do not fit a phone in one row: "System" sat past the
+              edge, so the fourth surface was effectively missing. A grid shows all
+              four; the desktop row keeps its tighter 38px rhythm. */}
+          <div className="grid grid-cols-2 gap-1 px-4 pb-2 sm:flex sm:overflow-x-auto sm:[scrollbar-width:none]">
           {TABS.map(({ id, label, icon: Icon }) => {
             const count = id === 'people' ? users.length : id === 'access' ? pending.length : 0
             const active = tab === id
@@ -370,7 +369,7 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                 key={id}
                 onClick={() => setTab(id)}
                 aria-current={active ? 'page' : undefined}
-                className={`flex min-h-[38px] shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] transition-colors duration-120 ${
+                className={`flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] transition-colors duration-120 sm:min-h-[38px] ${
                   active ? 'bg-secondary font-medium text-ink-1' : 'text-ink-3 hover:bg-accent hover:text-ink-1'
                 }`}
               >
@@ -400,13 +399,13 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
             title="Mailboxes"
             note="Every account on this server. Deleting one removes its mail, its key and its addresses; that cannot be undone."
           >
-            <div className="flex items-center gap-2 border-b border-line px-4 py-2">
+            <div className="flex min-h-[44px] items-center gap-2 border-b border-line px-4 py-2 sm:min-h-0">
               <Search className="size-3.5 text-ink-3" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search name or address"
-                className="w-full bg-transparent text-[12.5px] text-ink-1 placeholder:text-ink-3 focus:outline-none"
+                className="w-full bg-transparent text-[12.5px] text-ink-1 placeholder:text-ink-3 focus:outline-none max-sm:min-h-[44px]"
               />
               <span className="mono shrink-0 text-[11px] text-ink-3">
                 {filteredUsers.length} of {users.length}
@@ -424,7 +423,74 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                     : 'No accounts yet.'}
               </Empty>
             ) : (
-              <table className="w-full">
+              <>
+                {/* The table is ~450px wide inside its own container, so at 390 it
+                    scrolled sideways and its action column sat past the edge — the
+                    page reported no overflow and the controls read as missing. Below
+                    sm one card per account, every action full width and in reach. */}
+                <ul className="divide-y divide-line sm:hidden">
+                  {filteredUsers.map((user) => {
+                    const self = user.username === storage.getUsername()
+                    return (
+                      <li key={user.uid ?? user.username} className="px-4 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-[13.5px] font-medium text-ink-1">{user.username}</p>
+                            <p className="mono mt-0.5 truncate text-[11px] text-ink-3">
+                              {user.email ?? `${user.username}@slothlee.xyz`}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => toggleAdmin(user)}
+                            disabled={self}
+                            aria-label={user.is_admin ? 'Revoke admin' : 'Grant admin'}
+                            className={`inline-flex min-h-[44px] shrink-0 items-center gap-1 rounded-full border px-3 text-[11px] ${
+                              user.is_admin
+                                ? 'border-primary/35 bg-primary/10 text-primary'
+                                : 'border-line text-ink-3'
+                            } ${self ? 'opacity-60' : ''}`}
+                          >
+                            {user.is_admin ? <ShieldCheck className="size-3" /> : <Shield className="size-3" />}
+                            {user.is_admin ? 'admin' : 'user'}
+                          </button>
+                        </div>
+                        <p className="mt-1.5 text-[11.5px] text-ink-3">
+                          {user.recovery_email ?? 'No recovery address'}
+                        </p>
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => openRecovery(user)}
+                            className="min-h-[44px] gap-1.5 text-[12.5px] text-ink-2"
+                          >
+                            <KeyRound className="size-4" /> Recovery
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setModalState({ type: 'delete', username: user.username })}
+                            disabled={self}
+                            className="min-h-[44px] gap-1.5 text-[12.5px] text-destructive"
+                          >
+                            <Trash2 className="size-4" /> Delete
+                          </Button>
+                        </div>
+                        <Button
+                          variant="outline"
+                          onClick={() => toggleSuspended(user, !user.suspended)}
+                          disabled={self || busy === user.username}
+                          className={`mt-2 w-full min-h-[44px] gap-1.5 text-[12.5px] ${
+                            user.suspended ? 'border-primary/40 text-primary' : 'text-ink-2'
+                          }`}
+                        >
+                          <Power className="size-4" />
+                          {self ? 'This is your account' : user.suspended ? 'Switch it back on' : 'Switch this account off'}
+                        </Button>
+                      </li>
+                    )
+                  })}
+                </ul>
+
+              <table className="hidden w-full sm:table">
                 <thead>
                   <tr className="border-b border-line text-left">
                     <th className={`${cell} label`}>Mailbox</th>
@@ -492,10 +558,11 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                           </td>
                         </tr>
                         {/* Switching an account off keeps its mail; only the
-                            way in stops. Full width so it reads as a decision
-                            about the whole row, not another icon. */}
+                            way in stops. Right-aligned under the row so it reads as
+                            an action on that account, not a band across the table. */}
                         <tr className="border-b border-line/70 last:border-0">
                           <td colSpan={4} className="px-4 pb-3 pt-0">
+                            <div className="flex justify-end">
                             <Button
                               variant="outline"
                               size="sm"
@@ -508,13 +575,14 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                                     ? 'Let this account sign in again'
                                     : 'Keep the mail, stop sign-in'
                               }
-                              className={`w-full gap-1.5 text-[12.5px] max-sm:min-h-[44px] ${
+                              className={`gap-1.5 text-[12.5px] ${
                                 user.suspended ? 'border-primary/40 text-primary hover:bg-primary/10' : 'text-ink-2'
                               }`}
                             >
                               <Power className="size-4" />
                               {self ? 'This is your account' : user.suspended ? 'Switch it back on' : 'Switch this account off'}
                             </Button>
+                            </div>
                           </td>
                         </tr>
                       </Fragment>
@@ -522,6 +590,7 @@ Go to https://mail.slothlee.xyz/signup and paste it to create your account. It w
                   })}
                 </tbody>
               </table>
+              </>
             )}
           </Panel>
         )}
