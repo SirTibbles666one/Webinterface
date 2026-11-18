@@ -1,3 +1,4 @@
+import { formatClock } from '@/lib/appearance'
 import { useState } from 'react'
 import {
   DropdownMenuRoot,
@@ -27,7 +28,8 @@ export function rowTime(date, omitDate = false) {
     d.getMonth() === now.getMonth() &&
     d.getFullYear() === now.getFullYear()
   if (sameDay) {
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+    // The reader chooses 24- or 12-hour; see lib/appearance.
+    return formatClock(d)
   }
   // Inside a day group the header already says which day it is; printing the date on every
   // row repeats it six times and squeezes the name that the row exists to show.

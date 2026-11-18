@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Sun, Moon, Monitor, Rows3, Rows4, Check } from 'lucide-react'
-import { readTheme, setTheme, readDensity, setDensity } from '@/lib/appearance'
+import { Sun, Moon, Monitor, Rows3, Rows4, Check, Clock3, Clock12 } from 'lucide-react'
+import { readTheme, setTheme, readDensity, setDensity, readClock, setClock } from '@/lib/appearance'
 
 function Choice({ active, onClick, children, label }) {
   return (
@@ -24,11 +24,13 @@ function Choice({ active, onClick, children, label }) {
 export default function AppearanceSection() {
   const [theme, setThemeChoice] = useState(readTheme)
   const [density, setDensityChoice] = useState(readDensity)
+  const [clock, setClockChoice] = useState(readClock)
 
   useEffect(() => {
     const sync = () => {
       setThemeChoice(readTheme())
       setDensityChoice(readDensity())
+      setClockChoice(readClock())
     }
     window.addEventListener('sloth:appearance', sync)
     return () => window.removeEventListener('sloth:appearance', sync)
@@ -70,6 +72,21 @@ export default function AppearanceSection() {
         </div>
         <p className="mt-2 text-[12px] text-ink-3">
           Compact drops the preview line and tightens each row. Sender, subject and time stay.
+        </p>
+      </div>
+
+      <div>
+        <p className="mb-2 text-[12.5px] font-medium text-ink-1">Clock</p>
+        <div className="flex flex-wrap gap-2">
+          <Choice active={clock === '24'} onClick={() => setClock('24')} label="24-hour clock">
+            <Clock3 className="size-3.5" /> 24-hour
+          </Choice>
+          <Choice active={clock === '12'} onClick={() => setClock('12')} label="12-hour clock with AM and PM">
+            <Clock12 className="size-3.5" /> 12-hour (AM/PM)
+          </Choice>
+        </div>
+        <p className="mt-2 text-[12px] text-ink-3">
+          Used everywhere a time is shown — the list, conversations, and when a message is held.
         </p>
       </div>
     </div>

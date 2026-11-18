@@ -14,6 +14,7 @@ import { keyCoverage, encryptBody, encryptAttachment, hasIdentity, importPublicK
 import { makePassphrase } from '@/lib/passphrase'
 import { lookupKey } from '@/lib/wkd'
 import { loadProfile } from '@/lib/profile'
+import { formatClock } from '@/lib/appearance'
 import api from '@/api'
 import { storage } from '@/storage'
 
@@ -22,7 +23,7 @@ import { storage } from '@/storage'
 function formatWhenShort(when) {
   if (!when) return ''
   const now = new Date()
-  const time = when.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  const time = formatClock(when)
   if (when.toDateString() === now.toDateString()) return time
   const tomorrow = new Date(now)
   tomorrow.setDate(now.getDate() + 1)
@@ -34,7 +35,7 @@ function formatWhen(when) {
   if (!when) return ''
   const now = new Date()
   const sameDay = when.toDateString() === now.toDateString()
-  const time = when.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  const time = formatClock(when)
   if (sameDay) return time
   const tomorrow = new Date(now)
   tomorrow.setDate(now.getDate() + 1)

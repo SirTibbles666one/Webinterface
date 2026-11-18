@@ -16,6 +16,7 @@ import { hasIdentity } from '@/lib/pgpRing'
 import { UnlockModal } from '@/components/UnlockModal'
 import { EmailToolbar } from '@/components/EmailToolbar'
 import { ThreadView } from '@/components/ThreadView'
+import { formatClock } from '@/lib/appearance'
 import { loadProfile } from '@/lib/profile'
 import { useEmailFetch } from '@/hooks/useEmailFetch'
 import { useSentEmails } from '@/hooks/useSentEmails'
@@ -61,6 +62,15 @@ const AuthorizedLayout = () => {
     const onChange = () => setWideForPane(mq.matches)
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
+  }, [])
+
+  // Times are formatted at render from the reader's clock preference, so a change made in
+  // Settings has to re-render the rows that are already on screen.
+  const [, bumpAppearance] = useState(0)
+  useEffect(() => {
+    const onChange = () => bumpAppearance((n) => n + 1)
+    window.addEventListener('sloth:appearance', onChange)
+    return () => window.removeEventListener('sloth:appearance', onChange)
   }, [])
 
   // A conversation opened as its own screen, rather than expanded in the list.
@@ -884,7 +894,7 @@ const AuthorizedLayout = () => {
     if (!value) return ''
     const d = new Date(value)
     if (Number.isNaN(d.getTime())) return ''
-    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+    const time = formatClock(d)
     const now = new Date()
     const sameDay =
       d.getDate() === now.getDate() &&
