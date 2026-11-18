@@ -98,7 +98,16 @@ api.interceptors.response.use(
  * deliberately shown to the server — per message, on purpose, never automatic.
  */
 export const reportSpam = async (uid, verdict, raw) => {
-  const res = await api.post('/spam/report', { uid: String(uid), verdict, raw })
+  // Every other call here sends its own Authorization header — this one shipped without it
+  // and the endpoint answered 401, which the button then showed. Never assume the axios
+  // instance carries a session.
+  const token = storage.getToken()
+  if (!token) throw new Error('Not signed in')
+  const res = await api.post(
+    '/spam/report',
+    { uid: String(uid), verdict, raw },
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
   return res.data
 }
 
