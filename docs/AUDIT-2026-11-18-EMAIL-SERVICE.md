@@ -115,7 +115,8 @@ settles it.
    per-account cap: **576 live sessions, 400 of them one test account**. That is a "signed-in
    devices" list nobody can read, and a spray surface for a stolen password. Cap is now 20 per
    account, oldest idle first, enforced on new sessions and in the sweep; two tests pin it
-   (184 server tests).
+   (184 server tests). **Measured on the deploy: 577 sessions → 76, every account at or under
+   20, and a message delivered afterwards.**
 
 7. **Bot rejections are invisible to the owner.** 13 Postfix rejects in 24 h, all unsolicited
    traffic. The health card reports rspamd's counts, not the SMTP edge's. One more number on the
