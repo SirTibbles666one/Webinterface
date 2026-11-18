@@ -149,6 +149,18 @@ bodies need the key, so the folders, settings and admin stay reachable.
   `sm` nothing may paint past the viewport — measured as `rect.right`, which is
   the check `scrollWidth` cannot make.
 
+## Search
+
+Search is a promise about the mailbox, not about the screen. A query walks the
+remaining pages behind one quiet strip ("Searching the rest of the mailbox…")
+rather than filtering only what happened to be loaded — a search that quietly
+misses older mail reads as broken, and no empty state can explain it away.
+
+The bar prints a shortcut, so the bar answers it: Cmd/Ctrl+K focuses the field,
+Escape empties the query before it leaves the field, and the printed hint follows
+the platform (⌘K on a Mac, Ctrl K elsewhere). Any keycap in the chrome is a test
+obligation — if nothing handles it, delete the keycap.
+
 ## "Better", as numbers
 
 A pass is done when, on the deployed build:
