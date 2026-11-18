@@ -4,8 +4,9 @@ Companion to `ADMIN-PANEL-PLAN.md`. That document says *what* and *in what order
 says *exactly how* for the phase being built next, and designs the screens the later phases
 will need.
 
-Status: **Phase A built and verified on 2026-11-18** — audit store, endpoint, Activity tab,
-and the four guards proved against production. Phases B–G remain specification.
+Status: **Phases A, B and C built and verified on 2026-11-18.** A: audit log + Activity tab.
+B: suspension reason, end date, self-lifting expiry, recovery-address notice. C: mail health
+card (rspamd, junk totals, queue). Phases D–G remain specification.
 
 ---
 
@@ -232,8 +233,8 @@ already carried `trash`, `junk`, `subject_rules` and now `roles` without ever to
 | order | phase | sessions | risk |
 |---|---|---|---|
 | 1 | A — audit log + Activity tab | **done** | low |
-| 2 | B — suspension reason/expiry | 1 | low |
-| 3 | C — mail health | 1 | low (read-only) |
+| 2 | B — suspension reason/expiry | **done** | low |
+| 3 | C — mail health | **done** | low (read-only) |
 | 4 | E — storage per account | 1 | low |
 | 5 | D — DMARC reports | 1 | low (read-only) |
 | 6 | F — roles via sidecar | 1 | medium |
