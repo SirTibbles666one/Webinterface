@@ -1,23 +1,31 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
-// jsdom has localStorage and sessionStorage but not WebCrypto's subtle for everything we need,
-// so the session key material is stubbed and the real crypto does the work.
-const PRIVATE_KEY_JSON = JSON.stringify({ format: 'jwk', data: { kty: 'RSA', d: 'secret-material', n: 'modulus' } })
-
-const loadStore = async () => {
+// Drafts are encrypted under a key derived from the session's private-key material, which lives in
+// memory only now. These tests hold both facts: the ciphertext is on disk, and the ability to read
+// it ends with the page.
+const loadModules = async () => {
   vi.resetModules()
-  return import('@/lib/draftStore')
+  const store = await import('@/lib/draftStore')
+  const { keySession } = await import('@/keySession')
+  return { store, keySession }
 }
+
+const makeKey = () =>
+  crypto.subtle.generateKey(
+    { name: 'RSA-OAEP', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+    true,
+    ['encrypt', 'decrypt'],
+  )
 
 describe('drafts at rest', () => {
   beforeEach(() => {
     localStorage.clear()
     sessionStorage.clear()
-    sessionStorage.setItem('openneutron.private_key', PRIVATE_KEY_JSON)
   })
 
   it('never writes the body to localStorage in the clear', async () => {
-    const store = await loadStore()
+    const { store, keySession } = await loadModules()
+    await keySession.set((await makeKey()).privateKey)
     await store.loadDrafts()
     store.put({ id: 'draft_1', to: 'bank@example.com', subject: 'Transfer', body: 'the password is hunter2' })
     await store.reencryptAll()
@@ -30,33 +38,42 @@ describe('drafts at rest', () => {
     expect(JSON.parse(raw).ct).toBeTruthy()
   })
 
-  it('reads them back with the same session key', async () => {
-    const store = await loadStore()
+  it('never puts the private key in storage at all', async () => {
+    const { keySession } = await loadModules()
+    await keySession.set((await makeKey()).privateKey)
+    expect(sessionStorage.getItem('openneutron.private_key')).toBeNull()
+    expect(localStorage.getItem('openneutron.private_key')).toBeNull()
+  })
+
+  it('reads drafts back while the same key is in memory', async () => {
+    const { store, keySession } = await loadModules()
+    await keySession.set((await makeKey()).privateKey)
     await store.loadDrafts()
     store.put({ id: 'draft_1', body: 'the password is hunter2' })
     await store.reencryptAll()
 
-    const reopened = await loadStore()
-    const drafts = await reopened.loadDrafts()
+    const drafts = await store.loadDrafts()
     expect(drafts).toHaveLength(1)
     expect(drafts[0].body).toBe('the password is hunter2')
   })
 
-  it('shows nothing rather than garbage when the key no longer matches', async () => {
-    const store = await loadStore()
+  it('shows nothing rather than garbage once the key is gone', async () => {
+    const { store, keySession } = await loadModules()
+    await keySession.set((await makeKey()).privateKey)
     await store.loadDrafts()
     store.put({ id: 'draft_1', body: 'secret' })
     await store.reencryptAll()
 
-    sessionStorage.setItem('openneutron.private_key', JSON.stringify({ format: 'jwk', data: { d: 'a-different-key' } }))
-    const reopened = await loadStore()
-    const drafts = await reopened.loadDrafts()
-    expect(drafts).toEqual([])
+    keySession.clear()
+    vi.resetModules()
+    const fresh = await import('@/lib/draftStore')
+    expect(await fresh.loadDrafts()).toEqual([])
   })
 
   it('migrates a plaintext draft left by the old storage and removes the plaintext', async () => {
     localStorage.setItem('openneutron', JSON.stringify({ token: 't', drafts: [{ id: 'draft_old', body: 'legacy secret' }] }))
-    const store = await loadStore()
+    const { store, keySession } = await loadModules()
+    await keySession.set((await makeKey()).privateKey)
     const drafts = await store.loadDrafts()
     expect(drafts).toHaveLength(1)
     expect(drafts[0].body).toBe('legacy secret')

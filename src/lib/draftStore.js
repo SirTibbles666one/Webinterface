@@ -1,4 +1,5 @@
 import { toBase64, fromBase64 } from '@/lib/bytes'
+import { keySession } from '@/keySession'
 
 /**
  * Drafts, kept out of the disk in the clear.
@@ -24,9 +25,11 @@ let writeChain = Promise.resolve()
 const enc = () => new TextEncoder()
 
 async function deriveKey() {
+  // The key material lives in memory while the mailbox is unlocked; it is deliberately not
+  // persisted anywhere, so drafts are readable exactly as long as the session is.
   let raw = null
   try {
-    raw = sessionStorage.getItem('openneutron.private_key')
+    raw = keySession.serialized()
   } catch {
     return null
   }

@@ -8,6 +8,9 @@ const PQ_KEY = 'openneutron.pq_key'
 
 let privateKeyCache = null
 let pqSecretCache = null
+// The serialised form, kept in memory only. Drafts derive their encryption key from it, and it
+// must not be a thing that survives a reload: that is the whole point of this change.
+let serializedCache = null
 
 // ─── Binary helpers (duplicated locally to avoid circular imports) ────────────
 function toForgeBin(u8) { let s = ''; for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]); return s }
@@ -46,61 +49,39 @@ async function deserializeKey(stored) {
 }
 
 export const keySession = {
+  /**
+   * Keep the private key for the life of this page, and nowhere else.
+   *
+   * It used to be written to sessionStorage, which made it readable by anything that can run in
+   * the page and meant a reload never had to ask for the password. That is the opposite of what
+   * the mailbox promises: the password is what unwraps the key, so the key should stop existing
+   * when the page does, and a reload should cost one password entry (the UnlockModal).
+   */
   set: async (key) => {
-    debugLog('[keySession] set() — storing key in memory + sessionStorage')
     privateKeyCache = key
     try {
-      const serialized = await serializeKey(key)
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(serialized))
-      debugLog('[keySession] ✅ Key persisted to sessionStorage (format:', serialized.format, ')')
-    } catch (err) {
+      serializedCache = JSON.stringify(await serializeKey(key))
       sessionStorage.removeItem(SESSION_KEY)
-      debugLog('[keySession] ❌ Failed to persist key:', err)
-      throw err
+    } catch (err) {
+      // Without a serialised form, drafts cannot be encrypted; the key itself is still usable.
+      serializedCache = null
+      debugLog('[keySession] could not serialise the key for draft storage:', err)
     }
   },
 
+  /** The serialised key, in memory only — null once the page is gone. */
+  serialized: () => serializedCache,
+
   get: async () => {
-    if (privateKeyCache) {
-      debugLog('[keySession] get() — returning cached key')
-      return privateKeyCache
-    }
-    const raw = sessionStorage.getItem(SESSION_KEY)
-    debugLog('[keySession] get() — cache miss, sessionStorage has key:', !!raw)
-    if (!raw) {
-      debugLog('[keySession] ⚠️ No key in sessionStorage — re-login required')
-      return null
-    }
-    try {
-      let stored
-      try {
-        stored = JSON.parse(raw)
-      } catch {
-        sessionStorage.removeItem(SESSION_KEY)
-        return null
-      }
-      // Legacy: old sessions stored raw JWK object directly (no format wrapper)
-      if (!stored.format) stored = { format: 'jwk', data: stored }
-      const key = await deserializeKey(stored)
-      if (!key) {
-        debugLog('[keySession] ⚠️ Cannot restore key without Web Crypto API — re-login required')
-        sessionStorage.removeItem(SESSION_KEY)
-        return null
-      }
-      privateKeyCache = key
-      debugLog('[keySession] ✅ Key restored from sessionStorage')
-      return privateKeyCache
-    } catch (err) {
-      debugLog('[keySession] ❌ Failed to restore key:', err)
-      sessionStorage.removeItem(SESSION_KEY)
-      return null
-    }
+    if (privateKeyCache) return privateKeyCache
+    // Nothing to restore from: the key does not outlive the page.
+    return null
   },
 
   clear: () => {
-    debugLog('[keySession] clear() — wiping memory + sessionStorage')
     privateKeyCache = null
     pqSecretCache = null
+    serializedCache = null
     sessionStorage.removeItem(SESSION_KEY)
     sessionStorage.removeItem(SALT_KEY)
     sessionStorage.removeItem(PQ_KEY)
@@ -112,9 +93,9 @@ export const keySession = {
   setPq: (base64Secret) => {
     if (!base64Secret) return
     pqSecretCache = base64Secret
-    try { sessionStorage.setItem(PQ_KEY, base64Secret) } catch (err) { debugLog('[keySession] pq key not persisted:', err) }
+    sessionStorage.removeItem(PQ_KEY)
   },
-  getPq: () => pqSecretCache || sessionStorage.getItem(PQ_KEY),
+  getPq: () => pqSecretCache,
 
   setSalt: (salt) => {
     debugLog('[keySession] setSalt():', salt)
