@@ -1396,7 +1396,16 @@ const AuthorizedLayout = () => {
 
       <UnlockModal
         isOpen={needsUnlock && !unlockDismissed}
-        onUnlocked={() => window.location.reload()}
+        onUnlocked={() => {
+          // This used to reload the page, which was right while the key lived in sessionStorage:
+          // the reload restored it. Now the key is memory-only, so reloading would wipe the key
+          // that was just entered and re-open this dialog — a mailbox nobody could open again.
+          setNeedsUnlock(false)
+          setUnlockDismissed(false)
+          // Everything that failed to decrypt while locked is fetched again now that it can.
+          handleRefresh()
+          draftStore.loadDrafts().then(setDrafts).catch(() => {})
+        }}
         onDismiss={() => setUnlockDismissed(true)}
       />
     </div>

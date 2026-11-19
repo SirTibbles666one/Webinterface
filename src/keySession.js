@@ -1,6 +1,5 @@
 import forge from 'node-forge'
 import { debugLog } from '@/lib/debug'
-import { hasSubtleCrypto } from './crypto'
 
 const SESSION_KEY = 'openneutron.private_key'
 const SALT_KEY = 'openneutron.salt'
@@ -13,10 +12,8 @@ let pqSecretCache = null
 let serializedCache = null
 
 // ─── Binary helpers (duplicated locally to avoid circular imports) ────────────
-function toForgeBin(u8) { let s = ''; for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]); return s }
 function fromForgeBin(s) { const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u }
 function toB64(u8) { let b = ''; for (let i = 0; i < u8.length; i++) b += String.fromCharCode(u8[i]); return btoa(b) }
-function fromB64(b64) { const s = atob(b64); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u }
 
 // Serialize either a WebCrypto CryptoKey or a forge key handle to PKCS#8 DER base64
 async function serializeKey(key) {
@@ -28,24 +25,6 @@ async function serializeKey(key) {
   }
   const jwk = await crypto.subtle.exportKey('jwk', key)
   return { format: 'jwk', data: jwk }
-}
-
-// Deserialize a stored key — always produces the right type for the current environment
-async function deserializeKey(stored) {
-  if (stored.format === 'pkcs8b64') {
-    const bytes = fromB64(stored.data)
-    if (hasSubtleCrypto) {
-      return crypto.subtle.importKey('pkcs8', bytes, { name: 'RSA-OAEP', hash: 'SHA-256' }, true, ['decrypt'])
-    }
-    const asn1      = forge.asn1.fromDer(toForgeBin(bytes))
-    const innerAsn1 = forge.asn1.fromDer(asn1.value[2].value)
-    return { _forge: true, key: forge.pki.privateKeyFromAsn1(innerAsn1) }
-  }
-  // JWK (WebCrypto-generated key — only loadable when subtle is available)
-  if (hasSubtleCrypto) {
-    return crypto.subtle.importKey('jwk', stored.data, { name: 'RSA-OAEP', hash: 'SHA-256' }, true, ['decrypt'])
-  }
-  return null // JWK without subtle → cannot import; force re-login
 }
 
 export const keySession = {
