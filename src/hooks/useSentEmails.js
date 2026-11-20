@@ -79,8 +79,10 @@ export function useSentEmails(setPreviews) {
         }),
       )
       setPreviews((prev) => ({ ...prev, ...newPreviews }))
-    } catch {}
-    finally {
+    } catch (err) {
+      // The Sent list keeps what it had; the reason a refresh failed is recorded rather than dropped.
+      debugLog('[useSentEmails] refresh failed:', err)
+    } finally {
       isFetchingSentRef.current = false
     }
   }, [setPreviews])

@@ -1,3 +1,4 @@
+import { debugLog } from '@/lib/debug'
 import { useCallback, useState } from 'react'
 import { listSnoozed, snoozeEmail, unsnoozeEmail } from '@/api'
 import { isMissingRoute } from '@/lib/deleteMessage'
@@ -35,7 +36,11 @@ export function useSnoozed({ fetchPreviewsFor }) {
       try {
         await snoozeEmail(uid, until)
         done.push(String(uid))
-      } catch {}
+      } catch (err) {
+        // Partial success is the contract here — the rows that worked are kept — but a silent catch hid WHY the rest
+        // failed, which is how a snooze that never works looks identical to one that worked.
+        debugLog('[useSnoozed] snooze failed for uid=%s:', uid, err)
+      }
     }))
     if (done.length) {
       setItems((prev) => {
@@ -55,7 +60,9 @@ export function useSnoozed({ fetchPreviewsFor }) {
       try {
         await unsnoozeEmail(uid)
         done.push(String(uid))
-      } catch {}
+      } catch (err) {
+        debugLog('[useSnoozed] unsnooze failed for uid=%s:', uid, err)
+      }
     }))
     if (done.length) {
       const gone = new Set(done)

@@ -12,6 +12,13 @@ export default defineConfig([
       js.configs.recommended,
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
+      {
+        // The rule exists so a module's exports stay hot-reloadable: a file exporting both a component and a constant
+        // invalidates HMR for the component. This app has no hot reload in production and deliberately keeps small
+        // constants beside the component that owns them (a label list, a size map). Downgraded rather than silenced, so a
+        // genuinely mixed module still shows up as a warning to look at.
+        rules: { 'react-refresh/only-export-components': 'warn' },
+      },
     ],
     languageOptions: {
       ecmaVersion: 2020,
