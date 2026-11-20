@@ -1056,6 +1056,9 @@ const AuthorizedLayout = () => {
           <Sidebar
             selectedFolder={selectedFolder}
             onSelectFolder={setSelectedFolder}
+            mailboxes={mailboxes}
+            selectedMailbox={selectedMailbox}
+            onSelectMailbox={chooseMailbox}
             groups={groups}
             onRequestCreateGroup={() => setModalState({ type: 'create-group' })}
             onRequestRenameGroup={(id, name) => setModalState({ type: 'rename-group', id, name })}
@@ -1097,6 +1100,9 @@ const AuthorizedLayout = () => {
               <Sidebar
                 selectedFolder={selectedFolder}
                 onSelectFolder={(folder) => { setSelectedFolder(folder); setNavOpen(false) }}
+                mailboxes={mailboxes}
+                selectedMailbox={selectedMailbox}
+                onSelectMailbox={chooseMailbox}
                 groups={groups}
                 onRequestCreateGroup={() => { setNavOpen(false); setModalState({ type: 'create-group' }) }}
                 onRequestRenameGroup={(id, name) => { setNavOpen(false); setModalState({ type: 'rename-group', id, name }) }}

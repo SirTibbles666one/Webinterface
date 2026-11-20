@@ -62,6 +62,9 @@ const Sidebar = ({
   snoozeCount = 0,
   onCompose,
   onOpenSettings,
+  mailboxes = [],
+  selectedMailbox = '',
+  onSelectMailbox = null,
 }) => {
   // The viewport, live: a screenshot then carries both halves of every argument we have
   // had about "nothing is changing" — the build, and the space the page was given.
@@ -172,6 +175,31 @@ const Sidebar = ({
       </nav>
 
       <div className="my-2.5 mx-2.5 border-t border-line" />
+
+      {mailboxes.length > 0 && (
+        <>
+          <div className="px-4 pb-1">
+            <span className="label">Mailboxes</span>
+          </div>
+          <nav aria-label="Mailboxes">
+            {mailboxes.map((box) => (
+              <button
+                key={box.name}
+                type="button"
+                onClick={() => onSelectMailbox?.(box.name === selectedMailbox ? '' : box.name)}
+                aria-pressed={selectedMailbox === box.name}
+                title={(box.addresses ?? []).join(', ')}
+                className={`flex w-full items-center gap-2.5 px-4 py-1.5 text-left text-[13px] transition-colors duration-120 ${
+                  selectedMailbox === box.name ? 'bg-primary/10 font-medium text-primary' : 'text-ink-2 hover:bg-surface-2'
+                }`}
+              >
+                <span className="truncate">{box.name}</span>
+              </button>
+            ))}
+          </nav>
+          <div className="my-2.5 mx-2.5 border-t border-line" />
+        </>
+      )}
 
       <div className="flex items-center justify-between px-4 pb-1">
         <span className="label">Groups</span>
