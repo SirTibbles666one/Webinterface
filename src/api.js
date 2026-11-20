@@ -591,6 +591,13 @@ export const setAliasDisabled = async (local, disabled) => {
   return response.data
 }
 
+// Mail through this address is filed as junk as it lands: the switch for an address handed out on purpose.
+export const setAliasJunk = async (local, junk) => {
+  const token = storage.getToken()
+  const response = await api.post('/aliases/junk', { local, junk }, { headers: { Authorization: `Bearer ${token}` } })
+  return response.data
+}
+
 export const deleteAlias = async (local) => {
   const token = storage.getToken()
   const response = await api.post('/aliases/delete', { local }, { headers: { Authorization: `Bearer ${token}` } })

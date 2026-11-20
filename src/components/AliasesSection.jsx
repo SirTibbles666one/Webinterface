@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Copy, Check, Plus, Trash2, Power } from 'lucide-react'
-import { listAliases, createAlias, setAliasDisabled, deleteAlias } from '@/api'
+import { listAliases, createAlias, setAliasDisabled, setAliasJunk, deleteAlias } from '@/api'
 import { copyWithToast } from '@/lib/toast'
 
 /**
@@ -73,6 +73,20 @@ export function AliasesSection() {
       await refresh()
     } catch (err) {
       setError(err.response?.data?.error ?? 'Could not change that address')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // A bait address: everything through it is filed as junk as it lands, so it can be handed out freely and watched.
+  const toggleJunk = async (row) => {
+    setBusy(true)
+    setError('')
+    try {
+      await setAliasJunk(row.local, !row.junk)
+      await refresh()
+    } catch (err) {
+      setError(err.response?.data?.error ?? 'That change was not saved')
     } finally {
       setBusy(false)
     }
@@ -160,6 +174,18 @@ export function AliasesSection() {
               <span className="ml-auto flex items-center gap-2">
                 <button type="button" onClick={() => copy(row.address)} className="text-ink-2" title="Copy">
                   {copied === row.address ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleJunk(row)}
+                  disabled={busy}
+                  aria-pressed={Boolean(row.junk)}
+                  className={`rounded px-1 text-[10px] disabled:opacity-40 ${
+                    row.junk ? 'bg-warn/20 px-1.5 font-medium text-warn' : 'text-ink-3'
+                  }`}
+                  title={row.junk ? 'Mail to this address goes to Junk — click to send it to the inbox' : 'Send mail to this address to Junk'}
+                >
+                  Junk
                 </button>
                 <button
                   type="button"
