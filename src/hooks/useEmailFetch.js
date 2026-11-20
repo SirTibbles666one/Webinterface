@@ -21,6 +21,7 @@ export function useEmailFetch(addresses = null) {
   const [previews, setPreviews] = useState({})
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
+  const [error, setError] = useState(null)
   const [offset, setOffset] = useState(0)
   const isFetchingRef = useRef(false)
   const uidsRef = useRef(uids)
@@ -122,12 +123,15 @@ export function useEmailFetch(addresses = null) {
         body,
         { headers: { Authorization: `Bearer ${token}` } },
       )
+      setError(null)
       const newUids = res.data.uids
       setUids((prev) => (currentOffset === 0 ? newUids : [...prev, ...newUids]))
       setHasMore(newUids.length === LIMIT)
       if (newUids.length > 0) await fetchPreviewsFor(newUids)
-    } catch {
-      // A failed read leaves the list as it was; the reload path already tells the person something went wrong.
+    } catch (err) {
+      // A failed read is recorded, not swallowed: the list has to be able to say "the server did not answer" instead of
+      // showing an empty folder, which is the same screen with a different meaning.
+      setError(err?.response?.data?.error ?? 'The server did not answer.');
     } finally {
       isFetchingRef.current = false
       setLoading(false)
@@ -196,5 +200,5 @@ export function useEmailFetch(addresses = null) {
     }
   }, [fetchPreviewsFor])
 
-  return { uids, setUids, previews, setPreviews, loading, hasMore, fetchEmails, loadMore, fetchPreviewsFor, reload, checkNew }
+  return { uids, setUids, previews, setPreviews, loading, hasMore, error, fetchEmails, loadMore, fetchPreviewsFor, reload, checkNew }
 }

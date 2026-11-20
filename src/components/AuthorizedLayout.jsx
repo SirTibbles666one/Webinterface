@@ -186,7 +186,7 @@ const AuthorizedLayout = () => {
     }
   }, [])
 
-  const { uids, setUids, previews, setPreviews, loading, hasMore, fetchEmails, loadMore, fetchPreviewsFor, reload, checkNew } = useEmailFetch(mailboxAddresses)
+  const { uids, setUids, previews, setPreviews, loading, hasMore, error: listError, fetchEmails, loadMore, fetchPreviewsFor, reload, checkNew } = useEmailFetch(mailboxAddresses)
   const { sentUids, setSentUids, fetchSentUids, fetchSentPreviews } = useSentEmails(setPreviews)
   // After a restore (Undo, or from Trash) the folders are read again: the server knows where
   // each message goes back to, in its order.
@@ -1304,6 +1304,8 @@ const AuthorizedLayout = () => {
                         })
                 }
                 loading={loading}
+                error={listError}
+                onRetry={() => fetchEmails(0)}
                 hasMore={selectedFolder === 'inbox' && hasMore}
                 onLoadMore={loadMore}
                 onMarkRead={markRead}

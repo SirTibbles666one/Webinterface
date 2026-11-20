@@ -25,6 +25,10 @@ const EmailList = ({
   // Selects (or clears) every message in a conversation at once.
   onCheckThread = null,
   loading,
+  // A read that FAILED is not an empty folder. Without this the list says "Nothing in your inbox yet" when the server did
+  // not answer, which is the screen lying by omission.
+  error = null,
+  onRetry = null,
   hasMore,
   onLoadMore,
   onMarkRead,
@@ -146,7 +150,8 @@ const EmailList = ({
   }
 
   const showSkeleton = loading && threads.length === 0
-  const showEmpty = !loading && threads.length === 0
+  const showError = !loading && Boolean(error) && threads.length === 0
+  const showEmpty = !loading && !showError && threads.length === 0
 
   // Arrival is an event, not a derivation: a memo that answers "which rows are
   // new *right now*" loses the answer on the next render, because the id is
@@ -379,6 +384,26 @@ const EmailList = ({
             })}
           </div>
         ))}
+
+        {showError && (
+          // The reason, then the one action that ends it. This exists because an unreachable server used to render as
+          // "Nothing in your inbox yet" — a statement about the mail, when the truth was a statement about the network.
+          <div className="px-6 py-10 text-center">
+            <p className="text-sm text-ink-1">Could not load your mail</p>
+            <p className="mt-1 text-xs text-ink-3">
+              {typeof error === 'string' && error ? error : 'The server did not answer.'}
+            </p>
+            {onRetry && (
+              <button
+                type="button"
+                onClick={onRetry}
+                className="mt-3 rounded-lg bg-primary/15 px-3 py-1.5 text-xs font-medium text-primary"
+              >
+                Try again
+              </button>
+            )}
+          </div>
+        )}
 
         {showEmpty && (() => {
           // Three different emptinesses, three different sentences: a folder
