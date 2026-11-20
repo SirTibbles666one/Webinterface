@@ -9,7 +9,14 @@ import { addressBook } from '@/addressBook'
 
 const LIMIT = 20
 
-export function useEmailFetch() {
+/**
+ * @param {string[]|null} addresses  When set, reads only mail that arrived on one of these addresses — the mailbox the
+ *   person selected. Omitted entirely for "All mail": the server treats a missing filter as every message, and an empty
+ *   array as the same thing, so sending `[]` would look like a choice while behaving like none.
+ */
+export function useEmailFetch(addresses = null) {
+  // A stable key, because a new array identity every render would restart the callback (and the fetch) on every paint.
+  const addressKey = Array.isArray(addresses) && addresses.length ? addresses.join(',') : '';
   const [uids, setUids] = useState([])
   const [previews, setPreviews] = useState({})
   const [loading, setLoading] = useState(false)
@@ -106,21 +113,33 @@ export function useEmailFetch() {
     setLoading(true)
     try {
       const token = storage.getToken()
+      const body = { offset: currentOffset, limit: LIMIT }
+      // The mailbox filter. Without this the mailbox settings screen writes to a file and changes no screen: the server
+      // treats a missing filter as every message, so a mailbox would look selected and do nothing.
+      if (addressKey) body.addresses = addressKey.split(',')
       const res = await api.post(
         '/email/recent',
-        { offset: currentOffset, limit: LIMIT },
+        body,
         { headers: { Authorization: `Bearer ${token}` } },
       )
       const newUids = res.data.uids
       setUids((prev) => (currentOffset === 0 ? newUids : [...prev, ...newUids]))
       setHasMore(newUids.length === LIMIT)
       if (newUids.length > 0) await fetchPreviewsFor(newUids)
-    } catch {}
-    finally {
+    } catch {
+      // A failed read leaves the list as it was; the reload path already tells the person something went wrong.
+    } finally {
       isFetchingRef.current = false
       setLoading(false)
     }
-  }, [fetchPreviewsFor])
+  }, [fetchPreviewsFor, addressKey])
+
+  // Switching mailbox starts a new list rather than appending the new filter's first page onto the old one.
+  const firstKey = useRef(addressKey)
+  if (firstKey.current !== addressKey) {
+    firstKey.current = addressKey
+    if (offset !== 0) setOffset(0)
+  }
 
   const loadMore = () => {
     if (isFetchingRef.current || !hasMore) return

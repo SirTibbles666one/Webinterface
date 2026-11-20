@@ -21,6 +21,7 @@ import { formatClock } from '@/lib/appearance'
 import { htmlToText } from '@/lib/text'
 import { loadProfile } from '@/lib/profile'
 import { useEmailFetch } from '@/hooks/useEmailFetch'
+import { listMailboxes } from '@/api'
 import { useSentEmails } from '@/hooks/useSentEmails'
 import { useTrash } from '@/hooks/useTrash'
 import { listShortcut, neighbourAfterRemoval, stepThrough } from '@/lib/mailNav'
@@ -150,7 +151,42 @@ const AuthorizedLayout = () => {
   const [unlockDismissed, setUnlockDismissed] = useState(false)
   const [serverStatus, setServerStatus] = useState('checking')
 
-  const { uids, setUids, previews, setPreviews, loading, hasMore, fetchEmails, loadMore, fetchPreviewsFor, reload, checkNew } = useEmailFetch()
+  // A mailbox is a named set of the account's own addresses. Selecting one filters the read; "All mail" sends no filter,
+  // because the server treats a missing filter as every message. The choice lives in the URL so a phone tab reloaded an
+  // hour later comes back to the same mailbox.
+  const [mailboxes, setMailboxes] = useState([])
+  const [selectedMailbox, setSelectedMailbox] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('mailbox') ?? ''
+    } catch {
+      return ''
+    }
+  })
+  const mailboxAddresses = mailboxes.find((m) => m.name === selectedMailbox)?.addresses ?? null
+  useEffect(() => {
+    let alive = true
+    listMailboxes()
+      .then((data) => {
+        if (alive) setMailboxes(Array.isArray(data?.mailboxes) ? data.mailboxes : [])
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+  const chooseMailbox = useCallback((name) => {
+    setSelectedMailbox(name ?? '')
+    try {
+      const url = new URL(window.location.href)
+      if (name) url.searchParams.set('mailbox', name)
+      else url.searchParams.delete('mailbox')
+      window.history.replaceState({}, '', url)
+    } catch {
+      /* a browser that refuses the history call still gets the filtered list */
+    }
+  }, [])
+
+  const { uids, setUids, previews, setPreviews, loading, hasMore, fetchEmails, loadMore, fetchPreviewsFor, reload, checkNew } = useEmailFetch(mailboxAddresses)
   const { sentUids, setSentUids, fetchSentUids, fetchSentPreviews } = useSentEmails(setPreviews)
   // After a restore (Undo, or from Trash) the folders are read again: the server knows where
   // each message goes back to, in its order.
@@ -519,6 +555,13 @@ const AuthorizedLayout = () => {
       })
     }
   }, [selectedFolder])
+
+  // A new mailbox is a new list: read it from the first page rather than appending to the old filter's pages.
+  useEffect(() => {
+    if (selectedMailbox && !mailboxAddresses) return // the list has not arrived yet
+    fetchEmails(0)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMailbox])
 
   const folderLabel = (() => {
     if (selectedFolder === 'inbox') return 'Inbox'
@@ -1202,6 +1245,30 @@ const AuthorizedLayout = () => {
                   of the list above and below and gave the body a ~250px window — the mail
                   was cut off mid-sentence. The reader now takes the screen on a phone
                   exactly as it does in the desktop pane. */}
+              {mailboxes.length > 0 && (
+                <nav aria-label="Mailboxes" className="flex flex-wrap items-center gap-1.5 border-b border-line px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => chooseMailbox('')}
+                    aria-pressed={!selectedMailbox}
+                    className={`rounded-full px-2.5 py-1 text-[11px] ${selectedMailbox ? 'text-ink-3' : 'bg-primary/15 font-medium text-primary'}`}
+                  >
+                    All mail
+                  </button>
+                  {mailboxes.map((box) => (
+                    <button
+                      key={box.name}
+                      type="button"
+                      onClick={() => chooseMailbox(box.name)}
+                      aria-pressed={selectedMailbox === box.name}
+                      title={(box.addresses ?? []).join(', ')}
+                      className={`rounded-full px-2.5 py-1 text-[11px] ${selectedMailbox === box.name ? 'bg-primary/15 font-medium text-primary' : 'text-ink-3'}`}
+                    >
+                      {box.name}
+                    </button>
+                  ))}
+                </nav>
+              )}
               <EmailList
                 searchQuery={searchQuery}
                 filterMode={filterMode}
